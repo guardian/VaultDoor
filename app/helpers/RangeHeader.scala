@@ -8,7 +8,7 @@ object RangeHeader extends ((Option[Long],Option[Long])=>RangeHeader) {
   private val partialStartRangeXtractor = "(\\d+)-$".r
   private val partialEndRangeXtractor = "^-(\\d+)$".r
 
-  private val unitsXtractor = "^(\\w+)=([\\d,\\-]+)$".r
+  private val unitsXtractor = "^(\\w+)=([\\d,\\-\\s]+)$".r
   private val groupSeparator = "\\s*,\\s*".r
 
   protected def extractRange(rangePart:String):Try[RangeHeader] = rangePart match {
@@ -39,6 +39,32 @@ object RangeHeader extends ((Option[Long],Option[Long])=>RangeHeader) {
   }
 
   /**
+    * checks for any overlapping ranges in the headers and returns a Failure if so.
+    * it's assumed that the heder sequence is sorted BEFORE going into this method
+    * @param headers Array of RangeHeader structs
+    * @return a Try containing the sorted range or a BadDataError
+    */
+  protected def checkForOverlap(headers: Array[RangeHeader]):Try[Seq[RangeHeader]] = {
+    if(headers.head.end.isEmpty && headers.length>1){
+      Failure(new BadDataError("First header specifies until end of file but there is more than one header"))
+    }
+    for(i <- 0 until headers.length-1){
+      if(i>0 && headers(i).start.isEmpty){
+        return Failure(new BadDataError("Open start range that is not the first in sequence"))
+      } else if(i+1!=headers.length && headers(i+1).end.isEmpty) {
+        return Failure(new BadDataError("Open end range that is not the last in sequence"))
+      } else {
+          if (headers(i).end.isDefined && headers(i + 1).start.isDefined) {
+            if (headers(i).end.get > headers(i + 1).start.get) {
+              return Failure(new BadDataError(s"Ranges ${headers(i).toString} and ${headers(i+1).toString} overlap"))
+            }
+          }
+      }
+    }
+    Success(headers)
+  }
+
+  /**
     * parses a header string into a sequence of RangeHeader values
     * @param str
     * @return
@@ -56,7 +82,8 @@ object RangeHeader extends ((Option[Long],Option[Long])=>RangeHeader) {
           if(failures.nonEmpty){
             Failure(failures.head)
           } else {
-            Success(ranges.collect({case Success(range)=>range}))
+            val sortedRanges = ranges.collect({case Success(range)=>range}).sortBy(_.start)
+            checkForOverlap(sortedRanges)
           }
         }
       case _=>Failure(new RuntimeException(s"Could not get start and end parameters from $str"))

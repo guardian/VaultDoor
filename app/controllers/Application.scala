@@ -48,10 +48,10 @@ class Application @Inject() (cc:ControllerComponents,
     )
   }
 
-  def getRange(maybeRangeStr:Option[String]):Try[Option[RangeHeader]] =
+  def getRange(maybeRangeStr:Option[String]):Try[Seq[RangeHeader]] =
     maybeRangeStr.map(RangeHeader.fromStringHeader) match {
-      case Some(Success(result))=>Success(Some(result))
-      case None=>Success(None)
+      case Some(Success(result))=>Success(result)
+      case None=>Success(Seq())
       case Some(Failure(err))=>Failure(err)
     }
 
@@ -83,28 +83,32 @@ class Application @Inject() (cc:ControllerComponents,
       })
     })
 
+    //if we got a channel, pull the data into a buffer and set up a Source to stream it to the client
     val maybeStreamSourceFut = maybeChannelFut.map(_.map(channel => {
-
       val maybeRange = request.headers.get("Range").map(RangeHeader.fromStringHeader)
 
       val buf = maybeRange match {
         case Some(Success(range)) =>
-          omAccess.loadChunk(channel, range.start, range.end)
+          omAccess.loadChunk(channel, range.head.start.get, range.head.end.get)
         case None =>
-          omAccess.loadAll(channel)
+          omAccess.loadAll(channel) //no range => get the whole damn thing
       }
 
-      if (buf.isFailure) throw buf.failed.get //throw out to the future and it gets caught ass a 500 error
-
+      if (buf.isFailure) throw buf.failed.get //throw out to the future and it gets caught and returned a 500 error
       (ByteBufferSource(buf.get, 1024 * 1024), buf.get.capacity())
     }))
 
+    //send appropriate responses to the client depending on the status of our operations.
     maybeStreamSourceFut.map({
       case Left(errorResponse)=>errorResponse
       case Right((streamSource,streamLen))=>Result(
         ResponseHeader(200,Map.empty), //FIXME: set correct headers
         HttpEntity.Streamed(Source.fromGraph(streamSource), Some(streamLen), Some("application/octet-stream"))  //FIXME: remove hardcoded mimetype and try to get from appliance
       )
+    }).recover({
+      case err:Throwable=>
+        logger.error(s"Could not get data for $targetUriString: ", err)
+        InternalServerError("Could not get data. Consult the logs for more details.")
     })
   }
 
