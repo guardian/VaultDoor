@@ -27,9 +27,9 @@
     <logger name="play" level="INFO" />
     <logger name="application" level="WARN" />
 
-    <logger name="helpers" level="DEBUG"/>
-    <logger name="actors" level="DEBUG"/>
-
+    <logger name="helpers" level="INFO"/>
+    <logger name="actors" level="INFO"/>
+    <logger name="streamcomponents" level="DEBUG"/>
     <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
     <logger name="com.avaje.ebean.config.PropertyMapLoader" level="OFF" />
     <logger name="com.avaje.ebeaninternal.server.core.XmlConfigLoader" level="OFF" />

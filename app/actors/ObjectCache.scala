@@ -38,6 +38,15 @@ object ObjectCache {
   }
 }
 
+/**
+  * Caching lookup actor for ObjectMatrix files.
+  * Send an Assk with the Lookup message passing an [[OMLocator]] instance and you will either get [[ObjectFound]]  with the OID
+  * or [[ObjectNotFound]] or [[ObjectLookupFailed]] in reply
+  * Initiate this via guice dependency injection.
+  * @param userInfoCache
+  * @param config
+  * @param system
+  */
 @Singleton
 class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, system:ActorSystem) extends Actor {
   private val logger = LoggerFactory.getLogger(getClass)
@@ -61,7 +70,8 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, 
   def findByFilename(userInfo:UserInfo, fileName:String):Future[Seq[String]] = Future {
     val vault = MatrixStore.openVault(userInfo)
     try {
-      val searchTerm = SearchTerm.createSimpleTerm("MXFS_PATH", fileName) //FIXME: check the metadata field namee
+      logger.debug(s"Lookup $fileName on ${vault.getId}")
+      val searchTerm = SearchTerm.createSimpleTerm("MXFS_FILENAME", fileName) //FIXME: check the metadata field namee
       val iterator = vault.searchObjectsIterator(searchTerm, 1).asScala
 
       var finalSeq: Seq[String] = Seq()
@@ -97,7 +107,9 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, 
           val originalSender = sender()
 
           userInfoCache.infoForAddress(locator.host, locator.vaultId.toString) match {
-            case None=>originalSender ! ObjectNotFound(locator)
+            case None=>
+              logger.info(s"No login information for vault ${locator.vaultId} on ${locator.host}")
+              originalSender ! ObjectNotFound(locator)
             case Some(userInfo)=>
               findByFilename(userInfo, locator.filePath).onComplete({
                 case Failure(err)=>
@@ -108,6 +120,8 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, 
                     originalSender ! ObjectNotFound(locator)
                   } else if(results.length>1){
                     logger.warn(s"Found ${results.length} object matching $locator, only using the first")
+                    ownRef ! UpdateCache(locator, results.head)
+                    originalSender ! ObjectFound(locator, results.head)
                   } else {
                     ownRef ! UpdateCache(locator, results.head)
                     originalSender ! ObjectFound(locator, results.head)

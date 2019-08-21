@@ -8,8 +8,6 @@ class Module extends AbstractModule with AkkaGuiceSupport {
   private val logger = LoggerFactory.getLogger(getClass)
 
   override def configure(): Unit = {
-    logger.info("In Module")
-
     bind(classOf[UserInfoCache]).asEagerSingleton()
     bindActor[ObjectCache]("object-cache")
   }

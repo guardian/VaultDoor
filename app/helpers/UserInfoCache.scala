@@ -14,8 +14,9 @@ import scala.util.{Failure, Success}
 @Singleton()
 class UserInfoCache @Inject() (config:Configuration,shutdown:CoordinatedShutdown){
   private val logger = LoggerFactory.getLogger(getClass)
-  private val content:Map[Tuple2[String,String],UserInfo] = loadInFiles()
+  private val content:Map[String,UserInfo] = loadInFiles()
 
+  content.foreach(kvTuple=>logger.debug(s"${kvTuple._1} -> ${kvTuple._2}"))
   private val vaultFileFilter = new FilenameFilter {
     override def accept(dir: File, name: String): Boolean = name.endsWith(".vault")
   }
@@ -26,7 +27,7 @@ class UserInfoCache @Inject() (config:Configuration,shutdown:CoordinatedShutdown
     * returned map, one for each address each pointing to the same `UserInfo` instance.
     * @return Map of (String,UserInfo)
     */
-  protected def loadInFiles():Map[Tuple2[String,String],UserInfo] = {
+  protected def loadInFiles():Map[String,UserInfo] = {
     val vaultSettingsDir = config.get[String]("vaults.settings-path")
 
     logger.info(s"Loading configuration files from $vaultSettingsDir")
@@ -53,8 +54,10 @@ class UserInfoCache @Inject() (config:Configuration,shutdown:CoordinatedShutdown
       shutdown.run(CoordinatedShutdown.UnknownReason)
     }
 
+    userInfos.foreach(info=>logger.debug(s"${info.toString}: ${info.getVault} on ${info.getAddresses.mkString(",")}"))
     logger.info(s"Loaded ${userInfos.length} vault information files")
-    userInfos.flatMap(i=>i.getAddresses.map(addr=>((addr,i.getClusterId),i))).toMap
+
+    userInfos.flatMap(i=>i.getAddresses.map(addr=>(s"$addr-${i.getVault}",i))).toMap
   }
 
   /**
@@ -63,5 +66,9 @@ class UserInfoCache @Inject() (config:Configuration,shutdown:CoordinatedShutdown
     * @param vaultId vault ID as a string
     * @return either a UserInfo object in an Option or None if no such obect could be found
     */
-  def infoForAddress(address:String, vaultId:String) = content.get((address,vaultId))
+  def infoForAddress(address:String, vaultId:String) = {
+    logger.debug(content.toString)
+    logger.debug(s"looking up ${(address, vaultId)}")
+    content.get(s"$address-$vaultId")
+  }
 }

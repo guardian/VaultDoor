@@ -10,11 +10,13 @@ import scala.util.{Failure, Success, Try}
 case class UserInfoBuilder(cluster:Option[String],user:Option[String],
                            password:Option[String],vault:Option[String],addresses:Option[String],vaultName:Option[String],
                            protocol:Option[String],clusterPassword:Option[String],descriptiveLabel:Option[String]) {
+  val whitespace = "\\s+".r
+
   def withCluster(clusterName:String) = this.copy(cluster=Some(clusterName))
   def withUser(value:String) = this.copy(user=Some(value))
   def withPassword(value:String) = this.copy(password=Some(value))
   def withVault(value:String) = this.copy(vault=Some(value))
-  def withAddresses(value:String) = this.copy(addresses=Some(value))
+  def withAddresses(value:String) = this.copy(addresses=Some(whitespace.replaceAllIn(value,"")))
   def withVaultName(value:String) = this.copy(vaultName=Some(value))
   def withProtocol(value:String) = this.copy(protocol=Some(value))
   def withClusterPassword(value:String) = this.copy(clusterPassword=Some(value))
@@ -41,6 +43,7 @@ object UserInfoBuilder {
     val src = Source.fromFile(file.getAbsolutePath)
     var builder:UserInfoBuilder = UserInfoBuilder()
 
+    logger.info(s"Loading ${file.getAbsolutePath}")
     try {
       for (line <- src.getLines()) {
         line match {
@@ -62,6 +65,7 @@ object UserInfoBuilder {
         }
       }
       builder = builder.withDescriptiveLabel(file.getName)
+      logger.info(s"Loaded ${builder.cluster} for ${builder.addresses} from ${file.getAbsolutePath}")
       Success(builder)
     } catch {
       case err:Throwable=>Failure(err)
