@@ -75,14 +75,14 @@ class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, source
       override def onPull(): Unit = {
         getNextDownloadRange(bytesPtr) match {
           case Some((start,end))=>
-            logger.info(s"Next chunk is from byte $start to $end")
+            logger.debug(s"Next chunk is from byte $start to $end")
             val bufferSize:Int = (end-start).toInt
             //val bytes = new Array[Byte](bufferSize)
             val buffer = ByteBuffer.allocate(bufferSize)  //should check if allocateDirect helps here
 
             channel.position(start)
 
-            logger.info(s"channel position is ${channel.position()}")
+            logger.debug(s"channel position is ${channel.position()}")
             val bytesRead = channel.read(buffer)
             logger.debug(s"Read $bytesRead bytes")
             if(bytesRead!=bufferSize){

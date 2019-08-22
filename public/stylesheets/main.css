@@ -1,0 +1,4 @@
+html, body, p, th, td, li, dd, dt, pre {
+    color: whitesmoke; font-family: 'DejaVu Sans Mono', monospace;
+    font-size: 1em;
+}

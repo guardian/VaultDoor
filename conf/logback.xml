@@ -29,7 +29,7 @@
 
     <logger name="helpers" level="INFO"/>
     <logger name="actors" level="INFO"/>
-    <logger name="streamcomponents" level="DEBUG"/>
+    <logger name="streamcomponents" level="INFO"/>
     <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
     <logger name="com.avaje.ebean.config.PropertyMapLoader" level="OFF" />
     <logger name="com.avaje.ebeaninternal.server.core.XmlConfigLoader" level="OFF" />

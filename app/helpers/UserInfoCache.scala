@@ -2,23 +2,41 @@ package helpers
 
 import java.io.{File, FilenameFilter}
 
-import akka.actor.CoordinatedShutdown
+import akka.actor.{ActorSystem, CoordinatedShutdown}
 import com.om.mxs.client.japi.UserInfo
-import javax.inject.{Singleton, Inject}
+import javax.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
 import play.api.Configuration
+import play.api.inject.ApplicationLifecycle
 
+import scala.concurrent.Await
 import scala.io.Source
 import scala.util.{Failure, Success}
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton()
-class UserInfoCache @Inject() (config:Configuration,shutdown:CoordinatedShutdown){
+class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
   private val logger = LoggerFactory.getLogger(getClass)
   private val content:Map[String,UserInfo] = loadInFiles()
 
   content.foreach(kvTuple=>logger.debug(s"${kvTuple._1} -> ${kvTuple._2}"))
   private val vaultFileFilter = new FilenameFilter {
-    override def accept(dir: File, name: String): Boolean = name.endsWith(".vault")
+    override def accept(dir: File, name: String): Boolean ={
+      logger.warn(s"checking $name: ${name.endsWith(".vault")}")
+      name.endsWith(".vault")
+    }
+
+  }
+
+  /**
+    * shuts down the app in the case of a fatal error. Does not return.
+    * @param exitCode exit code to return
+    */
+  private def terminate(exitCode:Int) = {
+    Await.ready(system.terminate().andThen({
+      case _=>System.exit(exitCode)
+    }), 2 hours)
   }
 
   /**
@@ -35,10 +53,19 @@ class UserInfoCache @Inject() (config:Configuration,shutdown:CoordinatedShutdown
     val dir = new File(vaultSettingsDir)
 
     val files = dir.listFiles(vaultFileFilter)
+    if(files==null){
+      logger.error(s"Could not find directory $vaultSettingsDir to load vault settings from")
+      terminate(2)
+    }
+
     val maybeUserInfos = files.map(f=>{
-      logger.info(s"Loading login info from ${f.getAbsolutePath}")
-      UserInfoBuilder.fromFile(f)
-    })
+      if(f.isFile) {
+        logger.info(s"Loading login info from ${f.getAbsolutePath}")
+        Some(UserInfoBuilder.fromFile(f))
+      } else {
+        None
+      }
+    }).collect({ case Some(entry)=>entry})
 
     val failures = maybeUserInfos.collect({case Failure(err)=>err})
 
@@ -51,7 +78,7 @@ class UserInfoCache @Inject() (config:Configuration,shutdown:CoordinatedShutdown
 
     if(userInfos.isEmpty){
       logger.error(s"Could not load any vault information files from $vaultSettingsDir, exiting app")
-      shutdown.run(CoordinatedShutdown.UnknownReason)
+      terminate(2)
     }
 
     userInfos.foreach(info=>logger.debug(s"${info.toString}: ${info.getVault} on ${info.getAddresses.mkString(",")}"))
