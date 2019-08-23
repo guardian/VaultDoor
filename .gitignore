@@ -16,3 +16,4 @@ dist
 
 node_modules
 /public/javascripts/bundle.js
+/conf/localdev.conf

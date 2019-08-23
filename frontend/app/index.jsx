@@ -10,8 +10,22 @@ class App extends React.Component {
         super(props);
 
         this.state = {
-            
-        }
+            isLoggedIn: false,
+            currentUsername: "",
+            isAdmin: false,
+            loading: false
+        };
+
+        this.onLoggedIn = this.onLoggedIn.bind(this);
+        this.onLoggedOut = this.onLoggedOut.bind(this);
+        axios.get("/system/publicdsn").then(response=> {
+            Raven
+                .config(response.data.publicDsn)
+                .install();
+            console.log("Sentry initialised for " + response.data.publicDsn);
+        }).catch(error => {
+            console.error("Could not intialise sentry", error);
+        });
     }
 
 

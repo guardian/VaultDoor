@@ -30,7 +30,7 @@ import play.api.libs.json._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait Security {
+trait Security extends BaseController {
   implicit val cache:SyncCacheApi
   protected val logger: org.slf4j.Logger = LoggerFactory.getLogger(getClass)
 

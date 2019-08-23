@@ -24,6 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.cache.SyncCacheApi
 import auth.Security
+import play.api.libs.circe.Circe
 import views.html.helper.CSRF
 
 
@@ -34,7 +35,7 @@ class Application @Inject() (cc:ControllerComponents,
                              @Named("object-cache") objectCache:ActorRef,
                              userInfoCache:UserInfoCache
                             )(implicit mat:Materializer,system:ActorSystem, override implicit val cache:SyncCacheApi)
-  extends AbstractController(cc) with Security {
+  extends AbstractController(cc) with Security with Circe {
   import actors.ObjectCache._
 
   override protected val logger = LoggerFactory.getLogger(getClass)
@@ -50,23 +51,33 @@ class Application @Inject() (cc:ControllerComponents,
   /**
     * gathers appropriate headers for the given [[ObjectMatrixEntry]]
     * @param entry [[ObjectMatrixEntry]] instance
-    * @param maybeResponseSize optional override for content-length. If this is None AND there is no fileattributes metadata
-    *                          on `entry` then no Content-Length header is generated
     * @return
     */
-  def headersForEntry(entry:ObjectMatrixEntry, maybeResponseSize:Option[Long]):Map[String,String] = {
+  def headersForEntry(entry:ObjectMatrixEntry, ranges:Seq[RangeHeader], totalSize:Option[Long]):Map[String,String] = {
+    logger.info(entry.attributes.toString)
+    val contentRangeHeader = ranges.headOption.map(range=>s"bytes ${range.start}-${range.end}${totalSize.map(s=>s"/$s").getOrElse("")}")
+
     val optionalFields = Seq(
-      entry.fileAttribues.map(_.size).map(s=>"Content-Length"->s.toString),
-      maybeResponseSize.map(s=>"Content-Length"->s.toString),
-      entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"Etag"->s)
+      entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"Etag"->s),
+      contentRangeHeader.map(hdr=>"Content-Range"->hdr)
     ).collect({case Some(field)=>field})
 
-    optionalFields.toMap ++ Map(
 
+    optionalFields.toMap ++ Map(
+      "Accept-Ranges"->"bytes",
     )
   }
 
-  def headTargetContent(targetUriString:String) = Action.async { request=>
+  def getMaybeResponseSize(entry:ObjectMatrixEntry, overriden:Option[Long]):Option[Long] = {
+    overriden match {
+      case value @Some(_)=>value
+      case None=>entry.fileAttribues.map(_.size)
+    }
+  }
+
+  def getMaybeMimetype(entry:ObjectMatrixEntry):Option[String] = entry.attributes.flatMap(_.stringValues.get("MXFS_MIMETYPE"))
+
+  def headTargetContent(targetUriString:String) = IsAuthenticatedAsync { uid=> request=>
     val maybeTargetUri = Try {
       URI.create(targetUriString)
     }
@@ -88,23 +99,22 @@ class Application @Inject() (cc:ControllerComponents,
       })
     })
 
-
-
     objectEntryFut.map({
       case Left(response)=>response
       case Right(entry)=>
         Result(
-          ResponseHeader(200,headersForEntry(entry, None)),
-          HttpEntity.NoEntity
+          ResponseHeader(200,headersForEntry(entry, Seq(), getMaybeResponseSize(entry, None))),
+          HttpEntity.Streamed(Source.empty, getMaybeResponseSize(entry, None), getMaybeMimetype(entry))
         )
     })
   }
+
   /**
     * third test, use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
     * @param targetUriString omms URI of the object that we are trying to get
     * @return
     */
-  def streamTargetContent(targetUriString:String) = Action.async { request:Request[AnyContent]=>
+  def streamTargetContent(targetUriString:String) = IsAuthenticatedAsync { uid=> request=>
     val maybeTargetUri = Try {
       URI.create(targetUriString)
     }
@@ -140,8 +150,11 @@ class Application @Inject() (cc:ControllerComponents,
     val srcOrFailureFut = Future.sequence(Seq(objectEntryFut,rangesOrFailureFut)).map(results=>{
       val ranges = results(1).asInstanceOf[Seq[RangeHeader]]
 
-      results.head.asInstanceOf[Either[Result,(UserInfo,ObjectMatrixEntry)]] match {
-        case Right((userInfo, omEntry))=>
+      results.head.asInstanceOf[Either[Result,ObjectMatrixEntry]] match {
+        case Right(omEntry)=>
+          //maybeLocator.get is safe becuase if maybeLocator is a Failure we don't execute this block
+          val userInfo = userInfoCache.infoForAddress(maybeLocator.get.host,maybeLocator.get.vaultId.toString)
+
           val responseSize = if(ranges.nonEmpty){
             Some(ranges.foldLeft(0L)((acc,range)=>acc+(range.end.getOrElse(omEntry.fileAttribues.get.size)-range.start.getOrElse(0L))))
           } else {
@@ -149,22 +162,22 @@ class Application @Inject() (cc:ControllerComponents,
           }
 
           val partialGraph = GraphDSL.create() { implicit builder=>
-            val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo,omEntry.oid, omEntry.fileAttribues.get.size,ranges))
+            val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo.get,omEntry.oid, omEntry.fileAttribues.get.size,ranges))
 
             SourceShape(src.out)
           }
 
-          Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, responseSize)))
+          Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, ranges, responseSize), getMaybeMimetype(omEntry), ranges.nonEmpty))
         case Left(err)=> Left(err)
     }})
 
     srcOrFailureFut.map({
-      case Right((byteSource, maybeResponseSize, headers)) =>
+      case Right((byteSource, maybeResponseSize, headers, maybeMimetype, isPartialTransfer)) =>
 
         logger.info(s"maybeResponseSize is $maybeResponseSize")
         Result(
-          ResponseHeader(200, headers),
-          HttpEntity.Streamed(byteSource, maybeResponseSize, Some("application/octet-stream"))
+          ResponseHeader(if(isPartialTransfer) 206 else 200, headers),
+          HttpEntity.Streamed(byteSource, maybeResponseSize, maybeMimetype)
         )
       case Left(response)=>response
     }).recover({

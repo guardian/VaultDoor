@@ -69,27 +69,36 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration)(
     * @param fileName file name to search for
     * @return a Future, containing either a sequence of zero or more results as String oids or an error
     */
-  def findByFilename(userInfo:UserInfo, fileName:String):Future[Option[ObjectMatrixEntry]] = Future {
-    implicit val vault = MatrixStore.openVault(userInfo)
-    try {
-      logger.debug(s"Lookup $fileName on ${vault.getId}")
-      val searchTerm = SearchTerm.createSimpleTerm("MXFS_FILENAME", fileName) //FIXME: check the metadata field namee
-      val iterator = vault.searchObjectsIterator(searchTerm, 1).asScala
+  def findByFilename(userInfo:UserInfo, fileName:String):Future[Option[ObjectMatrixEntry]] =
+    Try { MatrixStore.openVault(userInfo) } match {
+      case Success(vault)=>
+        implicit val vaultImpl = vault
+        Future {
+          logger.debug(s"Lookup $fileName on ${vault.getId}")
+          val searchTerm = SearchTerm.createSimpleTerm("MXFS_FILENAME", fileName) //FIXME: check the metadata field namee
+          val iterator = vault.searchObjectsIterator(searchTerm, 1).asScala
 
-      var finalSeq: Seq[String] = Seq()
-      while (iterator.hasNext) { //the iterator contains the OID
-        finalSeq ++= Seq(iterator.next())
-      }
-      if(finalSeq.length>1) logger.warn(s"Found ${finalSeq.length} object matching $fileName, only using the first")
+          var finalSeq: Seq[String] = Seq()
+          while (iterator.hasNext) { //the iterator contains the OID
+            finalSeq ++= Seq(iterator.next())
+          }
+          if(finalSeq.length>1) logger.warn(s"Found ${finalSeq.length} object matching $fileName, only using the first")
 
-      finalSeq.headOption match {
-        case Some(oid)=>ObjectMatrixEntry(oid).getMetadata.map(entry=>Some(entry))
-        case None=>Future(None)
-      }
-    } finally {
-      vault.dispose()
-    }
-  }.flatten
+          finalSeq.headOption match {
+            case Some(oid)=>ObjectMatrixEntry(oid).getMetadata.map(entry=>Some(entry))
+            case None=>Future(None)
+          }
+        }.flatten.recover({
+          case err:Throwable=>
+            logger.error(s"Failed to perform lookup on OM appliance: ", err)
+            vault.dispose()
+            throw err
+        })
+      case Failure(err)=>
+        logger.error(s"Could not open vault: ", err)
+        Future.failed(err)
+  }
+
 
   override def receive: Receive = {
     case UpdateCache(locator, oid)=>
