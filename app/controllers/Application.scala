@@ -44,11 +44,25 @@ class Application @Inject() (cc:ControllerComponents,
   }
 
   /**
-    * third test, use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
-    * @param targetUriString omms URI of the object that we are trying to get
+    * gathers appropriate headers for the given [[ObjectMatrixEntry]]
+    * @param entry [[ObjectMatrixEntry]] instance
+    * @param maybeResponseSize optional override for content-length. If this is None AND there is no fileattributes metadata
+    *                          on `entry` then no Content-Length header is generated
     * @return
     */
-  def test3(targetUriString:String) = Action.async { request:Request[AnyContent]=>
+  def headersForEntry(entry:ObjectMatrixEntry, maybeResponseSize:Option[Long]):Map[String,String] = {
+    val optionalFields = Seq(
+      entry.fileAttribues.map(_.size).map(s=>"Content-Length"->s.toString),
+      maybeResponseSize.map(s=>"Content-Length"->s.toString),
+      entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"Etag"->s)
+    ).collect({case Some(field)=>field})
+
+    optionalFields.toMap ++ Map(
+
+    )
+  }
+
+  def headTargetContent(targetUriString:String) = Action.async { request=>
     val maybeTargetUri = Try {
       URI.create(targetUriString)
     }
@@ -59,22 +73,52 @@ class Application @Inject() (cc:ControllerComponents,
     look up the object, using cache if possible, and get hold of the metadata
      */
     val objectEntryFut = Future.fromTry(maybeLocator).flatMap(locator=>{
-      (objectCache ? Lookup(locator)).mapTo[OCMsg].flatMap({
+      (objectCache ? Lookup(locator)).mapTo[OCMsg].map({
         case ObjectNotFound(_) =>
-          Future(Left(NotFound(s"could not find object $targetUriString"))) //FIXME: replace with proper json response
+          Left(NotFound(s"could not find object $targetUriString")) //FIXME: replace with proper json response
         case ObjectLookupFailed(_, err) =>
           logger.error(s"Could not look up object for $targetUriString: ", err)
-          Future(Left(InternalServerError(s"lookup failed for $targetUriString")))
-        case ObjectFound(_, oid) =>
-          userInfoCache.infoForAddress(locator.host, locator.vaultId.toString) match {
-            case Some(userInfo)=>
-              implicit val vault:Vault = MatrixStore.openVault(userInfo)
-              ObjectMatrixEntry(oid).getMetadata.andThen({
-                case _=>vault.dispose()
-              }).map(entry=>Right((userInfo, entry)))
-            case None=>
-              Future(Left(NotFound(s"no login information for $locator")))
-          }
+          Left(InternalServerError(s"lookup failed for $targetUriString"))
+        case ObjectFound(_, objectEntry) =>
+          Right(objectEntry)
+      })
+    })
+
+
+
+    objectEntryFut.map({
+      case Left(response)=>response
+      case Right(entry)=>
+        Result(
+          ResponseHeader(200,headersForEntry(entry, None)),
+          HttpEntity.NoEntity
+        )
+    })
+  }
+  /**
+    * third test, use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
+    * @param targetUriString omms URI of the object that we are trying to get
+    * @return
+    */
+  def streamTargetContent(targetUriString:String) = Action.async { request:Request[AnyContent]=>
+    val maybeTargetUri = Try {
+      URI.create(targetUriString)
+    }
+
+    val maybeLocator = maybeTargetUri.flatMap(targetUri => OMLocator.fromUri(targetUri))
+
+    /*
+    look up the object, using cache if possible, and get hold of the metadata
+     */
+    val objectEntryFut = Future.fromTry(maybeLocator).flatMap(locator=>{
+      (objectCache ? Lookup(locator)).mapTo[OCMsg].map({
+        case ObjectNotFound(_) =>
+          Left(NotFound(s"could not find object $targetUriString")) //FIXME: replace with proper json response
+        case ObjectLookupFailed(_, err) =>
+          logger.error(s"Could not look up object for $targetUriString: ", err)
+          Left(InternalServerError(s"lookup failed for $targetUriString"))
+        case ObjectFound(_, objectEntry) =>
+          Right(objectEntry)
       })
     })
 
@@ -95,9 +139,9 @@ class Application @Inject() (cc:ControllerComponents,
       results.head.asInstanceOf[Either[Result,(UserInfo,ObjectMatrixEntry)]] match {
         case Right((userInfo, omEntry))=>
           val responseSize = if(ranges.nonEmpty){
-            ranges.foldLeft(0L)((acc,range)=>acc+(range.end.getOrElse(omEntry.fileAttribues.get.size)-range.start.getOrElse(0L)))
+            Some(ranges.foldLeft(0L)((acc,range)=>acc+(range.end.getOrElse(omEntry.fileAttribues.get.size)-range.start.getOrElse(0L))))
           } else {
-            omEntry.fileAttribues.map(_.size).getOrElse(0L)
+            omEntry.fileAttribues.map(_.size)
           }
 
           val partialGraph = GraphDSL.create() { implicit builder=>
@@ -106,17 +150,16 @@ class Application @Inject() (cc:ControllerComponents,
             SourceShape(src.out)
           }
 
-          Right((Source.fromGraph(partialGraph), responseSize))
+          Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, responseSize)))
         case Left(err)=> Left(err)
     }})
 
     srcOrFailureFut.map({
-      case Right((byteSource, responseSize)) =>
-        val maybeResponseSize = if(responseSize>0) Some(responseSize) else None
+      case Right((byteSource, maybeResponseSize, headers)) =>
 
         logger.info(s"maybeResponseSize is $maybeResponseSize")
         Result(
-          ResponseHeader(200, Map.empty), //FIXME: set correct header
+          ResponseHeader(200, headers),
           HttpEntity.Streamed(byteSource, maybeResponseSize, Some("application/octet-stream"))
         )
       case Left(response)=>response

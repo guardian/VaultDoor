@@ -5,9 +5,11 @@ import java.util.concurrent.TimeUnit
 
 import actors.ObjectCache.{CacheEntry, ExpiryTick, Lookup, ObjectFound, ObjectLookupFailed, ObjectNotFound, UpdateCache}
 import akka.actor.{Actor, ActorRef, ActorSystem}
+import akka.stream.Materializer
 import com.om.mxs.client.japi.{MatrixStore, SearchTerm, UserInfo, Vault}
 import helpers.{OMLocator, UserInfoCache}
 import javax.inject.{Inject, Singleton}
+import models.ObjectMatrixEntry
 import org.slf4j.LoggerFactory
 import play.api.Configuration
 
@@ -24,16 +26,16 @@ object ObjectCache {
   case class Lookup(locator:OMLocator) extends OCMsg
 
   /* private incoming messages */
-  case class UpdateCache(locator: OMLocator, oid:String)
+  case class UpdateCache(locator: OMLocator, entry:ObjectMatrixEntry)
   case object ExpiryTick
 
   /*outgoing messages*/
-  case class ObjectFound(locator:OMLocator, oid:String) extends OCMsg
+  case class ObjectFound(locator:OMLocator, entry:ObjectMatrixEntry) extends OCMsg
   case class ObjectNotFound(locator: OMLocator) extends OCMsg
   case class ObjectLookupFailed(locator:OMLocator, msg:String) extends OCMsg
 
   /*private*/
-  case class CacheEntry(oid:String, lastUsed:Long) {
+  case class CacheEntry(entry:ObjectMatrixEntry, lastUsed:Long) {
     def updated():CacheEntry = this.copy(lastUsed=java.time.Instant.now().getEpochSecond)
   }
 }
@@ -48,7 +50,7 @@ object ObjectCache {
   * @param system
   */
 @Singleton
-class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, system:ActorSystem) extends Actor {
+class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration)(implicit mat:Materializer, system:ActorSystem) extends Actor {
   private val logger = LoggerFactory.getLogger(getClass)
   //map of (vaultid,path)->oid
   protected var content:Map[(UUID,String),CacheEntry] = Map()
@@ -67,8 +69,8 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, 
     * @param fileName file name to search for
     * @return a Future, containing either a sequence of zero or more results as String oids or an error
     */
-  def findByFilename(userInfo:UserInfo, fileName:String):Future[Seq[String]] = Future {
-    val vault = MatrixStore.openVault(userInfo)
+  def findByFilename(userInfo:UserInfo, fileName:String):Future[Option[ObjectMatrixEntry]] = Future {
+    implicit val vault = MatrixStore.openVault(userInfo)
     try {
       logger.debug(s"Lookup $fileName on ${vault.getId}")
       val searchTerm = SearchTerm.createSimpleTerm("MXFS_FILENAME", fileName) //FIXME: check the metadata field namee
@@ -78,11 +80,16 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, 
       while (iterator.hasNext) { //the iterator contains the OID
         finalSeq ++= Seq(iterator.next())
       }
-      finalSeq
+      if(finalSeq.length>1) logger.warn(s"Found ${finalSeq.length} object matching $fileName, only using the first")
+
+      finalSeq.headOption match {
+        case Some(oid)=>ObjectMatrixEntry(oid).getMetadata.map(entry=>Some(entry))
+        case None=>Future(None)
+      }
     } finally {
       vault.dispose()
     }
-  }
+  }.flatten
 
   override def receive: Receive = {
     case UpdateCache(locator, oid)=>
@@ -101,7 +108,7 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, 
         case Some(entry)=>
           logger.info(s"Cache hit for ${locator.filePath}")
           content = content ++ Map((locator.vaultId, locator.filePath)->entry.updated())
-          sender ! ObjectFound(locator, entry.oid)
+          sender ! ObjectFound(locator, entry.entry)
         case None=>
           logger.info(s"Cache miss for ${locator.filePath}")
           val originalSender = sender()
@@ -115,16 +122,12 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration, 
                 case Failure(err)=>
                   logger.error(s"Could not look up $locator on OM appliance: ", err)
                   originalSender ! ObjectLookupFailed(locator, "Appliance lookup failed")
-                case Success(results)=>
-                  if(results.isEmpty){
+                case Success(maybeEntry)=>
+                  if(maybeEntry.isEmpty){
                     originalSender ! ObjectNotFound(locator)
-                  } else if(results.length>1){
-                    logger.warn(s"Found ${results.length} object matching $locator, only using the first")
-                    ownRef ! UpdateCache(locator, results.head)
-                    originalSender ! ObjectFound(locator, results.head)
                   } else {
-                    ownRef ! UpdateCache(locator, results.head)
-                    originalSender ! ObjectFound(locator, results.head)
+                    ownRef ! UpdateCache(locator, maybeEntry.get)
+                    originalSender ! ObjectFound(locator, maybeEntry.get)
                   }
               })
           }
