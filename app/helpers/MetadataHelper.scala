@@ -24,7 +24,6 @@ object MetadataHelper {
   def getAttributeMetadata(obj:MxsObject)(implicit mat:Materializer, ec:ExecutionContext) = {
     val view = obj.getAttributeView
 
-    //val sink = Sink.fold[Seq[(String,AnyRef)],(String,AnyRef)](Seq())((acc,elem)=>acc++Seq(elem))
     val sink = Sink.fold[MxsMetadata,(String,Any)](MxsMetadata(Map(),Map(),Map(),Map()))((acc,elem)=>{
       elem._2 match {
         case boolValue: Boolean => acc.copy(boolValues = acc.boolValues ++ Map(elem._1->boolValue))
@@ -41,7 +40,6 @@ object MetadataHelper {
       .map(elem=>(elem.getKey, elem.getValue))
       .toMat(sink)(Keep.right)
       .run()
-    //.map()
   }
 
   /**

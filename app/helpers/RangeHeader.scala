@@ -72,7 +72,7 @@ object RangeHeader extends ((Option[Long],Option[Long])=>RangeHeader) {
   def fromStringHeader(str:String):Try[Seq[RangeHeader]] = {
     str match {
       case unitsXtractor(units:String,remainder:String)=>
-        if(units!="bytes"){
+        if(units.toLowerCase!="bytes"){
           Failure(new BadDataError("only ranges in bytes are supported"))
         } else {
           val remainingParts = groupSeparator.split(remainder)

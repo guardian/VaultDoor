@@ -5,6 +5,13 @@
 # Home page
 GET     /                           @controllers.Application.index
 
-GET     /stream/:targetUriString    @controllers.Application.test3(targetUriString)
+GET     /stream/:targetUriString    @controllers.Application.streamTargetContent(targetUriString)
+HEAD    /stream/:targetUriString    @controllers.Application.headTargetContent(targetUriString)
+
+POST    /api/login                         @controllers.Login.authenticate
+POST    /api/logout                        @controllers.Login.logout
+GET     /api/isLoggedIn                    @controllers.Login.isLoggedIn
+GET     /api/isAdmin                       @controllers.Login.checkIsAdmin
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
