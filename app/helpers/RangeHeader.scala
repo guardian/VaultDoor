@@ -99,4 +99,8 @@ case class RangeHeader (start:Option[Long], end:Option[Long]) {
     * @return a tuple of (start,end) both as Long integers
     */
   def getAbsolute(fileLength:Long):(Long,Long) = (start.getOrElse(0L), end.getOrElse(fileLength))
+
+  def headerString:String = {
+    s"${start.map(_.toString).getOrElse("")}-${end.map(_.toString).getOrElse("")}"
+  }
 }

@@ -55,7 +55,7 @@ class Application @Inject() (cc:ControllerComponents,
     */
   def headersForEntry(entry:ObjectMatrixEntry, ranges:Seq[RangeHeader], totalSize:Option[Long]):Map[String,String] = {
     logger.info(entry.attributes.toString)
-    val contentRangeHeader = ranges.headOption.map(range=>s"bytes ${range.start}-${range.end}${totalSize.map(s=>s"/$s").getOrElse("")}")
+    val contentRangeHeader = ranges.headOption.map(range=>s"bytes ${range.headerString}${totalSize.map(s=>s"/$s").getOrElse("")}")
 
     val optionalFields = Seq(
       entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"Etag"->s),
@@ -114,7 +114,7 @@ class Application @Inject() (cc:ControllerComponents,
     * @param targetUriString omms URI of the object that we are trying to get
     * @return
     */
-  def streamTargetContent(targetUriString:String) = IsAuthenticatedAsync { uid=> request=>
+  def streamTargetContent(targetUriString:String) = Action.async { request=>
     val maybeTargetUri = Try {
       URI.create(targetUriString)
     }
@@ -163,11 +163,10 @@ class Application @Inject() (cc:ControllerComponents,
 
           val partialGraph = GraphDSL.create() { implicit builder=>
             val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo.get,omEntry.oid, omEntry.fileAttribues.get.size,ranges))
-
             SourceShape(src.out)
           }
 
-          Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, ranges, responseSize), getMaybeMimetype(omEntry), ranges.nonEmpty))
+          Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, ranges, omEntry.fileAttribues.map(_.size)), getMaybeMimetype(omEntry), ranges.nonEmpty))
         case Left(err)=> Left(err)
     }})
 
@@ -177,7 +176,7 @@ class Application @Inject() (cc:ControllerComponents,
         logger.info(s"maybeResponseSize is $maybeResponseSize")
         Result(
           ResponseHeader(if(isPartialTransfer) 206 else 200, headers),
-          HttpEntity.Streamed(byteSource, maybeResponseSize, maybeMimetype)
+          HttpEntity.Streamed(byteSource.log("outputstream"), maybeResponseSize, maybeMimetype)
         )
       case Left(response)=>response
     }).recover({

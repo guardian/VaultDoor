@@ -23,7 +23,7 @@ import scala.collection.JavaConverters._
   */
 class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, sourceFileSize:Long, ranges:Seq[RangeHeader], bufferSize:Int=2*1024*1024) extends GraphStage[SourceShape[ByteString]]{
   private final val out:Outlet[ByteString] = Outlet.create("MatrixStoreFileSourceWithRanges.out")
-
+  private val outerLogger = LoggerFactory.getLogger(getClass)
   override def shape: SourceShape[ByteString] = SourceShape.of(out)
 
   if(sourceFileSize==0){
@@ -36,9 +36,11 @@ class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, source
   def getNextDownloadRange(prevBytesPtr:Long): Option[(Long,Long)] = {
     //find the chunk that contains the prevBytesPtr location
     def checkChunk(toCheck:RangeHeader, remainder:Seq[RangeHeader]):Option[(Long,Long)] = {
+      outerLogger.debug(s"checkChunk: $toCheck")
       val rangeToCheck = toCheck.getAbsolute(sourceFileSize)
-      if(prevBytesPtr > rangeToCheck._1 && prevBytesPtr < rangeToCheck._2){
-        Some((prevBytesPtr, rangeToCheck._2))
+      outerLogger.debug(s"rangeToCheck: $rangeToCheck, prevBytesPtr: $prevBytesPtr")
+      if(prevBytesPtr < rangeToCheck._2){
+        Some((rangeToCheck._1, rangeToCheck._2))
       } else {
         if(remainder.isEmpty){
           None
@@ -73,11 +75,11 @@ class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, source
 
     setHandler(out, new AbstractOutHandler {
       override def onPull(): Unit = {
+        logger.debug("source is pulled")
         getNextDownloadRange(bytesPtr) match {
           case Some((start,end))=>
             logger.debug(s"Next chunk is from byte $start to $end")
             val bufferSize:Int = (end-start).toInt
-            //val bytes = new Array[Byte](bufferSize)
             val buffer = ByteBuffer.allocate(bufferSize)  //should check if allocateDirect helps here
 
             channel.position(start)
@@ -90,6 +92,7 @@ class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, source
             }
             bytesPtr += bytesRead
             buffer.flip()
+            logger.debug(s"pushing to stream ${buffer.capacity()}, ${buffer}")
             push(out, ByteString(buffer))
           case None=>
             logger.info("Last range is uploaded")
@@ -109,6 +112,7 @@ class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, source
     }
 
     override def postStop(): Unit = {
+      logger.debug("postStop")
       //if(stream!=null) stream.close()
       if(channel!=null) channel.close()
       vault.dispose()
