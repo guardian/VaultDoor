@@ -1,6 +1,5 @@
 package controllers
 
-import java.nio.ByteBuffer
 import java.net.URI
 
 import akka.actor.{ActorRef, ActorSystem}
@@ -12,6 +11,7 @@ import play.api.Configuration
 import play.api.http.HttpEntity
 import play.api.mvc._
 import helpers.BadDataError
+
 import scala.util.{Failure, Success, Try}
 import akka.pattern.ask
 import akka.stream.{Materializer, SourceShape}
@@ -22,6 +22,10 @@ import streamcomponents.MatrixStoreFileSourceWithRanges
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import play.api.cache.SyncCacheApi
+import auth.Security
+import views.html.helper.CSRF
+
 
 @Singleton
 class Application @Inject() (cc:ControllerComponents,
@@ -29,11 +33,11 @@ class Application @Inject() (cc:ControllerComponents,
                              omAccess: OMAccess,
                              @Named("object-cache") objectCache:ActorRef,
                              userInfoCache:UserInfoCache
-                            )(implicit mat:Materializer,system:ActorSystem)
-  extends AbstractController(cc) {
+                            )(implicit mat:Materializer,system:ActorSystem, override implicit val cache:SyncCacheApi)
+  extends AbstractController(cc) with Security {
   import actors.ObjectCache._
 
-  private val logger = LoggerFactory.getLogger(getClass)
+  override protected val logger = LoggerFactory.getLogger(getClass)
 
   private lazy val bufferSize = config.getOptional[Int]("vaults.streamingBufferSize").map(s=>s * 1024*1024).getOrElse(128*1024*1024)
 

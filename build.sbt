@@ -13,7 +13,7 @@ resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 scalaVersion := "2.12.3"
 
 
-libraryDependencies ++= Seq( guice , ws , specs2 % Test )
+libraryDependencies ++= Seq( guice , ehcache, ws , specs2 % Test )
 
 unmanagedResourceDirectories in Test +=  { baseDirectory ( _ /"target/web/public/test" ).value }
 
@@ -28,6 +28,7 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
   "io.circe" %% "circe-java8" % circeVersion,
+  "com.dripower" %% "play-circe" % "2711.0",
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "commons-codec" % "commons-codec" % "1.12",
   "commons-io" % "commons-io" % "2.6",
@@ -39,6 +40,13 @@ libraryDependencies ++= Seq(
   "org.mockito" % "mockito-core" % "2.28.2" % Test,
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
 )
+
+//Sentry
+libraryDependencies += "io.sentry" % "sentry-logback" % "1.7.2"
+
+//authentication
+libraryDependencies += "com.unboundid" % "unboundid-ldapsdk" % "4.0.5"
+
 
 enablePlugins(DockerPlugin,AshScriptPlugin)
 version := sys.props.getOrElse("build.number","DEV")
