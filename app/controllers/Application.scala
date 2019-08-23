@@ -3,6 +3,7 @@ package controllers
 import java.net.URI
 
 import akka.actor.{ActorRef, ActorSystem}
+import akka.event.LoggingAdapter
 import akka.stream.scaladsl.{Framing, GraphDSL, Source}
 import helpers.{ByteBufferSource, OMAccess, OMLocator, RangeHeader, UserInfoCache}
 import javax.inject.{Inject, Named, Singleton}
@@ -14,7 +15,7 @@ import helpers.BadDataError
 
 import scala.util.{Failure, Success, Try}
 import akka.pattern.ask
-import akka.stream.{Materializer, SourceShape}
+import akka.stream.{Attributes, Materializer, SourceShape}
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
 import models.ObjectMatrixEntry
 import streamcomponents.MatrixStoreFileSourceWithRanges
@@ -176,7 +177,11 @@ class Application @Inject() (cc:ControllerComponents,
         logger.info(s"maybeResponseSize is $maybeResponseSize")
         Result(
           ResponseHeader(if(isPartialTransfer) 206 else 200, headers),
-          HttpEntity.Streamed(byteSource.log("outputstream"), maybeResponseSize, maybeMimetype)
+          HttpEntity.Streamed(byteSource.log("outputstream").addAttributes(
+            Attributes.logLevels(
+              onElement = Attributes.LogLevels.Info,
+              onFailure = Attributes.LogLevels.Error,
+              onFinish = Attributes.LogLevels.Info)), maybeResponseSize, maybeMimetype)
         )
       case Left(response)=>response
     }).recover({

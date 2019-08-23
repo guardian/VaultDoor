@@ -39,7 +39,7 @@ class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, source
       outerLogger.debug(s"checkChunk: $toCheck")
       val rangeToCheck = toCheck.getAbsolute(sourceFileSize)
       outerLogger.debug(s"rangeToCheck: $rangeToCheck, prevBytesPtr: $prevBytesPtr")
-      if(prevBytesPtr < rangeToCheck._2){
+      if(prevBytesPtr+1 < rangeToCheck._2){
         Some((rangeToCheck._1, rangeToCheck._2))
       } else {
         if(remainder.isEmpty){
@@ -82,6 +82,7 @@ class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, source
             val bufferSize:Int = (end-start).toInt
             val buffer = ByteBuffer.allocate(bufferSize)  //should check if allocateDirect helps here
 
+            bytesPtr=start
             channel.position(start)
 
             logger.debug(s"channel position is ${channel.position()}")
