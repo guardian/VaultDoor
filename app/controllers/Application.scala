@@ -20,6 +20,8 @@ import akka.util.ByteString
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
 import models.ObjectMatrixEntry
 import streamcomponents.{MatrixStoreFileSourceWithRanges, MultipartSource}
+import models.{AuditEvent, AuditFile, ObjectMatrixEntry}
+import streamcomponents.MatrixStoreFileSourceWithRanges
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -35,6 +37,7 @@ class Application @Inject() (cc:ControllerComponents,
                              config:Configuration,
                              omAccess: OMAccess,
                              @Named("object-cache") objectCache:ActorRef,
+                             @Named("audit-actor") auditActor:ActorRef,
                              userInfoCache:UserInfoCache
                             )(implicit mat:Materializer,system:ActorSystem, override implicit val cache:SyncCacheApi)
   extends AbstractController(cc) with Security with Circe {
@@ -92,11 +95,17 @@ class Application @Inject() (cc:ControllerComponents,
     val objectEntryFut = Future.fromTry(maybeLocator).flatMap(locator=>{
       (objectCache ? Lookup(locator)).mapTo[OCMsg].map({
         case ObjectNotFound(_) =>
+          val auditFile = AuditFile("",locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.NOTFOUND, uid, Some(auditFile), Seq())
           Left(NotFound(s"could not find object $targetUriString")) //FIXME: replace with proper json response
         case ObjectLookupFailed(_, err) =>
+          val auditFile = AuditFile("",locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile), Seq(),notes=Some(err.toString))
           logger.error(s"Could not look up object for $targetUriString: ", err)
           Left(InternalServerError(s"lookup failed for $targetUriString"))
         case ObjectFound(_, objectEntry) =>
+          val auditFile = AuditFile(objectEntry.oid,locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.HEADFILE, uid, Some(auditFile), Seq())
           Right(objectEntry)
       })
     })
@@ -104,6 +113,7 @@ class Application @Inject() (cc:ControllerComponents,
     objectEntryFut.map({
       case Left(response)=>response
       case Right(entry)=>
+
         Result(
           ResponseHeader(200,headersForEntry(entry, Seq(), getMaybeResponseSize(entry, None))),
           HttpEntity.Streamed(Source.empty, getMaybeResponseSize(entry, None), getMaybeMimetype(entry))
@@ -141,7 +151,7 @@ class Application @Inject() (cc:ControllerComponents,
     * @param targetUriString omms URI of the object that we are trying to get
     * @return
     */
-  def streamTargetContent(targetUriString:String) = Action.async { request=>
+  def streamTargetContent(targetUriString:String) = IsAuthenticatedAsync { uid=> request=>
     val maybeTargetUri = Try {
       URI.create(targetUriString)
     }
@@ -154,8 +164,12 @@ class Application @Inject() (cc:ControllerComponents,
     val objectEntryFut = Future.fromTry(maybeLocator).flatMap(locator=>{
       (objectCache ? Lookup(locator)).mapTo[OCMsg].map({
         case ObjectNotFound(_) =>
+          val auditFile = AuditFile("",locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.NOTFOUND, uid, Some(auditFile), Seq())
           Left(NotFound(s"could not find object $targetUriString")) //FIXME: replace with proper json response
         case ObjectLookupFailed(_, err) =>
+          val auditFile = AuditFile("",locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile), Seq(),notes=Some(err.toString))
           logger.error(s"Could not look up object for $targetUriString: ", err)
           Left(InternalServerError(s"lookup failed for $targetUriString"))
         case ObjectFound(_, objectEntry) =>
@@ -179,7 +193,7 @@ class Application @Inject() (cc:ControllerComponents,
 
       results.head.asInstanceOf[Either[Result,ObjectMatrixEntry]] match {
         case Right(omEntry)=>
-          //maybeLocator.get is safe becuase if maybeLocator is a Failure we don't execute this block
+          //maybeLocator.get is safe because if maybeLocator is a Failure we don't execute this block
           val userInfo = userInfoCache.infoForAddress(maybeLocator.get.host,maybeLocator.get.vaultId.toString)
 
           val responseSize = if(ranges.nonEmpty){
@@ -190,14 +204,18 @@ class Application @Inject() (cc:ControllerComponents,
 
           val streamSrc = getStreamingSource(ranges,userInfo.get, omEntry)
 
+          //log that we are starting a streamout
+          val auditFile = AuditFile(omEntry.oid,maybeLocator.get.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.STREAMOUT,uid,Some(auditFile), ranges)
+
           Right((streamSrc, responseSize, headersForEntry(omEntry, ranges, omEntry.fileAttribues.map(_.size)), getMaybeMimetype(omEntry), ranges.nonEmpty))
         case Left(err)=> Left(err)
     }})
 
     srcOrFailureFut.map({
       case Right((byteSource, maybeResponseSize, headers, maybeMimetype, isPartialTransfer)) =>
-
         logger.info(s"maybeResponseSize is $maybeResponseSize")
+
         Result(
           ResponseHeader(if(isPartialTransfer) 206 else 200, headers),
           HttpEntity.Streamed(byteSource.log("outputstream").addAttributes(

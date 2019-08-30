@@ -3,7 +3,9 @@ package models
 import java.time.ZonedDateTime
 import java.util.UUID
 
-case class AuditRecord (uuid:UUID, recordTime:ZonedDateTime, event:AuditEvent.Value, username:String, file:Option[AuditFile])
+import helpers.RangeHeader
+
+case class AuditRecord (uuid:UUID, recordTime:ZonedDateTime, event:AuditEvent.Value, username:String, file:Option[AuditFile], maybeRange:Seq[RangeHeader], notes:Option[String])
 
 object AuditRecord {
   /**
@@ -14,13 +16,15 @@ object AuditRecord {
     * @param overrideDateTime optional ZonedDateTime to override the current datetime used
     * @return a new AuditRecord instance
     */
-  def apply(event:AuditEvent.Value, username:String, file:Option[AuditFile], overrideDateTime:Option[ZonedDateTime]=None) =
+  def apply(event:AuditEvent.Value, username:String, file:Option[AuditFile],  maybeRange:Seq[RangeHeader], notes:Option[String]=None, overrideDateTime:Option[ZonedDateTime]=None) =
     new AuditRecord(
       UUID.randomUUID(),
       overrideDateTime.getOrElse(ZonedDateTime.now()),
       event,
       username,
-      file
+      file,
+      maybeRange,
+      notes
     )
 
 }
