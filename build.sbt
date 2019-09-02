@@ -36,6 +36,7 @@ libraryDependencies ++= Seq(
   "com.github.scopt" %% "scopt" % "3.7.1",
   "io.circe" %% "circe-yaml" % "0.10.0",
   "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0",
+  "ai.snips" %% "play-mongo-bson" % "0.5.1",
   "org.specs2" %% "specs2-core" % "4.5.1" % Test,
   "org.specs2" %% "specs2-mock" % "4.5.1" % Test,
   "org.mockito" % "mockito-core" % "2.28.2" % Test,

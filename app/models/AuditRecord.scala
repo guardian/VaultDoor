@@ -5,7 +5,7 @@ import java.util.UUID
 
 import helpers.RangeHeader
 
-case class AuditRecord (uuid:UUID, recordTime:ZonedDateTime, event:AuditEvent.Value, username:String, file:Option[AuditFile], maybeRange:Seq[RangeHeader], notes:Option[String])
+case class AuditRecord (uuid:UUID, recordTime:ZonedDateTime, event:String, username:String, file:Option[AuditFile], maybeRange:Seq[RangeHeader], notes:Option[String], bytes:Option[Long])
 
 object AuditRecord {
   /**
@@ -16,15 +16,16 @@ object AuditRecord {
     * @param overrideDateTime optional ZonedDateTime to override the current datetime used
     * @return a new AuditRecord instance
     */
-  def apply(event:AuditEvent.Value, username:String, file:Option[AuditFile],  maybeRange:Seq[RangeHeader], notes:Option[String]=None, overrideDateTime:Option[ZonedDateTime]=None) =
+  def apply(event:AuditEvent.Value, username:String, file:Option[AuditFile],  maybeRange:Seq[RangeHeader], notes:Option[String]=None, bytes:Option[Long]=None, overrideDateTime:Option[ZonedDateTime]=None) =
     new AuditRecord(
       UUID.randomUUID(),
       overrideDateTime.getOrElse(ZonedDateTime.now()),
-      event,
+      event.toString,
       username,
       file,
       maybeRange,
-      notes
+      notes,
+      bytes
     )
 
 }

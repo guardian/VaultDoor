@@ -1,5 +1,6 @@
 package controllers
 
+import ai.snips.bsonmacros.DatabaseContext
 import helpers.ZonedDateTimeEncoder
 import javax.inject.{Inject, Singleton}
 import models.{AuditEventEncoder, AuditRecordDAO}
@@ -10,9 +11,10 @@ import io.circe.syntax._
 import org.slf4j.LoggerFactory
 import responses.{GenericErrorResponse, ObjectListResponse}
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
+
 @Singleton
-class AuditController @Inject() (auditRecordDAO: AuditRecordDAO, cc:ControllerComponents) extends AbstractController(cc)
+class AuditController @Inject() (auditRecordDAO: AuditRecordDAO, cc:ControllerComponents, dbContext:DatabaseContext)(implicit ec:ExecutionContext) extends AbstractController(cc)
   with Circe with ZonedDateTimeEncoder with AuditEventEncoder {
 
   private val logger = LoggerFactory.getLogger(getClass)

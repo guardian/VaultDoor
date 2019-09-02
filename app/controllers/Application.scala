@@ -18,10 +18,15 @@ import akka.pattern.ask
 import akka.stream.{Attributes, Materializer, SourceShape}
 import akka.util.ByteString
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
+<<<<<<< HEAD
 import models.ObjectMatrixEntry
 import streamcomponents.{MatrixStoreFileSourceWithRanges, MultipartSource}
 import models.{AuditEvent, AuditFile, ObjectMatrixEntry}
 import streamcomponents.MatrixStoreFileSourceWithRanges
+=======
+import models.{AuditEvent, AuditFile, FileAttributes, ObjectMatrixEntry}
+import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges}
+>>>>>>> working audit output
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -128,7 +133,8 @@ class Application @Inject() (cc:ControllerComponents,
     * @param omEntry [[ObjectMatrixEntry]] instance describing the file to target
     * @return an akka Source that yields ByteString contents of the file
     */
-  def getStreamingSource(ranges:Seq[RangeHeader], userInfo:UserInfo, omEntry:ObjectMatrixEntry) = {
+  def getStreamingSource(ranges:Seq[RangeHeader], userInfo:UserInfo, omEntry:ObjectMatrixEntry, auditFile:AuditFile, uid:String) = {
+    import akka.stream.scaladsl.GraphDSL.Implicits._
     val partialGraph = if(ranges.length>1) {
       val mpSep = MultipartSource.genSeparatorText
 
@@ -136,16 +142,43 @@ class Application @Inject() (cc:ControllerComponents,
 
       GraphDSL.create() { implicit builder =>
         val src = builder.add(MultipartSource.getSource(rangesAndSources, omEntry.fileAttribues.get.size, "application/octet-stream", mpSep))
-        SourceShape(src.out)
+        val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid))
+        src ~> audit
+        SourceShape(audit.out)
       }
     } else {
       GraphDSL.create() { implicit builder=>
         val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo,omEntry.oid,omEntry.fileAttribues.get.size,ranges))
-        SourceShape(src.out)
+        val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid))
+        src ~> audit
+        SourceShape(audit.out)
       }
     }
     Source.fromGraph(partialGraph)
   }
+
+  /**
+    * get a ranged file source and link it to an auditing flow, which passes bytes through untouched but counts them and
+    * logs start/end to the audit log
+    * DEPRECATED DURING MERGE. CONTENT MERGED INTO getStreamingSource
+    * @param userInfo UserInfo object describing the appliance and vault to access
+    * @param omEntry [[ObjectMatrixEntry]] object describing the file to access
+    * @param ranges potentially empty sequence of byte ranges to access. If sequence is empty => whole file
+    * @param auditFile [[AuditFile]] object describing the file that is being accessed
+    * @param uid user that is making the request
+    * @return a partial Graph that emulates a Source.  You can call Source.fromGraph() on this value to get a "real" source back.
+    */
+  def makeOutputGraph(userInfo:Option[UserInfo],omEntry:ObjectMatrixEntry, ranges:Seq[RangeHeader], auditFile:AuditFile, uid:String) = GraphDSL.create() { implicit builder=>
+    import akka.stream.scaladsl.GraphDSL.Implicits._
+
+    val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo.get, omEntry.oid, omEntry.fileAttribues.get.size,ranges))
+    val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid))
+
+    src ~> audit
+
+    SourceShape(audit.out)
+  }
+
   /**
     * third test, use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
     * @param targetUriString omms URI of the object that we are trying to get

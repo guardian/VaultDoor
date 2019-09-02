@@ -22,7 +22,7 @@ object Audit {
     * @param username user that performed the action
     * @param file optional [[AuditFile]] instance indicating the file that was affected
     */
-  case class LogEvent(event:AuditEvent.Value, username:String, file:Option[AuditFile], maybeRange:Seq[RangeHeader], notes:Option[String]=None)
+  case class LogEvent(event:AuditEvent.Value, username:String, file:Option[AuditFile], maybeRange:Seq[RangeHeader], notes:Option[String]=None, maybeBytes:Option[Long]=None)
 }
 
 @Singleton
@@ -35,9 +35,9 @@ class Audit @Inject() (auditRecordDAO: AuditRecordDAO, actorSystem:ActorSystem) 
   override def receive: Receive = {
 
     //log the given event as having occurred
-    case LogEvent(event,username,file, maybeRange, maybeNotes)=>
+    case LogEvent(event,username,file, maybeRange, maybeNotes, maybeBytes)=>
       val originalSender = sender()
-      val rec = AuditRecord(event, username,file, maybeRange, maybeNotes)
+      val rec = AuditRecord(event, username,file, maybeRange, maybeNotes, maybeBytes)
       auditRecordDAO.insert(rec).onComplete({
         case Success(Some(_))=>
           logger.debug(s"recorded event $rec")

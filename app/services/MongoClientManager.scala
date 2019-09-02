@@ -10,7 +10,7 @@ class MongoClientManager @Inject()(config:Configuration){
   private val logger = LoggerFactory.getLogger(getClass)
 
   val client = {
-    val serverUri = config.get[String]("mongo.uri") //.getOrElse("mongodb://localhost:27017")
+    val serverUri = config.get[String]("mongodb.uri") //.getOrElse("mongodb://localhost:27017")
     logger.info(s"Setting up new Mongo client to $serverUri")
     MongoClient(serverUri)
   }

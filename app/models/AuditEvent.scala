@@ -3,7 +3,8 @@ package models
 import io.circe.{Decoder, Encoder}
 
 object AuditEvent extends Enumeration {
-  val STREAMOUT, HEADFILE, NOTFOUND, OMERROR = Value
+  type AuditEvent = Value
+  val STREAMOUT, STREAMOUT_START, STREAMOUT_END, HEADFILE, NOTFOUND, OMERROR = Value
 }
 
 trait AuditEventEncoder {
