@@ -4,7 +4,7 @@ import io.circe.{Decoder, Encoder}
 
 object AuditEvent extends Enumeration {
   type AuditEvent = Value
-  val STREAMOUT, STREAMOUT_START, STREAMOUT_END, HEADFILE, NOTFOUND, OMERROR = Value
+  val STREAMOUT, STREAMOUT_START, STREAMOUT_END, STREAMOUT_SHORT, HEADFILE, NOTFOUND, OMERROR = Value
 }
 
 trait AuditEventEncoder {

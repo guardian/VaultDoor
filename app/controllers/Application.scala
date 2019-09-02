@@ -133,7 +133,7 @@ class Application @Inject() (cc:ControllerComponents,
     * @param omEntry [[ObjectMatrixEntry]] instance describing the file to target
     * @return an akka Source that yields ByteString contents of the file
     */
-  def getStreamingSource(ranges:Seq[RangeHeader], userInfo:UserInfo, omEntry:ObjectMatrixEntry, auditFile:AuditFile, uid:String) = {
+  def getStreamingSource(ranges:Seq[RangeHeader], userInfo:UserInfo, omEntry:ObjectMatrixEntry, auditFile:AuditFile, uid:String) = Try {
     import akka.stream.scaladsl.GraphDSL.Implicits._
     val partialGraph = if(ranges.length>1) {
       val mpSep = MultipartSource.genSeparatorText
@@ -142,14 +142,14 @@ class Application @Inject() (cc:ControllerComponents,
 
       GraphDSL.create() { implicit builder =>
         val src = builder.add(MultipartSource.getSource(rangesAndSources, omEntry.fileAttribues.get.size, "application/octet-stream", mpSep))
-        val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid))
+        val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid, omEntry.fileAttribues.get.size))
         src ~> audit
         SourceShape(audit.out)
       }
     } else {
       GraphDSL.create() { implicit builder=>
         val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo,omEntry.oid,omEntry.fileAttribues.get.size,ranges))
-        val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid))
+        val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid, omEntry.fileAttribues.get.size))
         src ~> audit
         SourceShape(audit.out)
       }
@@ -168,16 +168,16 @@ class Application @Inject() (cc:ControllerComponents,
     * @param uid user that is making the request
     * @return a partial Graph that emulates a Source.  You can call Source.fromGraph() on this value to get a "real" source back.
     */
-  def makeOutputGraph(userInfo:Option[UserInfo],omEntry:ObjectMatrixEntry, ranges:Seq[RangeHeader], auditFile:AuditFile, uid:String) = GraphDSL.create() { implicit builder=>
+  def makeOutputGraph(userInfo:Option[UserInfo],omEntry:ObjectMatrixEntry, ranges:Seq[RangeHeader], auditFile:AuditFile, uid:String) = Try { GraphDSL.create() { implicit builder=>
     import akka.stream.scaladsl.GraphDSL.Implicits._
 
     val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo.get, omEntry.oid, omEntry.fileAttribues.get.size,ranges))
-    val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid))
+    val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid, omEntry.fileAttribues.get.size))
 
     src ~> audit
 
     SourceShape(audit.out)
-  }
+  }}
 
   /**
     * third test, use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
@@ -235,13 +235,19 @@ class Application @Inject() (cc:ControllerComponents,
             omEntry.fileAttribues.map(_.size)
           }
 
-          val streamSrc = getStreamingSource(ranges,userInfo.get, omEntry)
-
           //log that we are starting a streamout
           val auditFile = AuditFile(omEntry.oid,maybeLocator.get.filePath)
           auditActor ! actors.Audit.LogEvent(AuditEvent.STREAMOUT,uid,Some(auditFile), ranges)
 
-          Right((streamSrc, responseSize, headersForEntry(omEntry, ranges, omEntry.fileAttribues.map(_.size)), getMaybeMimetype(omEntry), ranges.nonEmpty))
+          getStreamingSource(ranges,userInfo.get, omEntry, auditFile, uid) match {
+            case Success(partialGraph) =>
+              Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, ranges, responseSize), getMaybeMimetype(omEntry), ranges.nonEmpty))
+            case Failure(err)=> //if we did not get a source, log that
+              auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile),ranges, notes=Some(err.getMessage))
+              logger.error(s"Could not set up streaming source: ", err)
+              Left(InternalServerError(s"Could not set up streaming source, see logs for more details"))
+          }
+
         case Left(err)=> Left(err)
     }})
 
