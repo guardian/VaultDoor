@@ -3,7 +3,6 @@ package controllers
 import java.net.URI
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.event.LoggingAdapter
 import akka.stream.scaladsl.{Framing, GraphDSL, Keep, Sink, Source}
 import helpers.{ByteBufferSource, OMAccess, OMLocator, RangeHeader, UserInfoCache}
 import javax.inject.{Inject, Named, Singleton}
@@ -16,18 +15,16 @@ import helpers.BadDataError
 import scala.util.{Failure, Success, Try}
 import akka.pattern.ask
 import akka.stream.{Attributes, Materializer, SourceShape}
-import akka.util.ByteString
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
-import models.ObjectMatrixEntry
 import streamcomponents.{MatrixStoreFileSourceWithRanges, MultipartSource}
-
+import models.{AuditEvent, AuditFile, ObjectMatrixEntry}
+import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import play.api.cache.SyncCacheApi
 import auth.Security
 import play.api.libs.circe.Circe
-import views.html.helper.CSRF
 
 
 @Singleton
@@ -35,6 +32,7 @@ class Application @Inject() (cc:ControllerComponents,
                              config:Configuration,
                              omAccess: OMAccess,
                              @Named("object-cache") objectCache:ActorRef,
+                             @Named("audit-actor") auditActor:ActorRef,
                              userInfoCache:UserInfoCache
                             )(implicit mat:Materializer,system:ActorSystem, override implicit val cache:SyncCacheApi)
   extends AbstractController(cc) with Security with Circe {
@@ -92,11 +90,17 @@ class Application @Inject() (cc:ControllerComponents,
     val objectEntryFut = Future.fromTry(maybeLocator).flatMap(locator=>{
       (objectCache ? Lookup(locator)).mapTo[OCMsg].map({
         case ObjectNotFound(_) =>
+          val auditFile = AuditFile("",locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.NOTFOUND, uid, Some(auditFile), Seq())
           Left(NotFound(s"could not find object $targetUriString")) //FIXME: replace with proper json response
         case ObjectLookupFailed(_, err) =>
+          val auditFile = AuditFile("",locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile), Seq(),notes=Some(err.toString))
           logger.error(s"Could not look up object for $targetUriString: ", err)
           Left(InternalServerError(s"lookup failed for $targetUriString"))
         case ObjectFound(_, objectEntry) =>
+          val auditFile = AuditFile(objectEntry.oid,locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.HEADFILE, uid, Some(auditFile), Seq())
           Right(objectEntry)
       })
     })
@@ -104,6 +108,7 @@ class Application @Inject() (cc:ControllerComponents,
     objectEntryFut.map({
       case Left(response)=>response
       case Right(entry)=>
+
         Result(
           ResponseHeader(200,headersForEntry(entry, Seq(), getMaybeResponseSize(entry, None))),
           HttpEntity.Streamed(Source.empty, getMaybeResponseSize(entry, None), getMaybeMimetype(entry))
@@ -118,7 +123,8 @@ class Application @Inject() (cc:ControllerComponents,
     * @param omEntry [[ObjectMatrixEntry]] instance describing the file to target
     * @return an akka Source that yields ByteString contents of the file
     */
-  def getStreamingSource(ranges:Seq[RangeHeader], userInfo:UserInfo, omEntry:ObjectMatrixEntry) = {
+  def getStreamingSource(ranges:Seq[RangeHeader], userInfo:UserInfo, omEntry:ObjectMatrixEntry, auditFile:AuditFile, uid:String) = Try {
+    import akka.stream.scaladsl.GraphDSL.Implicits._
     val partialGraph = if(ranges.length>1) {
       val mpSep = MultipartSource.genSeparatorText
 
@@ -126,22 +132,49 @@ class Application @Inject() (cc:ControllerComponents,
 
       GraphDSL.create() { implicit builder =>
         val src = builder.add(MultipartSource.getSource(rangesAndSources, omEntry.fileAttribues.get.size, "application/octet-stream", mpSep))
-        SourceShape(src.out)
+        val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid, omEntry.fileAttribues.get.size))
+        src ~> audit
+        SourceShape(audit.out)
       }
     } else {
       GraphDSL.create() { implicit builder=>
         val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo,omEntry.oid,omEntry.fileAttribues.get.size,ranges))
-        SourceShape(src.out)
+        val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid, omEntry.fileAttribues.get.size))
+        src ~> audit
+        SourceShape(audit.out)
       }
     }
     Source.fromGraph(partialGraph)
   }
+
+  /**
+    * get a ranged file source and link it to an auditing flow, which passes bytes through untouched but counts them and
+    * logs start/end to the audit log
+    * DEPRECATED DURING MERGE. CONTENT MERGED INTO getStreamingSource
+    * @param userInfo UserInfo object describing the appliance and vault to access
+    * @param omEntry [[ObjectMatrixEntry]] object describing the file to access
+    * @param ranges potentially empty sequence of byte ranges to access. If sequence is empty => whole file
+    * @param auditFile [[AuditFile]] object describing the file that is being accessed
+    * @param uid user that is making the request
+    * @return a partial Graph that emulates a Source.  You can call Source.fromGraph() on this value to get a "real" source back.
+    */
+  def makeOutputGraph(userInfo:Option[UserInfo],omEntry:ObjectMatrixEntry, ranges:Seq[RangeHeader], auditFile:AuditFile, uid:String) = Try { GraphDSL.create() { implicit builder=>
+    import akka.stream.scaladsl.GraphDSL.Implicits._
+
+    val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo.get, omEntry.oid, omEntry.fileAttribues.get.size,ranges))
+    val audit = builder.add(new AuditLogFinish(auditActor,auditFile,uid, omEntry.fileAttribues.get.size))
+
+    src ~> audit
+
+    SourceShape(audit.out)
+  }}
+
   /**
     * third test, use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
     * @param targetUriString omms URI of the object that we are trying to get
     * @return
     */
-  def streamTargetContent(targetUriString:String) = Action.async { request=>
+  def streamTargetContent(targetUriString:String) = IsAuthenticatedAsync { uid=> request=>
     val maybeTargetUri = Try {
       URI.create(targetUriString)
     }
@@ -154,8 +187,12 @@ class Application @Inject() (cc:ControllerComponents,
     val objectEntryFut = Future.fromTry(maybeLocator).flatMap(locator=>{
       (objectCache ? Lookup(locator)).mapTo[OCMsg].map({
         case ObjectNotFound(_) =>
+          val auditFile = AuditFile("",locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.NOTFOUND, uid, Some(auditFile), Seq())
           Left(NotFound(s"could not find object $targetUriString")) //FIXME: replace with proper json response
         case ObjectLookupFailed(_, err) =>
+          val auditFile = AuditFile("",locator.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile), Seq(),notes=Some(err.toString))
           logger.error(s"Could not look up object for $targetUriString: ", err)
           Left(InternalServerError(s"lookup failed for $targetUriString"))
         case ObjectFound(_, objectEntry) =>
@@ -179,7 +216,7 @@ class Application @Inject() (cc:ControllerComponents,
 
       results.head.asInstanceOf[Either[Result,ObjectMatrixEntry]] match {
         case Right(omEntry)=>
-          //maybeLocator.get is safe becuase if maybeLocator is a Failure we don't execute this block
+          //maybeLocator.get is safe because if maybeLocator is a Failure we don't execute this block
           val userInfo = userInfoCache.infoForAddress(maybeLocator.get.host,maybeLocator.get.vaultId.toString)
 
           val responseSize = if(ranges.nonEmpty){
@@ -188,16 +225,26 @@ class Application @Inject() (cc:ControllerComponents,
             omEntry.fileAttribues.map(_.size)
           }
 
-          val streamSrc = getStreamingSource(ranges,userInfo.get, omEntry)
+          //log that we are starting a streamout
+          val auditFile = AuditFile(omEntry.oid,maybeLocator.get.filePath)
+          auditActor ! actors.Audit.LogEvent(AuditEvent.STREAMOUT,uid,Some(auditFile), ranges)
 
-          Right((streamSrc, responseSize, headersForEntry(omEntry, ranges, omEntry.fileAttribues.map(_.size)), getMaybeMimetype(omEntry), ranges.nonEmpty))
+          getStreamingSource(ranges,userInfo.get, omEntry, auditFile, uid) match {
+            case Success(partialGraph) =>
+              Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, ranges, responseSize), getMaybeMimetype(omEntry), ranges.nonEmpty))
+            case Failure(err)=> //if we did not get a source, log that
+              auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile),ranges, notes=Some(err.getMessage))
+              logger.error(s"Could not set up streaming source: ", err)
+              Left(InternalServerError(s"Could not set up streaming source, see logs for more details"))
+          }
+
         case Left(err)=> Left(err)
     }})
 
     srcOrFailureFut.map({
       case Right((byteSource, maybeResponseSize, headers, maybeMimetype, isPartialTransfer)) =>
-
         logger.info(s"maybeResponseSize is $maybeResponseSize")
+
         Result(
           ResponseHeader(if(isPartialTransfer) 206 else 200, headers),
           HttpEntity.Streamed(byteSource.log("outputstream").addAttributes(

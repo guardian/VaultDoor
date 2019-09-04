@@ -1,4 +1,4 @@
-import actors.ObjectCache
+import actors.{Audit, ObjectCache}
 import com.google.inject.AbstractModule
 import helpers.UserInfoCache
 import org.slf4j.LoggerFactory
@@ -10,5 +10,6 @@ class Module extends AbstractModule with AkkaGuiceSupport {
   override def configure(): Unit = {
     bind(classOf[UserInfoCache]).asEagerSingleton()
     bindActor[ObjectCache]("object-cache")
+    bindActor[Audit]("audit-actor")
   }
 }
