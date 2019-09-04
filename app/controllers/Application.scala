@@ -3,7 +3,8 @@ package controllers
 import java.net.URI
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.stream.scaladsl.{Framing, GraphDSL, Source}
+import akka.event.LoggingAdapter
+import akka.stream.scaladsl.{Framing, GraphDSL, Keep, Sink, Source}
 import helpers.{ByteBufferSource, OMAccess, OMLocator, RangeHeader, UserInfoCache}
 import javax.inject.{Inject, Named, Singleton}
 import org.slf4j.LoggerFactory
@@ -14,14 +15,15 @@ import helpers.BadDataError
 
 import scala.util.{Failure, Success, Try}
 import akka.pattern.ask
-import akka.stream.{Materializer, SourceShape}
+import akka.stream.{Attributes, Materializer, SourceShape}
+import akka.util.ByteString
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
 import models.ObjectMatrixEntry
-import streamcomponents.MatrixStoreFileSourceWithRanges
+import streamcomponents.{MatrixStoreFileSourceWithRanges, MultipartSource}
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import play.api.cache.SyncCacheApi
 import auth.Security
 import play.api.libs.circe.Circe
@@ -55,7 +57,7 @@ class Application @Inject() (cc:ControllerComponents,
     */
   def headersForEntry(entry:ObjectMatrixEntry, ranges:Seq[RangeHeader], totalSize:Option[Long]):Map[String,String] = {
     logger.info(entry.attributes.toString)
-    val contentRangeHeader = ranges.headOption.map(range=>s"bytes ${range.start}-${range.end}${totalSize.map(s=>s"/$s").getOrElse("")}")
+    val contentRangeHeader = ranges.headOption.map(range=>s"bytes ${range.headerString}${totalSize.map(s=>s"/$s").getOrElse("")}")
 
     val optionalFields = Seq(
       entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"Etag"->s),
@@ -110,11 +112,36 @@ class Application @Inject() (cc:ControllerComponents,
   }
 
   /**
+    * gets a multipart source if needed or just gets a single source if no ranges specified
+    * @param ranges a sequence of [[RangeHeader]] objects. If empty a single source for the entire file is returned
+    * @param userInfo userInfo object describing the appliance and vault to target
+    * @param omEntry [[ObjectMatrixEntry]] instance describing the file to target
+    * @return an akka Source that yields ByteString contents of the file
+    */
+  def getStreamingSource(ranges:Seq[RangeHeader], userInfo:UserInfo, omEntry:ObjectMatrixEntry) = {
+    val partialGraph = if(ranges.length>1) {
+      val mpSep = MultipartSource.genSeparatorText
+
+      val rangesAndSources = MultipartSource.makeSources(ranges, userInfo, omEntry)
+
+      GraphDSL.create() { implicit builder =>
+        val src = builder.add(MultipartSource.getSource(rangesAndSources, omEntry.fileAttribues.get.size, "application/octet-stream", mpSep))
+        SourceShape(src.out)
+      }
+    } else {
+      GraphDSL.create() { implicit builder=>
+        val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo,omEntry.oid,omEntry.fileAttribues.get.size,ranges))
+        SourceShape(src.out)
+      }
+    }
+    Source.fromGraph(partialGraph)
+  }
+  /**
     * third test, use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
     * @param targetUriString omms URI of the object that we are trying to get
     * @return
     */
-  def streamTargetContent(targetUriString:String) = IsAuthenticatedAsync { uid=> request=>
+  def streamTargetContent(targetUriString:String) = Action.async { request=>
     val maybeTargetUri = Try {
       URI.create(targetUriString)
     }
@@ -161,13 +188,9 @@ class Application @Inject() (cc:ControllerComponents,
             omEntry.fileAttribues.map(_.size)
           }
 
-          val partialGraph = GraphDSL.create() { implicit builder=>
-            val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo.get,omEntry.oid, omEntry.fileAttribues.get.size,ranges))
+          val streamSrc = getStreamingSource(ranges,userInfo.get, omEntry)
 
-            SourceShape(src.out)
-          }
-
-          Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, ranges, responseSize), getMaybeMimetype(omEntry), ranges.nonEmpty))
+          Right((streamSrc, responseSize, headersForEntry(omEntry, ranges, omEntry.fileAttribues.map(_.size)), getMaybeMimetype(omEntry), ranges.nonEmpty))
         case Left(err)=> Left(err)
     }})
 
@@ -177,8 +200,12 @@ class Application @Inject() (cc:ControllerComponents,
         logger.info(s"maybeResponseSize is $maybeResponseSize")
         Result(
           ResponseHeader(if(isPartialTransfer) 206 else 200, headers),
-          HttpEntity.Streamed(byteSource, maybeResponseSize, maybeMimetype)
-        )
+          HttpEntity.Streamed(byteSource.log("outputstream").addAttributes(
+            Attributes.logLevels(
+              onElement = Attributes.LogLevels.Info,
+              onFailure = Attributes.LogLevels.Error,
+              onFinish = Attributes.LogLevels.Info)), None, maybeMimetype)
+        ) //we can't give a proper content length, because if we are sending multipart chunks that adds overhead to the request size.
       case Left(response)=>response
     }).recover({
       case err:BadDataError=>
