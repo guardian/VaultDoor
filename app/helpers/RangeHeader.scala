@@ -1,9 +1,13 @@
 package helpers
 
+import org.slf4j.LoggerFactory
+
 import scala.util.{Failure, Success, Try}
 //see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Range
 
 object RangeHeader extends ((Option[Long],Option[Long])=>RangeHeader) {
+  private val logger = LoggerFactory.getLogger(getClass)
+
   private val fullRangeXtractor = "^(\\d+)-(\\d+)".r
   private val partialStartRangeXtractor = "(\\d+)-$".r
   private val partialEndRangeXtractor = "^-(\\d+)$".r
@@ -51,8 +55,8 @@ object RangeHeader extends ((Option[Long],Option[Long])=>RangeHeader) {
     for(i <- 0 until headers.length-1){
       if(i>0 && headers(i).start.isEmpty){
         return Failure(new BadDataError("Open start range that is not the first in sequence"))
-      } else if(i+1!=headers.length && headers(i+1).end.isEmpty) {
-        return Failure(new BadDataError("Open end range that is not the last in sequence"))
+      } else if(i<headers.length-1 && headers(i).end.isEmpty) {
+        return Failure(new BadDataError(s"Open end range at position $i / ${headers.length} that is not the last in sequence"))
       } else {
           if (headers(i).end.isDefined && headers(i + 1).start.isDefined) {
             if (headers(i).end.get > headers(i + 1).start.get) {
@@ -83,6 +87,7 @@ object RangeHeader extends ((Option[Long],Option[Long])=>RangeHeader) {
             Failure(failures.head)
           } else {
             val sortedRanges = ranges.collect({case Success(range)=>range}).sortBy(_.start)
+            sortedRanges.foreach(h=>logger.debug(s"sorted range: $h"))
             checkForOverlap(sortedRanges)
           }
         }

@@ -3,7 +3,6 @@ package controllers
 import java.net.URI
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.event.LoggingAdapter
 import akka.stream.scaladsl.{Framing, GraphDSL, Keep, Sink, Source}
 import helpers.{ByteBufferSource, OMAccess, OMLocator, RangeHeader, UserInfoCache}
 import javax.inject.{Inject, Named, Singleton}

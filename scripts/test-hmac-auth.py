@@ -47,10 +47,11 @@ shared_secret = "rubbish"
 
 target_url = urllib.quote(sys.argv[1],'')
 print "Encoded target url is {0}".format(target_url)
-signed_headers = sign_request({"Range": "bytes=0-23"}, "GET", "/stream/{0}".format(target_url), "", shared_secret)
+signed_headers = sign_request({}, "GET", "/stream/{0}".format(target_url), "", shared_secret)
 
 result = requests.get("http://localhost:9000/stream/{0}".format(target_url), headers=signed_headers, stream=True)
 print "Server returned {0}: {1}".format(result.status_code, result.headers)
+print "Outputting returned data to outfile.dat"
 with open("outfile.dat", "wb") as f:
     shutil.copyfileobj(result.raw, f)
 

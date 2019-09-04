@@ -32,7 +32,7 @@ class AuditLogFinish (auditLogActor:ActorRef, auditFile:AuditFile, uid:String, e
 
     override def postStop(): Unit = {
       logger.info(s"Streaming finished for $auditFile, passed $bytesCounter bytes")
-      if(bytesCounter==expectedBytes) {
+      if(bytesCounter>=expectedBytes) { //bytesCounter could be more than expectedBytes if we are doing a multipart MIME response
         auditLogActor ! actors.Audit.LogEvent(AuditEvent.STREAMOUT_END, uid, Some(auditFile), Seq(), None, Some(bytesCounter))
       } else {
         val maybePct = if(expectedBytes>0) Some((bytesCounter.toDouble / expectedBytes.toDouble)*100) else None
