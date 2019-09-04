@@ -29,6 +29,8 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
 
   }
 
+  def getAll() = content.values.toSeq
+
   /**
     * shuts down the app in the case of a fatal error. Does not return.
     * @param exitCode exit code to return
