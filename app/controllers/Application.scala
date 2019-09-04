@@ -16,25 +16,16 @@ import helpers.BadDataError
 import scala.util.{Failure, Success, Try}
 import akka.pattern.ask
 import akka.stream.{Attributes, Materializer, SourceShape}
-import akka.util.ByteString
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
-<<<<<<< HEAD
-import models.ObjectMatrixEntry
 import streamcomponents.{MatrixStoreFileSourceWithRanges, MultipartSource}
 import models.{AuditEvent, AuditFile, ObjectMatrixEntry}
-import streamcomponents.MatrixStoreFileSourceWithRanges
-=======
-import models.{AuditEvent, AuditFile, FileAttributes, ObjectMatrixEntry}
 import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges}
->>>>>>> working audit output
-
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import play.api.cache.SyncCacheApi
 import auth.Security
 import play.api.libs.circe.Circe
-import views.html.helper.CSRF
 
 
 @Singleton
