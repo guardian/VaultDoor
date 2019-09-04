@@ -79,7 +79,7 @@ class MatrixStoreFileSourceWithRanges(userInfo:UserInfo, sourceId:String, source
         getNextDownloadRange(bytesPtr) match {
           case Some((start,end))=>
             logger.debug(s"Next chunk is from byte $start to $end")
-            val bufferSize:Int = (end-start).toInt
+            val bufferSize:Int = (end-start).toInt+1  //+1 is needed, otherwise if we request bytes 0-23 we actually only get 0 to 22 because that is 23 bytes' worth.
             val buffer = ByteBuffer.allocate(bufferSize)  //should check if allocateDirect helps here
 
             bytesPtr=start

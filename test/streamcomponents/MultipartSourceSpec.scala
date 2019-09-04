@@ -44,7 +44,7 @@ class MultipartSourceSpec extends Specification with Mockito {
     }
   }
 
-  "MultipartSource.getSource" should {
+  "MultipartSource.getStreamingSource" should {
     "return a single source that yields the contents of the provided sources in multipart format" in new AkkaTestkitSpecs2Support {
       implicit val mat = ActorMaterializer.create(system)
       val rangeAndSource = Seq(

@@ -4,11 +4,14 @@ import akka.NotUsed
 import akka.stream.SourceShape
 import akka.stream.scaladsl.{Concat, GraphDSL, Source}
 import akka.util.ByteString
+import com.om.mxs.client.japi.UserInfo
 import helpers.RangeHeader
 import helpers.RandomExtender._
+import models.ObjectMatrixEntry
+import org.slf4j.LoggerFactory
 
 object MultipartSource {
-
+  private val logger = LoggerFactory.getLogger(getClass)
   /**
     * generates a 10-character random string used as a section boundary
     * @return the string
@@ -23,6 +26,25 @@ object MultipartSource {
     a.mkString
   }
 
+  def sourceForRange(range:RangeHeader, userInfo:UserInfo, omEntry:ObjectMatrixEntry) = {
+    val graph = GraphDSL.create() { implicit builder=>
+      val src = builder.add(new MatrixStoreFileSourceWithRanges(userInfo, omEntry.oid, omEntry.fileAttribues.get.size, Seq(range)))
+
+      SourceShape(src.out)
+    }
+
+    Source.fromGraph(graph)
+  }
+
+  /**
+    * builds a sequence of (RangeHeader, Source[ByteString]) tuples out of a sequence of [[RangeHeader]] by building a [[MatrixStoreFileSourceWithRanges]] for each entry
+    * @param ranges sequence of RangeHeaders giving the ranges to read
+    * @param userInfo UserInfo object giving the ObjectMatrix appliance and vault to access
+    * @param omEntry [[ObjectMatrixEntry]] instance giving the file to stream
+    * @return a sequence of (RangeHeader, Source[ByteString]) suitable for passing to getStreamingSource
+    */
+  def makeSources(ranges:Seq[RangeHeader], userInfo:UserInfo, omEntry:ObjectMatrixEntry) = ranges.map(range=>(range,sourceForRange(range,userInfo, omEntry)))
+
   /**
     * builds a single streaming Source for a multipart from the list of sources and ranges provided.
     * @param rangeAndSource sequence of tuples, each has a RangeHeader representing the range and a Source that will grab the byte content of said range.
@@ -31,7 +53,6 @@ object MultipartSource {
     * @param separator randomised section separator text. Get this by calling `MultipartSource.genSeparatorText`.
     * @return a single Source[ByteString,NotUsed] that will yield the multipart response body
     */
-  //def getSource(ranges:Seq[RangeHeader], sources:Seq[Source[ByteString,NotUsed]], totalSize:Long, contentType:String, separator:String) = {
   def getSource(rangeAndSource:Seq[(RangeHeader, Source[ByteString,NotUsed])], totalSize:Long, contentType:String, separator:String) = {
     var n=0
 
@@ -42,6 +63,7 @@ object MultipartSource {
         entry._2
       )
     }) ++ Seq(Source.single(ByteString(s"\r\n--$separator--")))
+    logger.debug(s"Got sources list: $fullSourcesList")
     Source.combine(fullSourcesList.head, fullSourcesList.tail.head, fullSourcesList.tail.tail:_*)(Concat(_))
   }
 
