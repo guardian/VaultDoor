@@ -35,7 +35,7 @@ class Application @Inject() (cc:ControllerComponents,
                              @Named("audit-actor") auditActor:ActorRef,
                              userInfoCache:UserInfoCache
                             )(implicit mat:Materializer,system:ActorSystem, override implicit val cache:SyncCacheApi)
-  extends AbstractController(cc) with Security with Circe {
+  extends AbstractController(cc) with ObjectMatrixEntryMixin with Security with Circe {
   import actors.ObjectCache._
 
   override protected val logger = LoggerFactory.getLogger(getClass)
@@ -46,26 +46,6 @@ class Application @Inject() (cc:ControllerComponents,
 
   def index = Action {
     Ok(views.html.index("VaultDoor")("no-cb"))
-  }
-
-  /**
-    * gathers appropriate headers for the given [[ObjectMatrixEntry]]
-    * @param entry [[ObjectMatrixEntry]] instance
-    * @return
-    */
-  def headersForEntry(entry:ObjectMatrixEntry, ranges:Seq[RangeHeader], totalSize:Option[Long]):Map[String,String] = {
-    logger.info(entry.attributes.toString)
-    val contentRangeHeader = ranges.headOption.map(range=>s"bytes ${range.headerString}${totalSize.map(s=>s"/$s").getOrElse("")}")
-
-    val optionalFields = Seq(
-      entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"Etag"->s),
-      contentRangeHeader.map(hdr=>"Content-Range"->hdr)
-    ).collect({case Some(field)=>field})
-
-
-    optionalFields.toMap ++ Map(
-      "Accept-Ranges"->"bytes",
-    )
   }
 
   def getMaybeResponseSize(entry:ObjectMatrixEntry, overriden:Option[Long]):Option[Long] = {
