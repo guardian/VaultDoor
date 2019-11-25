@@ -22,6 +22,7 @@ unmanagedBase := baseDirectory.value / "lib"
 val akkaVersion = "2.5.22"
 val circeVersion = "0.9.3"
 val slf4jVersion = "1.7.25"
+val elastic4sVersion = "6.5.1"
 
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,
@@ -37,6 +38,11 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-yaml" % "0.10.0",
   "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0",
   "ai.snips" %% "play-mongo-bson" % "0.5.1",
+  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-circe" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test",
+  "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test",
   "org.specs2" %% "specs2-core" % "4.5.1" % Test,
   "org.specs2" %% "specs2-mock" % "4.5.1" % Test,
   "org.mockito" % "mockito-core" % "2.28.2" % Test,
