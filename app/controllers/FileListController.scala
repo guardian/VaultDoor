@@ -33,8 +33,8 @@ class FileListController @Inject() (cc:ControllerComponents,
 
   override protected val logger = LoggerFactory.getLogger(getClass)
 
-  def pathSearchStreaming(vaultId:String, address:String, forPath:Option[String]) = Action {
-    userInfoCache.infoForAddress(address, vaultId) match {
+  def pathSearchStreaming(vaultId:String, forPath:Option[String]) = Action {
+    userInfoCache.infoForVaultId(vaultId) match {
       case Some(userInfo) =>
         implicit val ec: ExecutionContext = system.dispatcher
         val searchAttrib = forPath match {
@@ -52,8 +52,8 @@ class FileListController @Inject() (cc:ControllerComponents,
 
           val outlet = lookup.out
             .map(PresentableFile.fromObjectMatrixEntry)
-            .map(_.asJson)
-            .map(json => ByteString(json.toString() + "\n"))
+            .map(_.asJson.noSpaces)
+            .map(jsonString => ByteString(jsonString + "\n"))
             .outlet
           SourceShape(outlet)
         }

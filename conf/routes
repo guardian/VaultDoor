@@ -15,6 +15,10 @@ GET     /api/isAdmin                       @controllers.Login.checkIsAdmin
 
 GET     /audit/scan                        @controllers.AuditController.getAll(limit:Option[Int])
 
-GET     /api/vault/:vaultId/list        @controllers.FileListController.pathSearchStreaming(vaultId, address:String, forFile:Option[String])
+GET     /api/vault                      @controllers.VaultController.knownVaults()
+
+GET     /api/vault/:vaultId/list        @controllers.FileListController.pathSearchStreaming(vaultId, forFile:Option[String])
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET     /*tail                      @controllers.UiController.index(tail)

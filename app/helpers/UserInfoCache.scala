@@ -10,7 +10,6 @@ import play.api.Configuration
 import play.api.inject.ApplicationLifecycle
 
 import scala.concurrent.Await
-import scala.io.Source
 import scala.util.{Failure, Success}
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -98,4 +97,14 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
     logger.debug(s"looking up ${(address, vaultId)}")
     content.get(s"$address-$vaultId")
   }
+
+  def allKnownVaults() = {
+    content.map(kv=>(kv._2.getVault, kv._2.getAddresses)).toSeq
+  }
+
+  def infoForVaultId(vaultId:String) = {
+    val maps = content.map(kv=>(kv._2.getVault,kv._2))
+    maps.get(vaultId)
+  }
+
 }
