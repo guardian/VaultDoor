@@ -95,4 +95,5 @@ case class MxsMetadata (stringValues:Map[String,String], boolValues:Map[String,B
 object MxsMetadata {
   def apply(stringValues: Map[String, String], boolValues: Map[String, Boolean], longValues: Map[String, Long], intValues: Map[String, Int]): MxsMetadata = new MxsMetadata(stringValues, boolValues, longValues, intValues)
 
+  def empty:MxsMetadata = new MxsMetadata(Map(), Map(), Map(), Map())
 }

@@ -5,6 +5,11 @@ import RootComponent from './RootComponent.jsx';
 import axios from 'axios';
 import Raven from 'raven-js';
 import SearchComponent from './SearchComponent.jsx';
+import { library } from '@fortawesome/fontawesome-svg-core'
+
+import { faFolder, faFolderOpen } from '@fortawesome/free-solid-svg-icons'
+
+library.add(faFolderOpen, faFolder);
 
 class App extends React.Component {
     constructor(props){

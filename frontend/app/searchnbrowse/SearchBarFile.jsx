@@ -14,7 +14,7 @@ class SearchBarFile extends React.Component {
         return <div className="searchbar">
             <VaultSelector currentvault={this.props.selectedVault} vaultWasChanged={this.props.vaultSelectionChanged}/>
             <label htmlFor="filePathSearch">File path: </label>
-            <input type="text" id="filePathSearch" onChange={evt=>this.props.filePathUpdated(evt.target.value)} value={this.props.filePath}/>
+            <input className="form-spacing" type="text" id="filePathSearch" onChange={evt=>this.props.filePathUpdated(evt.target.value)} value={this.props.filePath}/>
         </div>
     }
 }

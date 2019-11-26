@@ -46,7 +46,7 @@ class FileListController @Inject() (cc:ControllerComponents,
           import akka.stream.scaladsl.GraphDSL.Implicits._
 
           val src = builder.add(new OMSearchSource(userInfo, Some(SearchTerm.createSimpleTerm(searchAttrib)), None))
-          val lookup = builder.add(new OMLookupMetadata(userInfo))
+          val lookup = builder.add(new OMLookupMetadata(userInfo).async)
 
           src ~> lookup
 

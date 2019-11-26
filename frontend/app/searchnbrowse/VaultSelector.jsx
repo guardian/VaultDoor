@@ -29,9 +29,9 @@ class VaultSelector extends React.Component {
     }
 
     render() {
-        return <span>
+        return <span className="form-spacing">
             <label htmlFor="vaultsDropdown">Select vault: </label>
-            <select id="vaultsDropdown" value={this.props.currentvault} onChange={evt=>this.props.vaultWasChanged(evt.target.value)}>
+            <select  id="vaultsDropdown" value={this.props.currentvault} onChange={evt=>this.props.vaultWasChanged(evt.target.value)}>
                 {this.state.knownVaults.map(entry=><option value={entry.vaultId}>{entry.vaultId}</option>)}
             </select>
         </span>

@@ -72,7 +72,11 @@ class OMSearchSource (userInfo:UserInfo, searchTerm:Option[SearchTerm], searchAt
         }
       }
 
-      override def postStop(): Unit = promise.success(ctr)
+      override def postStop(): Unit = {
+        logger.info("Search stream stopped")
+        vault.map(_.dispose())
+        promise.success(ctr)
+      }
     }
 
     (logic, promise.future)

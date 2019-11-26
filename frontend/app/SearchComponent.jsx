@@ -1,8 +1,11 @@
 import React from 'react';
 import SearchBarFile from "./searchnbrowse/SearchBarFile.jsx";
 import ndjsonStream from "can-ndjson-stream";
+import ResultsPanel from './searchnbrowse/ResultsPanel.jsx';
 
 class SearchComponent extends React.Component {
+    static resultsLimit = 100;
+
     constructor(props){
         super(props);
 
@@ -35,11 +38,22 @@ class SearchComponent extends React.Component {
             reader.read().then(({done, value}) => {
                 if(value) {
                     console.log("Got value ", value);
-                    this.setState({fileEntries: this.state.fileEntries.concat([value]), searching: !done});
+                    this.setState(oldState=>{
+                            return {fileEntries: oldState.fileEntries.concat([value]), searching: !done}
+                        }, ()=>{
+                            if(this.state.fileEntries.length>=SearchComponent.resultsLimit){
+                                console.log("Reached limit, stopping");
+                                reader.cancel();
+                            }
+                    });
                 } else {
                     console.warn("Got no data");
                 }
-                if(!done) readNextChunk(reader);
+                if(done) {
+                    this.setState({searching: false});
+                } else {
+                    readNextChunk(reader);
+                }
             })
         }
         readNextChunk = readNextChunk.bind(this);
@@ -49,13 +63,14 @@ class SearchComponent extends React.Component {
     newSearch(){
         const url = "/api/vault/" + this.state.vaultId + "/list";
 
-        this.setState({searching: true}, ()=>this.asyncDownload(url));
+        this.setState({searching: true, fileEntries:[]}, ()=>this.asyncDownload(url));
     }
 
     render() {
         return <div className="windowpanel">
             <SearchBarFile filePath={this.state.filePathSearch} filePathUpdated={this.updateFilePath} selectedVault={this.state.vaultId} vaultSelectionChanged={this.updateVaultId}/>
-            <span style={{"float":"right","display":this.state.searching ? "inline-block" : "none"}}>Loaded {this.state.fileEntries.length}...</span>
+            <span style={{"float":"right","margin-right": "2em", "display":this.state.searching ? "inline-block" : "none"}}>Loaded {this.state.fileEntries.length}...</span>
+            <ResultsPanel entries={this.state.fileEntries}/>
         </div>
     }
 }
