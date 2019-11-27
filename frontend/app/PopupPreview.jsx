@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import ContentHolder from "./searchnbrowse/ContentHolder.jsx";
 
 class PopupPreview extends React.Component {
     static PREVIEW_IMAGE=1;
@@ -19,7 +20,7 @@ class PopupPreview extends React.Component {
        this.state = {
            loading: false,
            size: -1,
-           type: "unknown",
+           type: "application/unknown",
            lastError: null
        };
 
@@ -42,9 +43,10 @@ class PopupPreview extends React.Component {
         const url = "/api/vault/" + this.props.vaultId + "/" + this.props.oid;
         const response = await fetch(url, {method: "HEAD"});
         if(response.ok) {
+            const maybeContentType = response.headers.get("content-type");
             await this.setStatePromise({
                 size: response.headers.get("content-length"),
-                type: response.headers.get("content-type"),
+                type: maybeContentType ? maybeContentType : "application/unknown",
                 loading: false
             })
         } else {
@@ -66,6 +68,10 @@ class PopupPreview extends React.Component {
         }
         return <table>
             <tbody>
+            <tr>
+                <td/>
+                <td><ContentHolder vaultId={this.props.vaultId} oid={this.props.oid} contentType={this.state.type}/></td>
+            </tr>
             <tr>
                 <td>Type</td>
                 <td>{this.state.type}</td>

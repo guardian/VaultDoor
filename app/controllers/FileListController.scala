@@ -34,6 +34,7 @@ class FileListController @Inject() (cc:ControllerComponents,
   override protected val logger = LoggerFactory.getLogger(getClass)
 
   def pathSearchStreaming(vaultId:String, forPath:Option[String]) = Action {
+    logger.warn(s"pathSeearchStreaming: $vaultId $forPath")
     userInfoCache.infoForVaultId(vaultId) match {
       case Some(userInfo) =>
         implicit val ec: ExecutionContext = system.dispatcher

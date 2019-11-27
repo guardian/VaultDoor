@@ -106,6 +106,7 @@ li.pathview {
     right: 25%;
     top: 25%;
     bottom: 25%;
+    overflow: hidden;
     margin: auto;
     background: darkgray;
 }

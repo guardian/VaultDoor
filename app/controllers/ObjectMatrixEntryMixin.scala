@@ -17,7 +17,8 @@ trait ObjectMatrixEntryMixin {
 
     val optionalFields = Seq(
       entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"Etag"->s),
-      contentRangeHeader.map(hdr=>"Content-Range"->hdr)
+      contentRangeHeader.map(hdr=>"Content-Range"->hdr),
+      entry.attributes.flatMap(_.stringValues.get("MXFS_FILENAME")).map(filename=>"Content-Disposition"->s"filename=$filename")
     ).collect({case Some(field)=>field})
 
 

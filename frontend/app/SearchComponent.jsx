@@ -15,7 +15,9 @@ class SearchComponent extends React.Component {
             searching: false,
             vaultId: "",
             fileEntries: [],
-            requestedPreview: null
+            requestedPreview: null,
+            currentReader: null,
+            currentAbort: null
         };
 
         this.updateFilePath = this.updateFilePath.bind(this);
@@ -24,6 +26,7 @@ class SearchComponent extends React.Component {
 
         this.previewRequested = this.previewRequested.bind(this);
         this.previewClosed = this.previewClosed.bind(this);
+
     }
 
     updateFilePath(newSearchPath){
@@ -34,15 +37,28 @@ class SearchComponent extends React.Component {
         this.setState({vaultId: newId}, ()=>this.newSearch());
     }
 
+    setStatePromise(newState) {
+        return new Promise((resolve,reject)=>{
+            try {
+                this.setState(newState, ()=>resolve())
+            } catch(err) {
+                reject(err);
+            }
+        })
+    }
+
     async asyncDownload(url){
-        const response = await fetch(url);
+        const abortController = new AbortController();
+
+        const response = await fetch(url, {signal: abortController.signal});
         const stream = await ndjsonStream(response.body);
         const reader = stream.getReader();
+
+        await this.setStatePromise({currentReader: reader, currentAbort: abortController});
 
         function readNextChunk(reader) {
             reader.read().then(({done, value}) => {
                 if(value) {
-                    //console.log("Got value ", value);
                     this.setState(oldState=>{
                             return {fileEntries: oldState.fileEntries.concat([value]), searching: !done}
                         }, ()=>{
@@ -65,10 +81,41 @@ class SearchComponent extends React.Component {
         readNextChunk(reader);
     }
 
-    newSearch(){
-        const url = "/api/vault/" + this.state.vaultId + "/list";
+    abortReadInProgress(){
+        const myRef = this;
+        return new Promise((resolve, reject)=>{
+            if(!myRef.state.currentReader) {
+                resolve();
+                return;
+            }
+            //if(myRef.state.currentAbort) myRef.state.currentAbort.abort();
+            myRef.state.currentReader.cancel().then(_=> {
+                function waitForSearch() {
+                    if (myRef.state.searching) {
+                        console.log("Waiting for search to cancel...");
+                        window.setTimeout(waitForSearch, 500);
+                    } else {
+                        console.log("Search cancelled");
+                        resolve();
+                    }
+                }
+                waitForSearch();
+            });
+        })
+    }
 
-        this.setState({searching: true, fileEntries:[]}, ()=>this.asyncDownload(url));
+    newSearch(){
+        const urlBase = "/api/vault/" + this.state.vaultId + "/list";
+
+        const url = this.state.filePathSearch ? urlBase + "?forFile="+this.state.filePathSearch : urlBase;
+
+        this.abortReadInProgress().then(_=>
+            this.setState({searching: true, fileEntries:[]}, ()=>
+                this.asyncDownload(url).catch(err=>{
+                    console.error(err);
+                    this.setState({searching: false});
+                }))
+        );
     }
 
     previewRequested(oid){
