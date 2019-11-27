@@ -55,8 +55,15 @@ case class MxsMetadata (stringValues:Map[String,String], boolValues:Map[String,B
     }
   }
 
-  def dumpString(fieldNames:Seq[String]) = {
-    val kv = fieldNames.map(fieldName=>{
+  def allFieldNames = stringValues.keySet ++ intValues.keySet ++ boolValues.keySet ++ longValues.keySet
+
+  def dumpString(fieldNames:Option[Seq[String]]) = {
+    val actualFieldNames = fieldNames match {
+      case Some(n)=>n.toSet
+      case None=>allFieldNames
+    }
+
+    val kv = actualFieldNames.map(fieldName=>{
       val maybeString = stringValues.get(fieldName)
       val maybeBool = boolValues.get(fieldName)
       val maybeLong = longValues.get(fieldName)
@@ -88,4 +95,5 @@ case class MxsMetadata (stringValues:Map[String,String], boolValues:Map[String,B
 object MxsMetadata {
   def apply(stringValues: Map[String, String], boolValues: Map[String, Boolean], longValues: Map[String, Long], intValues: Map[String, Int]): MxsMetadata = new MxsMetadata(stringValues, boolValues, longValues, intValues)
 
+  def empty:MxsMetadata = new MxsMetadata(Map(), Map(), Map(), Map())
 }

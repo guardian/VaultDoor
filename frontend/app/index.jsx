@@ -1,9 +1,15 @@
 import React from 'react';
 import {render} from 'react-dom';
 import {BrowserRouter, Link, Route, Switch, Redirect} from 'react-router-dom';
-import RootComponent from './RootComponent.jsx'
+import RootComponent from './RootComponent.jsx';
 import axios from 'axios';
 import Raven from 'raven-js';
+import SearchComponent from './SearchComponent.jsx';
+import { library } from '@fortawesome/fontawesome-svg-core'
+
+import { faFolder, faFolderOpen, faTimes } from '@fortawesome/free-solid-svg-icons'
+
+library.add(faFolderOpen, faFolder, faTimes);
 
 class App extends React.Component {
     constructor(props){
@@ -72,6 +78,7 @@ class App extends React.Component {
         return <div>
             <h1>VaultDoor</h1>
             <Switch>
+                <Route path="/search" component={SearchComponent}/>
                 <Route exact path="/" component={()=><RootComponent
                     onLoggedOut={this.onLoggedOut}
                     onLoggedIn={this.onLoggedIn}
