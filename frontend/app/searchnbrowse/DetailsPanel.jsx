@@ -4,7 +4,8 @@ import PathView from "./PathView.jsx";
 
 class DetailsPanel extends React.Component {
     static propTypes = {
-        entry: PropTypes.object.isRequired
+        entry: PropTypes.object.isRequired,
+        previewRequestedCb: PropTypes.func.isRequired
     };
 
     render(){
@@ -19,6 +20,7 @@ class DetailsPanel extends React.Component {
 
         return <div className="results-subpanel">
             <span className="centered filename semilarge">{fileName}</span>
+            <a className="centered clickable" onClick={()=>this.props.previewRequestedCb(entry.oid)}>&gt;&gt; Preview &lt;&lt;</a>
             <PathView pathParts={pathParts.slice(0,-1)} truncateMode={PathView.TRUNC_END} limit={5}/>
         </div>
     }

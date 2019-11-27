@@ -80,8 +80,8 @@ class LoginComponent extends React.Component {
                 <p className="inline-dialog-content centered">You are currently logged in as
                     <i className="fa fa-user" style={{ marginRight: "3px", marginLeft: "5px"}}/>
                     <span className="emphasis">{this.props.username}</span></p>
-                <p className="inline-dialog-content centered emphasis" style={{fontSize: "1.5em"}}><Link to="/project/?mine">Go to my projects ></Link></p>
-                <p className="intro-banner">Or, please select an option on the left</p>
+                <p className="inline-dialog-content centred emphasis" style={{fontSize: "1.5em"}}><Link to="/search">Go to file search ></Link></p>
+                {/*<p className="intro-banner">Or, please select an option on the left</p>*/}
                 <button className="inline-dialog" onClick={this.doLogout}>Log out</button>
             </div>
         } else {
