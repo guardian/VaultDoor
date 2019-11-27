@@ -5,7 +5,6 @@ import akka.stream.{Materializer, SourceShape}
 import akka.stream.scaladsl.{GraphDSL, Source}
 import akka.util.ByteString
 import auth.Security
-import com.om.mxs.client.SimpleSearchTerm
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm}
 import helpers.{OMAccess, OMLocator, UserInfoCache, ZonedDateTimeEncoder}
 import javax.inject.{Inject, Singleton}
@@ -33,7 +32,7 @@ class FileListController @Inject() (cc:ControllerComponents,
 
   override protected val logger = LoggerFactory.getLogger(getClass)
 
-  def pathSearchStreaming(vaultId:String, forPath:Option[String]) = Action {
+  def pathSearchStreaming(vaultId:String, forPath:Option[String]) = IsAuthenticated { uid=> request=>
     logger.warn(s"pathSeearchStreaming: $vaultId $forPath")
     userInfoCache.infoForVaultId(vaultId) match {
       case Some(userInfo) =>
