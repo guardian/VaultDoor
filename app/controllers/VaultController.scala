@@ -156,6 +156,7 @@ class VaultController @Inject() (cc:ControllerComponents,
           omEntry.fileAttribues.map(_.size)
         }
 
+        logger.debug(s"Ranges is ${ranges}")
         //log that we are starting a streamout
         val auditFile = AuditFile(omEntry.oid, "")
         auditActor ! actors.Audit.LogEvent(AuditEvent.STREAMOUT, uid, Some(auditFile), ranges)

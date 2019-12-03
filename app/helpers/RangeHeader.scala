@@ -25,11 +25,7 @@ object RangeHeader extends ((Option[Long],Option[Long])=>RangeHeader) {
       }
     case partialStartRangeXtractor(startStr:String)=>
       val startNum = startStr.toLong
-      val hdr = if(startNum>0) {
-        new RangeHeader(Some(startNum), None)
-      } else {
-        new RangeHeader(None,Some(-startNum))
-      }
+      val hdr = new RangeHeader(Some(startNum), None)
       Success(hdr)
     case partialEndRangeXtractor(endStr:String)=>
       val endNum = endStr.toLong

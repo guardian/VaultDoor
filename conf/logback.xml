@@ -27,6 +27,7 @@
     <logger name="play" level="INFO" />
     <logger name="application" level="WARN" />
 
+    <logger name="controllers.VaultController" level="DEBUG"/>
     <logger name="helpers" level="INFO"/>
     <logger name="actors" level="INFO"/>
     <logger name="streamcomponents" level="INFO"/>
