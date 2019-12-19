@@ -56,6 +56,11 @@ libraryDependencies += "io.sentry" % "sentry-logback" % "1.7.2"
 //authentication
 libraryDependencies += "com.unboundid" % "unboundid-ldapsdk" % "4.0.5"
 
+enablePlugins(RpmPlugin)
+rpmVendor := "Andy Gallagher <andy.gallagher@theguardian.com>"
+packageName in Rpm := "vaultdoor"
+rpmRelease := sys.props.getOrElse("build.number","DEV")
+rpmUrl := Some("https://github.com/fredex42/vaultdoor")
 
 enablePlugins(DockerPlugin,AshScriptPlugin)
 version := sys.props.getOrElse("build.number","DEV")
