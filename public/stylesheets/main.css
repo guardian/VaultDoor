@@ -110,3 +110,8 @@ li.pathview {
     margin: auto;
     background: darkgray;
 }
+
+.inline-bullet-image {
+    width: 16px;
+
+}
