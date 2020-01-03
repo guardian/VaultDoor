@@ -7,9 +7,9 @@ import Raven from 'raven-js';
 import SearchComponent from './SearchComponent.jsx';
 import { library } from '@fortawesome/fontawesome-svg-core'
 
-import { faFolder, faFolderOpen, faTimes } from '@fortawesome/free-solid-svg-icons'
+import { faFolder, faFolderOpen, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons'
 
-library.add(faFolderOpen, faFolder, faTimes);
+library.add(faFolderOpen, faFolder, faTimes, faSearch);
 
 class App extends React.Component {
     constructor(props){

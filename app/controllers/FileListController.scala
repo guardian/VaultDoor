@@ -114,7 +114,7 @@ class FileListController @Inject() (cc:ControllerComponents,
   /**
     * endpoint to perform a generic search based on a JSON payload containing a CustomMXSMetadata object
     * @param vaultId vault ID to search. This must exist in the UserInfoCache.
-    * @return
+    * @return streaming response of NDJSON ByteStrings
     */
   def customSearchStreaming(vaultId:String) = IsAuthenticated(circe.json[SearchRequest]) { uid=> request=>
     val searchParams = request.body.meta

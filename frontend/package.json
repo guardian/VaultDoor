@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --passWithNoTests",
+    "test": "jest --passWithNoTests --verbose",
     "dev": "webpack -d --watch",
     "build": "webpack -p"
   },
@@ -25,8 +25,10 @@
     "babel-core": "^7.0.0-bridge.0",
     "enzyme": "^3.7.0",
     "enzyme-adapter-react-16": "^1.6.0",
+    "expect": "^24.9.0",
     "jest": "^24.8.0",
     "jest-cli": "^24.8.0",
+    "jest-fetch-mock": "^3.0.1",
     "jest-junit": "^4.0.0",
     "moxios": "^0.4.0",
     "object.entries": "^1.0.4",
