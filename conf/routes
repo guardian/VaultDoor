@@ -7,6 +7,7 @@ GET     /                                           @controllers.Application.ind
 
 GET     /stream/:targetUriString                    @controllers.Application.streamTargetContent(targetUriString)
 HEAD    /stream/:targetUriString                    @controllers.Application.headTargetContent(targetUriString)
+GET     /api/config                                 @controllers.Application.frontendConfig
 
 POST    /api/login                                  @controllers.Login.authenticate
 POST    /api/logout                                 @controllers.Login.logout

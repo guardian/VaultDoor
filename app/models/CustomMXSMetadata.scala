@@ -53,9 +53,17 @@ object CustomMXSMetadata {
   val TYPE_PROJECT = "project"
   val TYPE_UNSORTED = "unsorted"
 
+  /**
+    * initialise from an MxsMetadata object from the SDK.
+    * this assumes that GNM_TYPE is set to a string value, if so any supplementary values are
+    * added in.
+    * if GNM_TYPE is not set then None is returned
+    * @param incoming an MxsMetadata object from the OM SDK
+    * @return an initialised CustomMXSMetadata object or None
+    */
   def fromMxsMetadata(incoming:MxsMetadata):Option[CustomMXSMetadata] =
     incoming.stringValues.get("GNM_TYPE").map(itemType=>
-      new CustomMXSMetadata(itemType,
+      new CustomMXSMetadata(Some(itemType),
         incoming.stringValues.get("GNM_PROJECT_ID"),
         incoming.stringValues.get("GNM_COMMISSION_ID"),
         incoming.stringValues.get("GNM_MASTER_ID"),
@@ -68,7 +76,7 @@ object CustomMXSMetadata {
         incoming.intValues.get("GNM_DELIVERABLE_BUNDLE_ID"),
         incoming.intValues.get("GNM_DELIVERABLE_VERSION"),
         incoming.stringValues.get("GNM_DELIVERABLE_TYPE"),
-        incoming.boolValues.getOrElse("GNM_HIDDEN_FILE", false)
+        incoming.boolValues.get("GNM_HIDDEN_FILE")
       )
     )
 }

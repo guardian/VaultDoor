@@ -47,6 +47,9 @@ div.results-panel {
 /*    border-style: dashed;*/
 /*}*/
 
+.inline-icon {
+    margin-right: 0.4em;
+}
 ul.silent-list {
     list-style: none;
 }
@@ -114,4 +117,31 @@ li.pathview {
 .inline-bullet-image {
     width: 16px;
 
+}
+
+ul.no-decorations {
+    list-style: none;
+    padding-left:0;
+}
+
+div.search-bar-element {
+    display: inline-block;
+    margin-right: 1em;
+}
+
+.filterable-list-selector {
+    width: 100%;
+}
+
+li.filterable-list-entry {
+    margin-bottom: 0.5em;
+    padding-left:0;
+}
+
+div.search-bar {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    max-width: 50%;
 }

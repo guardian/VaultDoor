@@ -73,7 +73,7 @@ class FilterableList extends React.Component {
     async fetchFromServer(searchParam){
         const getUrl = this.props.unfilteredContentFetchUrl + "?" + this.props.fetchUrlFilterQuery + "=" + searchParam;
 
-        const result = await (this.props.makeSearchDoc ? fetch(this.props.unfilteredContentFetchUrl ,{method: "PUT", body: JSON.stringify(this.props.makeSearchDoc(searchParam))}) : fetch(getUrl));
+        const result = await (this.props.makeSearchDoc ? fetch(this.props.unfilteredContentFetchUrl ,{method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(this.props.makeSearchDoc(searchParam))}) : fetch(getUrl));
         const content = await result.json();
 
         try {
@@ -105,11 +105,11 @@ class FilterableList extends React.Component {
 
         return <div>
             <ul className="no-decorations">
-                <li>
-                    <FontAwesomeIcon icon="search"/>
+                <li className="filterable-list-entry">
+                    <FontAwesomeIcon icon="search" className="inline-icon"/>
                     <input onChange={evt=>this.setState({currentSearch: evt.target.value})} value={this.state.currentSearch}/>
                 </li>
-                <li>
+                <li className="filterable-list-entry">
                     <select className="filterable-list-selector" size={this.props.size}
                             value={this.props.value}
                             onChange={evt=>this.props.onChange(evt.target.value)}>

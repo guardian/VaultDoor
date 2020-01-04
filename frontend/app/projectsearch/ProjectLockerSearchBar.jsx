@@ -20,9 +20,9 @@ class ProjectLockerSearchBar extends React.Component {
             lastError: null
         };
 
-        this.workingGroupFetchUrl = this.props.projectLockerBaseUrl + "/api/pluto/workinggroup";
-        this.commissionFetchUrl = this.props.projectLockerBaseUrl + "/api/pluto/commission/list";
-        this.projectFetchUrl = this.props.projectLockerBaseUrl + "/api/project/advancedsearch";
+        this.workingGroupFetchUrl = "/api/pluto/workinggroup";
+        this.commissionFetchUrl = "/api/pluto/commission/list";
+        this.projectFetchUrl = "/api/project/advancedsearch";
         this.workingGroupChanged = this.workingGroupChanged.bind(this);
         this.makeCommissionSearch = this.makeCommissionSearch.bind(this);
         this.makeProjectSearch = this.makeProjectSearch.bind(this);
@@ -73,28 +73,31 @@ class ProjectLockerSearchBar extends React.Component {
 
     render() {
         return <div className="search-bar">
-            <div style={{display: "inline", marginRight: "1em"}}>
+            <div className="search-bar-element">
+                <h3>Working Group</h3>
                 <FilterableList onChange={this.workingGroupChanged}
                                 value={this.state.currentWorkingGroup}
                                 size={this.props.size}
-                                unfilteredContentFetchUrl={this.workingGroupFetchUrl}
+                                unfilteredContentFetchUrl={this.props.projectLockerBaseUrl + this.workingGroupFetchUrl}
                                 unfilteredContentConverter={ProjectLockerSearchBar.workingGroupContentConverter}
                 />
             </div>
-            <div style={{display: "inline", marginRight: "1em"}}>
+            <div className="search-bar-element">
+                <h3>Commission</h3>
                 <FilterableList onChange={updatedComm=>this.setState({currentCommissionVsid: updatedComm})}
                                 value={this.state.currentCommissionVsid}
                                 size={this.props.size}
-                                unfilteredContentFetchUrl={this.commissionFetchUrl}
+                                unfilteredContentFetchUrl={this.props.projectLockerBaseUrl + this.commissionFetchUrl}
                                 makeSearchDoc={this.makeCommissionSearch}
                                 unfilteredContentConverter={ProjectLockerSearchBar.commissionContentConverter}
                 />
             </div>
-            <div style={{display: "inline", marginRight: "1em"}}>
+            <div className="search-bar-element">
+                <h3>Project</h3>
                 <FilterableList onChange={updatedProj=>this.props.projectSelectionChanged(updatedProj)}
                                 value={this.state.currentProjectVsid}
                                 size={this.props.size}
-                                unfilteredContentFetchUrl={this.projectFetchUrl}
+                                unfilteredContentFetchUrl={this.props.projectLockerBaseUrl + this.projectFetchUrl}
                                 makeSearchDoc={this.makeProjectSearch}
                                 unfilteredContentConverter={ProjectLockerSearchBar.projectContentConverter}
                 />

@@ -92,10 +92,6 @@ trait Security extends BaseController {
     uid=> Action(b)(request=> f(uid)(request))
   }
 
-  def IsAuthenticated(b: BodyParser[MultipartFormData[TemporaryFile]] = BodyParsers.parse.multipartFormData)(f: => String => Request[MultipartFormData[TemporaryFile]] => Result) = {
-    Security.Authenticated(username, onUnauthorized) { uid => Action(b)(request => f(uid)(request)) }
-  }
-
   /**
     * check whether the provided uid has the requested roles
     * @param uid username to check
