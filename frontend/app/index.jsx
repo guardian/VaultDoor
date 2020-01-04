@@ -8,6 +8,7 @@ import SearchComponent from './SearchComponent.jsx';
 import { library } from '@fortawesome/fontawesome-svg-core'
 
 import { faFolder, faFolderOpen, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons'
+import ByProjectComponent from "./ByProjectComponent.jsx";
 
 library.add(faFolderOpen, faFolder, faTimes, faSearch);
 
@@ -78,6 +79,7 @@ class App extends React.Component {
         return <div>
             <h1>VaultDoor</h1>
             <Switch>
+                <Route path="/byproject" component={ByProjectComponent}/>
                 <Route path="/search" component={SearchComponent}/>
                 <Route exact path="/" component={()=><RootComponent
                     onLoggedOut={this.onLoggedOut}

@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import FilterableList from "../common/FilterableList";
+import FilterableList from "../common/FilterableList.jsx";
 
 class ProjectLockerSearchBar extends React.Component {
     static propTypes = {
@@ -48,28 +48,6 @@ class ProjectLockerSearchBar extends React.Component {
         return incomingData.map(entry=>{return {name: entry.projectTitle, value: entry.vidispineProjectId}})
     }
 
-    // componentDidUpdate(prevProps, prevState, snapshot) {
-    //     if(prevState.enteredWgSearch!==this.state.enteredWgSearch ||
-    //         prevState.enteredCommissionSearch!==this.state.enteredCommissionSearch ||
-    //         prevState.enteredProjectSearch!==this.state.enteredProjectSearch) {
-    //
-    //         console.log("search parameters changed");
-    //         this.runSearch();
-    //     }
-    // }
-
-    // async runSearch(){
-    //     const wgUrl = projectLockerBaseUrl + "/search/workinggroup/" + this.state.enteredWgSearch;
-    //     const results = await Promise.all(fetch(wgUrl), fetch(commissionUrl), fetch(projectUrl));
-    //
-    // }
-    //
-    // async runSearchWG(){
-    //     const wgUrl = projectLockerBaseUrl + "/search/workinggroup/" + this.state.enteredWgSearch;
-    //     const result = await fetch(wgUrl);
-    //
-    // }
-
     makeCommissionSearch(enteredText) {
         console.log("makeCommissionSearch: ", enteredText);
         return {
@@ -94,20 +72,6 @@ class ProjectLockerSearchBar extends React.Component {
     }
 
     render() {
-        // return <ul className="no-decorations">
-        //     <li>
-        //         <label htmlFor="idWG">Working Group</label>
-        //         <input id="idWG" onChange={evt=>this.setState({enteredWgSearch: evt.target.value})} value={this.state.enteredWgSearch}/>
-        //     </li>
-        //     <li>
-        //         <label htmlFor="idCommission">Commission</label>
-        //         <input id="idCommission" onChange={evt=>this.setState({enteredCommissionSearch: evt.target.value})} value={this.state.enteredCommissionSearch}/>
-        //     </li>
-        //     <li>
-        //         <label htmlFor="idProject">Project</label>
-        //         <input id="idProject" onChange={evt=>this.setState({enteredProjectSearch: evt.target.value})} value={this.state.enteredProjectSearch}/>
-        //     </li>
-        // </ul>
         return <div className="search-bar">
             <div style={{display: "inline", marginRight: "1em"}}>
                 <FilterableList onChange={this.workingGroupChanged}
@@ -127,13 +91,14 @@ class ProjectLockerSearchBar extends React.Component {
                 />
             </div>
             <div style={{display: "inline", marginRight: "1em"}}>
-                <FilterableList onChange={updatedProj=>this.setState({currentProjectVsid: updatedProj})}
+                <FilterableList onChange={updatedProj=>this.props.projectSelectionChanged(updatedProj)}
                                 value={this.state.currentProjectVsid}
                                 size={this.props.size}
                                 unfilteredContentFetchUrl={this.projectFetchUrl}
                                 makeSearchDoc={this.makeProjectSearch}
                                 unfilteredContentConverter={ProjectLockerSearchBar.projectContentConverter}
                 />
+            </div>
         </div>
     }
 }

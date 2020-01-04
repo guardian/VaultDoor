@@ -54,11 +54,9 @@ class FilterableList extends React.Component {
             currentSearch: "",
             contentFromServer: []
         };
-
-        //this.selectChanged = this.selectChanged.bind(this);
     }
 
-    defaultContentConverter(incomingLines) {
+    static defaultContentConverter(incomingLines) {
         return incomingLines;
     }
 
@@ -79,7 +77,7 @@ class FilterableList extends React.Component {
         const content = await result.json();
 
         try {
-            const convertedContent = this.props.unfilteredContentConverter ? this.props.unfilteredContentConverter(content) : this.defaultContentConverter(content);
+            const convertedContent = this.props.unfilteredContentConverter ? this.props.unfilteredContentConverter(content) : FilterableList.defaultContentConverter(content);
             return this.setStatePromise({contentFromServer: convertedContent, loading: false});
         } catch (err) {
             console.error("Could not convert content: ", err);
@@ -112,7 +110,9 @@ class FilterableList extends React.Component {
                     <input onChange={evt=>this.setState({currentSearch: evt.target.value})} value={this.state.currentSearch}/>
                 </li>
                 <li>
-                    <select className="filterable-list-selector" size={this.props.size} onChange={evt=>this.props.onChange(evt.target.value)}>
+                    <select className="filterable-list-selector" size={this.props.size}
+                            value={this.props.value}
+                            onChange={evt=>this.props.onChange(evt.target.value)}>
                         {
                             listContent.map((entry,ix)=>{
                                 return <option key={ix} value={entry.value}>{entry.name}</option>

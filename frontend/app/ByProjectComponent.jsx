@@ -1,5 +1,5 @@
 import React from "react";
-import FilterableList from "./common/FilterableList";
+import ProjectLockerSearchBar from "./projectsearch/ProjectLockerSearchBar.jsx";
 
 class ByProjectComponent extends React.Component {
     static propTypes = {
@@ -11,13 +11,16 @@ class ByProjectComponent extends React.Component {
 
         this.state = {
             loading: false,
-            currentProjectSearch: "",
-            currentWorkingGroup: "",
+            currentProjectSearch: ""
         };
     }
 
     render() {
-
+        return <div className="windowpanel">
+            <ProjectLockerSearchBar projectLockerBaseUrl={this.props.projectLockerBaseUrl}
+                                    projectSelectionChanged={newProject=>this.setState({currentProjectSearch: newProject})}
+                                    size={15}/>
+        </div>
     }
 }
 
