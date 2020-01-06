@@ -45,14 +45,16 @@ class FilterableList extends React.Component {
         onChange: PropTypes.func.isRequired,
         value: PropTypes.string.isRequired,
         onFiltered: PropTypes.func,
-        size: PropTypes.number.isRequired
+        size: PropTypes.number.isRequired,
+        triggerRefresh: PropTypes.number  //change this to any number to trigger a refresh
     };
 
     constructor(props){
         super(props);
         this.state = {
             currentSearch: "",
-            contentFromServer: []
+            contentFromServer: [],
+            filteredStaticContent: []
         };
     }
 
@@ -68,6 +70,7 @@ class FilterableList extends React.Component {
 
     componentDidMount() {
         if(this.props.initialLoad) this.fetchFromServer("");
+        if(this.props.unfilteredContent) this.filterStatic("");
     }
 
     async fetchFromServer(searchParam){
@@ -77,6 +80,8 @@ class FilterableList extends React.Component {
         const content = await result.json();
 
         try {
+            if(!result.ok) return this.setStatePromise({contentFromServer: []});
+
             const convertedContent = this.props.unfilteredContentConverter ? this.props.unfilteredContentConverter(content) : FilterableList.defaultContentConverter(content);
             return this.setStatePromise({contentFromServer: convertedContent, loading: false});
         } catch (err) {
@@ -85,7 +90,13 @@ class FilterableList extends React.Component {
     }
 
     async filterStatic(searchParam){
+        if(searchParam===""){
+            return new Promise((resolve,reject)=>this.setState({filteredStaticContent: this.props.unfilteredContent}, ()=>resolve()));
+        }
 
+        return new Promise((resolve,reject)=>{
+            this.setState({filteredStaticContent: this.props.unfilteredContent.filter(entry=>entry.name.toLowerCase().includes(searchParamLwr))}, ()=>resolve());
+        });
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
@@ -98,11 +109,29 @@ class FilterableList extends React.Component {
                 this.setState({loading: false, lastError: err})
             })
         }
+        if(prevProps.triggerRefresh !== this.props.triggerRefresh){
+            const completionPromise = this.props.unfilteredContentFetchUrl ? this.fetchFromServer(this.state.currentSearch) : this.filterStatic(this.state.currentSearch);
+
+            completionPromise.then(()=> {
+                if (this.props.onFiltered) this.props.onFiltered(this.state.currentSearch);
+            }).catch(err=>{
+                this.setState({loading: false, lastError: err})
+            })
+        }
+        if(prevProps.unfilteredContent !== this.props.unfilteredContent){
+            const completionPromise = this.props.unfilteredContentFetchUrl ? this.fetchFromServer(this.state.currentSearch) : this.filterStatic(this.state.currentSearch);
+
+            completionPromise.then(()=> {
+                if (this.props.onFiltered) this.props.onFiltered(this.state.currentSearch);
+            }).catch(err=>{
+                this.setState({loading: false, lastError: err})
+            })
+        }
     }
 
     render(){
-        const listContent = this.props.unfilteredContent ? this.props.unfilteredContent : this.state.contentFromServer;
-
+        const listContent = this.props.unfilteredContent ? this.state.filteredStaticContent : this.state.contentFromServer;
+        const sortedContent = listContent.sort((a,b)=>a.name.localeCompare(b.name))
         return <div>
             <ul className="no-decorations">
                 <li className="filterable-list-entry">

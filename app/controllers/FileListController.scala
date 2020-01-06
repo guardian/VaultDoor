@@ -1,8 +1,8 @@
 package controllers
 
 import akka.actor.ActorSystem
-import akka.stream.{Materializer, SourceShape}
-import akka.stream.scaladsl.{GraphDSL, Source}
+import akka.stream.{ClosedShape, Materializer, SourceShape}
+import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Source}
 import akka.util.ByteString
 import auth.Security
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
@@ -12,26 +12,30 @@ import play.api.Configuration
 import play.api.libs.circe.Circe
 import play.api.mvc.{AbstractController, ControllerComponents, EssentialAction, ResponseHeader, Result}
 import responses.GenericErrorResponse
-import streamcomponents.{OMLookupMetadata, OMSearchSource}
-import io.circe.syntax._
-import io.circe.generic.auto._
-import models.{MxsMetadata, PresentableFile}
+import streamcomponents.{OMLookupMetadata, OMSearchSource, ProjectSummarySink}
+import models.{MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
 import org.slf4j.LoggerFactory
 import play.api.cache.SyncCacheApi
 import play.api.http.HttpEntity
-import io.circe.generic.auto._
-import io.circe.syntax._
 import requests.SearchRequest
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import io.circe.syntax._
+import io.circe.generic.auto._
+import io.circe.generic.semiauto._
 @Singleton
 class FileListController @Inject() (cc:ControllerComponents,
                                     config:Configuration,
                                     omAccess: OMAccess,
                                     userInfoCache: UserInfoCache
                                    )(implicit mat:Materializer, system:ActorSystem, override implicit val cache:SyncCacheApi)
-  extends AbstractController(cc) with Security with ObjectMatrixEntryMixin with Circe with ZonedDateTimeEncoder{
+  extends AbstractController(cc) with Security with ObjectMatrixEntryMixin with Circe with ZonedDateTimeEncoder with ProjectSummaryEncoder {
 
   override protected val logger = LoggerFactory.getLogger(getClass)
+
+  implicit val SummaryEntryEncoder = deriveEncoder[SummaryEntry]
+  implicit val ProjectSummaryEncoder = deriveEncoder[ProjectSummary]
 
   /**
     * looks up the given vault ID in the UserInfoCache and calls the provided block with the resolved UserInfo object.
@@ -46,16 +50,21 @@ class FileListController @Inject() (cc:ControllerComponents,
     case None=>NotFound(GenericErrorResponse("not_found","").asJson)
   }
 
+  def withVaultAsync(vaultId:String)(block:UserInfo=>Future[Result]) = userInfoCache.infoForVaultId(vaultId) match {
+    case Some(userInfo)=>block(userInfo)
+    case None=>Future(NotFound(GenericErrorResponse("not_found","").asJson))
+  }
+
   /**
     * perform the search given by `searchTerm` against the vault indicated in UserInfo, look up the metadata for each
     * file and return the output as a stream of NDJSON
     * @param userInfo UserInfo object indicating the appliance address, login credentials and vault
     * @param searchTerm a SearchTerm object representing the search. Create this with the MXS SDK SearchTerm.create*Term
     *                   methods
-    * @return a Play streaming response
+    * @return an Akka streams graph that yields NDJSON elements
     */
-  def searchGraph(userInfo:UserInfo, searchTerm:SearchTerm) = {
-    val graph = GraphDSL.create() { implicit builder =>
+  def searchGraph(userInfo:UserInfo, searchTerm:SearchTerm) =
+    GraphDSL.create() { implicit builder =>
       import akka.stream.scaladsl.GraphDSL.Implicits._
 
       val src = builder.add(new OMSearchSource(userInfo, Some(searchTerm), None))
@@ -71,10 +80,41 @@ class FileListController @Inject() (cc:ControllerComponents,
       SourceShape(outlet)
     }
 
-    Result(
-      ResponseHeader(200, Map()),
-      HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
-    )
+  /**
+    * runs a graph to determine ProjectSummary information for the given search term in the given vault
+    * @param userInfo
+    * @param searchTerm
+    * @return
+    */
+  def summaryFor(userInfo:UserInfo, searchTerm:SearchTerm) = {
+    val sinkFact = new ProjectSummarySink
+    val graph = GraphDSL.create(sinkFact) { implicit builder => sink=>
+      import akka.stream.scaladsl.GraphDSL.Implicits._
+
+      val src = builder.add(new OMSearchSource(userInfo, Some(searchTerm), None))
+      val lookup = builder.add(new OMLookupMetadata(userInfo).async)
+      src ~> lookup ~>sink
+      ClosedShape
+    }
+    RunnableGraph.fromGraph(graph).run()
+  }
+
+  def vaultSummary(vaultId:String) = IsAuthenticatedAsync { uid=> request=>
+    withVaultAsync(vaultId) { userInfo=>
+      val t = SearchTerm.createSimpleTerm(new Attribute(Constants.CONTENT, s"*"))
+      summaryFor(userInfo,t).map(summary=>{
+        Ok(summary.asJson)
+      })
+    }
+  }
+
+  def projectsummary(vaultId:String, forProject:String) = IsAuthenticatedAsync { uid => request =>
+    withVaultAsync(vaultId) { userInfo=>
+      val t = SearchTerm.createSimpleTerm(new Attribute(Constants.CONTENT, s"""GNM_PROJECT_ID:"$forProject""""))
+      summaryFor(userInfo, t).map(summary=>{
+        Ok(summary.asJson)
+      })
+    }
   }
 
   /**
@@ -86,7 +126,12 @@ class FileListController @Inject() (cc:ControllerComponents,
   def projectSearchStreaming(vaultId:String, forProject:String) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo=>
       val searchAttrib = new Attribute(Constants.CONTENT, s"""GNM_PROJECT_ID:"$forProject"""")
-      searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
+      val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
+
+      Result(
+        ResponseHeader(200, Map()),
+        HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
+      )
     }
   }
 
@@ -105,7 +150,12 @@ class FileListController @Inject() (cc:ControllerComponents,
           case None=>new Attribute(Constants.CONTENT, s"*")
         }
 
-        searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
+        val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
+
+        Result(
+          ResponseHeader(200, Map()),
+          HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
+        )
       case None =>
         NotFound(GenericErrorResponse("not_found", "").asJson)
     }
@@ -121,7 +171,12 @@ class FileListController @Inject() (cc:ControllerComponents,
     val terms = searchParams.toAttributes(MxsMetadata.empty).toAttributes.map(SearchTerm.createSimpleTerm)
     val combinedTerm = SearchTerm.createANDTerm(terms.toArray)
     withVault(vaultId) { userInfo=>
-      searchGraph(userInfo, combinedTerm)
+      val graph = searchGraph(userInfo, combinedTerm)
+
+      Result(
+        ResponseHeader(200, Map()),
+        HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
+      )
     }
   }
 }
