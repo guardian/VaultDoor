@@ -122,7 +122,7 @@ describe("FilterableList", ()=>{
                 const elements = select.children();
                 expect(fetch.mock.calls.length).toBe(1);
                 expect(fetch.mock.calls[0][0]).toEqual("http://mock-server/endpoint");
-                expect(fetch.mock.calls[0][1]).toEqual({method:"PUT",body:"{\"some\":\"key\"}",headers:{"Content-Type":"application/json"}});
+                expect(fetch.mock.calls[0][1]).toEqual({method:"PUT",credentials: "omit", body:"{\"some\":\"key\"}",headers:{"Content-Type":"application/json"}});
                 expect(elements.length).toBe(3);
                 expect(makeSearchDocMock.calledOnce).toBeTruthy();
                 done();

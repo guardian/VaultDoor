@@ -21,25 +21,42 @@ class ProjectLockerLoginComponent extends React.Component {
         this.performLogin = this.performLogin.bind(this);
     }
 
+    noop(){
+
+    }
+
     async performLogin() {
         const loginData = {
             username: this.state.enteredUid,
             password: this.state.enteredPw
         };
 
-        const result = await fetch(this.props.projectLockerBaseUrl + "/api/login",{method:"POST", body: JSON.stringify(loginData), headers:{"Content-Type": "application/json"}, credentials: "include"});
-        const body = await result.text();
-        if(result.ok){
-            this.setState({loading: false, lastError: null}, ()=>this.props.loginSuccess());
-        } else if(result.status===403) {
-            this.setState({loading: false, lastError: "Permission denied, please check your username and password"}, ()=>this.props.loginFailure ? this.props.loginFailure() : noop());
-        } else {
-            this.setState({loading: false, lastError: body});
+        try {
+            const result = await fetch(this.props.projectLockerBaseUrl + "/api/login", {
+                method: "POST",
+                body: JSON.stringify(loginData),
+                headers: {"Content-Type": "application/json"},
+                credentials: "include"
+            });
+            const body = await result.text();
+            if (result.ok) {
+                const content = JSON.parse(body);
+                this.setState({loading: false, lastError: null}, () => this.props.loginSuccess(content.uid));
+            } else if (result.status === 403) {
+                this.setState({
+                    loading: false,
+                    lastError: "Permission denied, please check your username and password"
+                }, () => this.props.loginFailure ? this.props.loginFailure() : this.noop());
+            } else {
+                this.setState({loading: false, lastError: body});
+            }
+        } catch(err){
+            if(!err.toString().includes("Not logged in")) this.setState({lastError: err.toString()});
         }
     };
 
     render() {
-        return <div className="sub-login-box">
+        return <div className="sub-login-box centered">
             <label htmlFor="id-pl-username">User name</label>
             <input type="text" onChange={evt=>this.setState({enteredUid: evt.target.value})} value={this.state.enteredUid} id="id-pl-username" disabled={this.state.loading}/>
             <label htmlFor="id-pl-passwd">Password</label>

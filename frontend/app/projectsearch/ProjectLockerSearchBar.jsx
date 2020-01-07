@@ -35,25 +35,35 @@ class ProjectLockerSearchBar extends React.Component {
         this.newPLLogin = this.newPLLogin.bind(this);
     }
 
-    newPLLogin(){
-        this.setState({projectLockerLoggedIn: true});
+    newPLLogin(username){
+        this.setState({projectLockerLoggedIn: true, projectLockerUsername: username}, ()=>this.initialWorkingGroupLoad());
     }
 
     async checkPLLogin() {
         if(this.props.projectLockerBaseUrl==="") return;
 
-        const response = await fetch(this.props.projectLockerBaseUrl + "/api/isLoggedIn",{credentials: "include"});
-        const bodyContent = await response.json();
+        try {
+            const response = await fetch(this.props.projectLockerBaseUrl + "/api/isLoggedIn", {credentials: "include"});
+            const bodyContent = await response.json();
 
-        return new Promise((resolve, reject)=> {
-            if (response.ok) {
-                this.setState({projectLockerLoggedIn: true, projectLockerUsername: bodyContent.uid}, ()=>resolve());
-            } else if(response.status===403){   //403=>not logged in
-                this.setState({projectLockerLoggedIn: false}, ()=>resolve());
-            } else {
-                this.setState({projectLockerLoggedIn:false, lastError: JSON.stringify(bodyContent)}, ()=>resolve());
-            }
-        });
+            return new Promise((resolve, reject) => {
+                if (response.ok) {
+                    this.setState({
+                        projectLockerLoggedIn: true,
+                        projectLockerUsername: bodyContent.uid
+                    }, () => resolve());
+                } else if (response.status === 403) {   //403=>not logged in
+                    this.setState({projectLockerLoggedIn: false, lastError: "Could not log in"}, () => resolve());
+                } else {
+                    this.setState({
+                        projectLockerLoggedIn: false,
+                        lastError: JSON.stringify(bodyContent)
+                    }, () => resolve());
+                }
+            });
+        } catch(err){
+            return new Promise((resolve,reject)=>reject(err));
+        }
     }
 
     async initialWorkingGroupLoad() {
@@ -74,7 +84,9 @@ class ProjectLockerSearchBar extends React.Component {
     }
 
     componentDidMount() {
-        this.checkPLLogin();
+        this.checkPLLogin().catch(err=>{
+            this.setState({lasatError: "Could not communicate with Projectlocker. Verify that the server is up and correctly configured for CORS usage."})
+        });
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
@@ -133,6 +145,7 @@ class ProjectLockerSearchBar extends React.Component {
             return <div className="search-bar">
                 <p className="centered">You are not logged in to ProjectLocker. For advanced project/commission search please log in below</p>
                 <ProjectLockerLoginComponent projectLockerBaseUrl={this.props.projectLockerBaseUrl} loginSuccess={this.newPLLogin}/>
+                <p className="centered information error">{this.state.lastError}</p>
             </div>
         }
 
@@ -154,6 +167,7 @@ class ProjectLockerSearchBar extends React.Component {
                                 makeSearchDoc={this.makeCommissionSearch}
                                 unfilteredContentConverter={ProjectLockerSearchBar.commissionContentConverter}
                                 triggerRefresh={this.state.commSearchCounter}
+                                allowCredentials={true}
                 />
             </div>
             <div className="search-bar-element">
@@ -165,6 +179,7 @@ class ProjectLockerSearchBar extends React.Component {
                                 makeSearchDoc={this.makeProjectSearch}
                                 unfilteredContentConverter={ProjectLockerSearchBar.projectContentConverter}
                                 triggerRefresh={this.state.projSearchCounter}
+                                allowCredentials={true}
                 />
             </div>
             <p className="centered information">Logged in to projectlocker as {this.state.projectLockerUsername}</p>

@@ -46,6 +46,7 @@ class FilterableList extends React.Component {
         value: PropTypes.string.isRequired,
         onFiltered: PropTypes.func,
         size: PropTypes.number.isRequired,
+        allowCredentials: PropTypes.bool,
         triggerRefresh: PropTypes.number  //change this to any number to trigger a refresh
     };
 
@@ -75,8 +76,9 @@ class FilterableList extends React.Component {
 
     async fetchFromServer(searchParam){
         const getUrl = this.props.unfilteredContentFetchUrl + "?" + this.props.fetchUrlFilterQuery + "=" + searchParam;
+        const credentialsValue = this.props.allowCredentials ? "include" : "omit";
 
-        const result = await (this.props.makeSearchDoc ? fetch(this.props.unfilteredContentFetchUrl ,{method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(this.props.makeSearchDoc(searchParam))}) : fetch(getUrl));
+        const result = await (this.props.makeSearchDoc ? fetch(this.props.unfilteredContentFetchUrl ,{method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(this.props.makeSearchDoc(searchParam)), credentials: credentialsValue}) : fetch(getUrl));
         const content = await result.json();
 
         try {
