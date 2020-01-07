@@ -76,13 +76,15 @@ class LoginComponent extends React.Component {
     render(){
         if(this.props.currentlyLoggedIn){
             return <div className="inline-dialog">
-                <h2 className="inline-dialog-title">Login</h2>
                 <p className="inline-dialog-content centered">You are currently logged in as
                     <i className="fa fa-user" style={{ marginRight: "3px", marginLeft: "5px"}}/>
                     <span className="emphasis">{this.props.username}</span></p>
-                <p className="inline-dialog-content centred emphasis" style={{fontSize: "1.5em"}}><Link to="/search">Go to file search ></Link></p>
-                {/*<p className="intro-banner">Or, please select an option on the left</p>*/}
-                <button className="inline-dialog" onClick={this.doLogout}>Log out</button>
+
+                <ul className="main-menu-list">
+                    <li className="main-menu-list"><Link to="/search">Go to file search</Link></li>
+                    <li className="main-menu-list"><Link to="/byproject">Go to project browser</Link></li>
+                </ul>
+                <button style={{marginLeft: "1em"}} onClick={this.doLogout}>Log out</button>
             </div>
         } else {
             return <div className="inline-dialog">

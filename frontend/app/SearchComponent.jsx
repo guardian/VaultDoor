@@ -3,6 +3,7 @@ import SearchBarFile from "./searchnbrowse/SearchBarFile.jsx";
 import ndjsonStream from "can-ndjson-stream";
 import ResultsPanel from './searchnbrowse/ResultsPanel.jsx';
 import PopupPreview from "./PopupPreview.jsx";
+import { withRouter } from 'react-router-dom';
 
 class SearchComponent extends React.Component {
     static resultsLimit = 100;
@@ -27,6 +28,7 @@ class SearchComponent extends React.Component {
         this.previewRequested = this.previewRequested.bind(this);
         this.previewClosed = this.previewClosed.bind(this);
 
+        this.projectClicked = this.projectClicked.bind(this);
     }
 
     updateFilePath(newSearchPath){
@@ -127,11 +129,14 @@ class SearchComponent extends React.Component {
         this.setState({requestedPreview: null});
     }
 
+    projectClicked(projectId) {
+        this.props.history.push("/byproject?project=" + projectId);
+    }
     render() {
         return <div className="windowpanel">
             <SearchBarFile filePath={this.state.filePathSearch} filePathUpdated={this.updateFilePath} selectedVault={this.state.vaultId} vaultSelectionChanged={this.updateVaultId}/>
             <span style={{"float":"right","margin-right": "2em", "display":this.state.searching ? "inline-block" : "none"}}>Loaded {this.state.fileEntries.length}...</span>
-            <ResultsPanel entries={this.state.fileEntries} previewRequestedCb={this.previewRequested}/>
+            <ResultsPanel entries={this.state.fileEntries} previewRequestedCb={this.previewRequested} projectClicked={this.projectClicked}/>
             {
                 this.state.requestedPreview ? <PopupPreview oid={this.state.requestedPreview} vaultId={this.state.vaultId} dialogClose={this.previewClosed}/> : ""
             }
@@ -139,4 +144,4 @@ class SearchComponent extends React.Component {
     }
 }
 
-export default SearchComponent;
+export default withRouter(SearchComponent);

@@ -1,6 +1,6 @@
 import React from 'react';
 import {render} from 'react-dom';
-import {BrowserRouter, Link, Route, Switch, Redirect} from 'react-router-dom';
+import {BrowserRouter, Link, Route, Switch, Redirect, withRouter} from 'react-router-dom';
 import RootComponent from './RootComponent.jsx';
 import axios from 'axios';
 import Raven from 'raven-js';
@@ -25,6 +25,9 @@ class App extends React.Component {
 
         this.onLoggedIn = this.onLoggedIn.bind(this);
         this.onLoggedOut = this.onLoggedOut.bind(this);
+
+        this.returnToRoot = this.returnToRoot.bind(this);
+
         axios.get("/system/publicdsn").then(response=> {
             Raven
                 .config(response.data.publicDsn)
@@ -35,6 +38,9 @@ class App extends React.Component {
         });
     }
 
+    returnToRoot(){
+        this.props.history.push("/");
+    }
 
     checkLogin(){
         this.setState({loading: true, haveChecked: true}, ()=>
@@ -77,7 +83,7 @@ class App extends React.Component {
 
     render(){
         return <div>
-            <h1>VaultDoor</h1>
+            <h1 onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
             <Switch>
                 <Route path="/byproject" component={ByProjectComponent}/>
                 <Route path="/search" component={SearchComponent}/>
@@ -93,4 +99,6 @@ class App extends React.Component {
     }
 }
 
-render(<BrowserRouter root="/"><App/></BrowserRouter>, document.getElementById('app'));
+const AppWithRouter = withRouter(App);
+
+render(<BrowserRouter root="/"><AppWithRouter/></BrowserRouter>, document.getElementById('app'));

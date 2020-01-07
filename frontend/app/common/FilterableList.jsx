@@ -134,11 +134,11 @@ class FilterableList extends React.Component {
     render(){
         const listContent = this.props.unfilteredContent ? this.state.filteredStaticContent : this.state.contentFromServer;
         const sortedContent = listContent.sort((a,b)=>a.name.localeCompare(b.name))
-        return <div>
+        return <div className="filterable-list-holder">
             <ul className="no-decorations">
                 <li className="filterable-list-entry">
                     <FontAwesomeIcon icon="search" className="inline-icon"/>
-                    <input onChange={evt=>this.setState({currentSearch: evt.target.value})} value={this.state.currentSearch}/>
+                    <input type="text" onChange={evt=>this.setState({currentSearch: evt.target.value})} value={this.state.currentSearch}/>
                 </li>
                 <li className="filterable-list-entry">
                     <select className="filterable-list-selector" size={this.props.size}

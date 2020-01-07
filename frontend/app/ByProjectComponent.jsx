@@ -65,7 +65,6 @@ class ByProjectComponent extends React.Component {
 
     render() {
         return <div className="windowpanel">
-            <div className="search-bar">
                 <div className="search-bar-element">
                     <VaultSelector currentvault={this.state.vaultId} vaultWasChanged={newVaultId=>this.setState({vaultId: newVaultId})}/>
                 </div>
@@ -73,7 +72,6 @@ class ByProjectComponent extends React.Component {
                                         projectSelectionChanged={newProject=>this.setState({currentProjectSearch: newProject})}
                                         size={8}
                 />
-            </div>
             <ProjectContentSummary vaultId={this.state.vaultId} projectId={this.state.currentProjectSearch}/>
         </div>
     }

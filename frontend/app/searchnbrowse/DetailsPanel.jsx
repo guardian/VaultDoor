@@ -7,7 +7,8 @@ import MetadataTabView from "../metadata/MetadataTabView.jsx";
 class DetailsPanel extends React.Component {
     static propTypes = {
         entry: PropTypes.object,
-        previewRequestedCb: PropTypes.func.isRequired
+        previewRequestedCb: PropTypes.func.isRequired,
+        projectClicked: PropTypes.func
     };
 
     static mdTabNames = [
@@ -24,6 +25,18 @@ class DetailsPanel extends React.Component {
         ""
     ];
 
+    constructor(props){
+        super(props);
+        this.projectClicked = this.projectClicked.bind(this);
+    }
+
+    projectClicked(){
+        const entry = this.props.entry;
+        if(!entry) return;
+
+        if(this.props.projectClicked && entry.gnmMetadata && entry.gnmMetadata.projectId) this.props.projectClicked(entry.gnmMetadata.projectId);
+    }
+
     render(){
         const entry = this.props.entry;
         if(!entry){
@@ -38,7 +51,7 @@ class DetailsPanel extends React.Component {
             <span className="centered filename semilarge">{fileName}</span>
             <span className="centered">{this.props.entry.gnmMetadata ? this.props.entry.gnmMetadata.type : "(no filetype)"}</span>
             <a className="centered clickable" onClick={()=>this.props.previewRequestedCb(entry.oid)}>&gt;&gt; Preview &lt;&lt;</a>
-            <CommissionProjectView entry={this.props.entry}/>
+            <CommissionProjectView entry={this.props.entry} clickable={true} onProjectClicked={this.projectClicked}/>
             <PathView pathParts={pathParts.slice(0,-1)} truncateMode={PathView.TRUNC_MIDDLE} limit={5}/>
             <MetadataTabView tabNames={DetailsPanel.mdTabNames} tabPrefixes={DetailsPanel.mdTabPrefixes} metaDataString={entry.customMeta} />
         </div>

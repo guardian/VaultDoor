@@ -149,7 +149,7 @@ class ProjectLockerSearchBar extends React.Component {
             </div>
         }
 
-        return <span>
+        return <div className="search-bar">
             <div className="search-bar-element">
                 <h3>Working Group</h3>
                 <FilterableList onChange={this.workingGroupChanged}
@@ -183,7 +183,7 @@ class ProjectLockerSearchBar extends React.Component {
                 />
             </div>
             <p className="centered information">Logged in to projectlocker as {this.state.projectLockerUsername}</p>
-        </span>
+        </div>
     }
 }
 

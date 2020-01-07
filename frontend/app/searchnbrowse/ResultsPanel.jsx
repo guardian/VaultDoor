@@ -6,7 +6,8 @@ import DetailsPanel from "./DetailsPanel.jsx";
 class ResultsPanel extends React.Component {
     static propTypes = {
         entries: PropTypes.array.isRequired,
-        previewRequestedCb: PropTypes.func.isRequired
+        previewRequestedCb: PropTypes.func.isRequired,
+        projectClicked: PropTypes.func
     };
 
     constructor(props){
@@ -38,7 +39,7 @@ class ResultsPanel extends React.Component {
                     }
                 </ul>
             </div>
-            <DetailsPanel entry={this.state.selectedEntry} previewRequestedCb={this.props.previewRequestedCb}/>
+            <DetailsPanel entry={this.state.selectedEntry} previewRequestedCb={this.props.previewRequestedCb} projectClicked={this.props.projectClicked}/>
         </div>
     }
 }
