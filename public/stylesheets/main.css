@@ -3,6 +3,11 @@ html, body, p, th, td, li, dd, dt, pre {
     font-size: 1em;
 }
 
+h3 {
+    margin-top: 0;
+    padding-top: 0;
+}
+
 .form-spacing {
     margin-left: 0.2em;
     margin-right: 0.2em;
@@ -127,6 +132,7 @@ ul.no-decorations {
 div.search-bar-element {
     display: inline-block;
     margin-right: 1em;
+    vertical-align: top;
 }
 
 .filterable-list-selector {
@@ -143,7 +149,6 @@ div.search-bar {
     margin-left: auto;
     margin-right: auto;
     overflow: hidden;
-    max-width: 50%;
 }
 
 .information {
@@ -151,4 +156,24 @@ div.search-bar {
     margin-top: 0;
     padding-top: 0.1em;
     margin-bottom: 0;
+}
+
+div.chart-holder {
+    overflow: hidden;
+    width: 400px;
+    vertical-align: top;
+    display: inline-block;
+}
+
+.spinner {
+    animation: lds-spinner 1.2s linear infinite;
+}
+
+@keyframes lds-spinner {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }

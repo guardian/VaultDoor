@@ -24,12 +24,16 @@ class ProjectSummarySink extends GraphStageWithMaterializedValue[SinkShape[Objec
         override def onPush(): Unit = {
           val elem = grab(in)
           val itemSize = elem.fileAttribues.get.size
+          val maybeXtn = elem.attributes
+              .flatMap(_.stringValues.get("MXFS_FILEEXT"))
+              .map(xtn=>if(xtn=="") "unknown" else xtn)
 
           elem.attributes.flatMap(CustomMXSMetadata.fromMxsMetadata) match {
             case Some(customMeta)=>
               ongoingSummary = customMeta.itemType.map(t=>ongoingSummary.addGnmType(t,itemSize)).getOrElse(ongoingSummary)
               ongoingSummary = customMeta.hidden.map(h=>ongoingSummary.addHiddenFile(h, itemSize)).getOrElse(ongoingSummary)
               ongoingSummary = customMeta.projectId.map(p=>ongoingSummary.addGnmProject(p, itemSize)).getOrElse(ongoingSummary)
+              ongoingSummary = maybeXtn.map(x=>ongoingSummary.addFileType(x, itemSize)).getOrElse(ongoingSummary)
               ongoingSummary = ongoingSummary.addToTotal(itemSize)
             case None=>
               logger.warn(s"Item ${elem.oid} has no custom metadata attributes")

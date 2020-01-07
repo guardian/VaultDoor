@@ -1,5 +1,8 @@
 import React from "react";
 import ProjectLockerSearchBar from "./projectsearch/ProjectLockerSearchBar.jsx";
+import { withRouter } from 'react-router-dom';
+import ProjectContentSummary from "./projectsearch/ProjectContentSummary.jsx";
+import VaultSelector from "./searchnbrowse/VaultSelector.jsx";
 
 class ByProjectComponent extends React.Component {
     constructor(props){
@@ -9,12 +12,34 @@ class ByProjectComponent extends React.Component {
             loading: false,
             currentProjectSearch: "",
             projectLockerBaseUrl: "",
-            lastError: null
+            lastError: null,
+            vaultId: ""
         };
     }
 
+    breakdownSearchParams() {
+        const fullstring = this.props.location.search.slice(1);
+        const parts = fullstring.split("&");
+        const elems = parts.map(entry=>entry.split("="));
+        return elems.reduce((acc,elem)=>{ acc[elem[0]]=elem[1]; return acc}, {});
+    }
+
+    async setupCurrentSearch(){
+        const searchParams = this.breakdownSearchParams();
+        console.log(searchParams);
+        return new Promise((resolve, reject)=>{
+            if(searchParams.hasOwnProperty("project")) {
+                this.setState({currentProjectSearch: searchParams.project}, () => resolve());
+            } else {
+                resolve();
+            }
+        });
+    }
+
     componentDidMount() {
-        this.loadFrontendConfig();
+        this.setupCurrentSearch().then(()=> {
+            this.loadFrontendConfig();
+        });
     }
 
     async loadFrontendConfig() {
@@ -32,13 +57,26 @@ class ByProjectComponent extends React.Component {
         }
     }
 
+    componentDidUpdate(prevProps, prevState, snapshot) {
+        if(prevState.currentProjectSearch!==this.state.currentProjectSearch){
+            this.props.history.push("?project=" + this.state.currentProjectSearch);
+        }
+    }
+
     render() {
         return <div className="windowpanel">
-            <ProjectLockerSearchBar projectLockerBaseUrl={this.state.projectLockerBaseUrl}
-                                    projectSelectionChanged={newProject=>this.setState({currentProjectSearch: newProject})}
-                                    size={15}/>
+            <div className="search-bar">
+                <div className="search-bar-element">
+                    <VaultSelector currentvault={this.state.vaultId} vaultWasChanged={newVaultId=>this.setState({vaultId: newVaultId})}/>
+                </div>
+                <ProjectLockerSearchBar projectLockerBaseUrl={this.state.projectLockerBaseUrl}
+                                        projectSelectionChanged={newProject=>this.setState({currentProjectSearch: newProject})}
+                                        size={8}
+                />
+            </div>
+            <ProjectContentSummary vaultId={this.state.vaultId} projectId={this.state.currentProjectSearch}/>
         </div>
     }
 }
 
-export default ByProjectComponent;
+export default withRouter(ByProjectComponent);

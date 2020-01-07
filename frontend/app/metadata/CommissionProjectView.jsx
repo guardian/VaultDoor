@@ -6,7 +6,8 @@ import PropTypes from 'prop-types';
  */
 class CommissionProjectView extends React.Component {
     static propTypes = {
-        entry: PropTypes.object
+        entry: PropTypes.object,
+        horizontal: PropTypes.bool
     };
 
     shouldDisplay(){
@@ -22,11 +23,13 @@ class CommissionProjectView extends React.Component {
 
         const meta = this.props.entry.gnmMetadata;
 
+        const extraProps = this.props.horizontal ? {display: "inline", marginRight: "1em"} : {};
+
         return <div className="comm-project-locator" style={{display: this.shouldDisplay() ? "inline-block" : "none"}}>
             <ul className="comm-project-locator silent-list">
-                <li>{meta.workingGroupName ? meta.workingGroupName : "(no working group)"}</li>
-                <li><img src="assets/images/icon_commission.png" alt="commission" className="inline-bullet-image"/>{meta.commissionName}</li>
-                <li><img src="assets/images/icon_project.png" alt="project" className="inline-bullet-image"/>{meta.projectName}</li>
+                <li style={extraProps}>{meta.workingGroupName ? meta.workingGroupName : "(no working group)"}</li>
+                <li style={extraProps}><img src="assets/images/icon_commission.png" alt="commission" className="inline-bullet-image"/>{meta.commissionName}</li>
+                <li style={extraProps}><img src="assets/images/icon_project.png" alt="project" className="inline-bullet-image"/>{meta.projectName}</li>
                 <li style={{display: meta.masterName ? "inherit" : "none"}}>
                     <img src="assets/images/icon_master.png" alt="master" className="inline-bullet-image"/>{meta.masterName}
                 </li>

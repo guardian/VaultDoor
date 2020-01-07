@@ -7,10 +7,10 @@ import Raven from 'raven-js';
 import SearchComponent from './SearchComponent.jsx';
 import { library } from '@fortawesome/fontawesome-svg-core'
 
-import { faFolder, faFolderOpen, faTimes, faSearch } from '@fortawesome/free-solid-svg-icons'
+import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/free-solid-svg-icons'
 import ByProjectComponent from "./ByProjectComponent.jsx";
 
-library.add(faFolderOpen, faFolder, faTimes, faSearch);
+library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog);
 
 class App extends React.Component {
     constructor(props){
