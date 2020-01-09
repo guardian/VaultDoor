@@ -34,7 +34,7 @@
     <logger name="services.MongoClientManager" level="INFO"/>
     <logger name="models.AuditRecordDAO" level="INFO"/>
     <logger name="helpers.RangeHeader" level="INFO"/>
-    <logger name="streamcomponents.OMSearchSource" level="DEBUG"/>
+    <logger name="streamcomponents.OMFastSearchSource" level="DEBUG"/>
 
     <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
     <logger name="com.avaje.ebean.config.PropertyMapLoader" level="OFF" />

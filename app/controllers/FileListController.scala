@@ -12,7 +12,7 @@ import play.api.Configuration
 import play.api.libs.circe.Circe
 import play.api.mvc.{AbstractController, ControllerComponents, EssentialAction, ResponseHeader, Result}
 import responses.GenericErrorResponse
-import streamcomponents.{OMLookupMetadata, OMSearchSource, ProjectSummarySink}
+import streamcomponents.{OMFastSearchSource, OMLookupMetadata, OMSearchSource, ProjectSummarySink}
 import models.{MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
 import org.slf4j.LoggerFactory
 import play.api.cache.SyncCacheApi
@@ -24,6 +24,7 @@ import scala.concurrent.Future
 import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
+
 @Singleton
 class FileListController @Inject() (cc:ControllerComponents,
                                     config:Configuration,
@@ -174,6 +175,31 @@ class FileListController @Inject() (cc:ControllerComponents,
     val combinedTerm = SearchTerm.createANDTerm(terms.toArray)
     withVault(vaultId) { userInfo=>
       val graph = searchGraph(userInfo, combinedTerm)
+
+      Result(
+        ResponseHeader(200, Map()),
+        HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
+      )
+    }
+  }
+
+  def testFastSearch(vaultId:String, field:String, value:String) = IsAuthenticated { uid=> request=>
+    withVault(vaultId) { userInfo =>
+      val graph = GraphDSL.create() { implicit builder =>
+        import akka.stream.scaladsl.GraphDSL.Implicits._
+
+        val terms = Array(
+          SearchTerm.createSimpleTerm(field, value)
+        )
+        val src = builder.add(new OMFastSearchSource(userInfo, terms, Array("GNM_PROJECT_ID","MXFS_ACCESS_TIME","MXFS_PATH","DPSP_SIZE")))
+        val outlet = src.out
+          .map(PresentableFile.fromObjectMatrixEntry)
+          .map(_.asJson.noSpaces)
+          .map(jsonString => ByteString(jsonString + "\n"))
+          .outlet
+
+        SourceShape(outlet)
+      }
 
       Result(
         ResponseHeader(200, Map()),
