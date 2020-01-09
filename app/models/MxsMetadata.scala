@@ -5,7 +5,7 @@ import java.time.{Instant, LocalDateTime, ZoneOffset, ZonedDateTime}
 import com.om.mxs.client.japi.Attribute
 import org.slf4j.LoggerFactory
 
-case class MxsMetadata (stringValues:Map[String,String], boolValues:Map[String,Boolean], longValues:Map[String,Long], intValues:Map[String,Int]) {
+case class MxsMetadata (stringValues:Map[String,String], boolValues:Map[String,Boolean], longValues:Map[String,Long], intValues:Map[String,Int], floatValues:Map[String,Float]) {
   private val logger = LoggerFactory.getLogger(getClass)
 
   /**
@@ -93,7 +93,7 @@ case class MxsMetadata (stringValues:Map[String,String], boolValues:Map[String,B
 }
 
 object MxsMetadata {
-  def apply(stringValues: Map[String, String], boolValues: Map[String, Boolean], longValues: Map[String, Long], intValues: Map[String, Int]): MxsMetadata = new MxsMetadata(stringValues, boolValues, longValues, intValues)
+  def apply(stringValues: Map[String, String], boolValues: Map[String, Boolean], longValues: Map[String, Long], intValues: Map[String, Int], floatValues:Map[String,Float]): MxsMetadata = new MxsMetadata(stringValues, boolValues, longValues, intValues, floatValues)
 
-  def empty:MxsMetadata = new MxsMetadata(Map(), Map(), Map(), Map())
+  def empty:MxsMetadata = new MxsMetadata(Map(), Map(), Map(), Map(),Map())
 }
