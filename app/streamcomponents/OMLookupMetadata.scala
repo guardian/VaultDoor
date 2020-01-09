@@ -3,6 +3,7 @@ package streamcomponents
 import akka.stream.scaladsl.{Keep, RunnableGraph, Sink, Source}
 import akka.stream.{ActorMaterializer, Attributes, FlowShape, Inlet, Materializer, Outlet}
 import akka.stream.stage.{AbstractInHandler, AbstractOutHandler, GraphStage, GraphStageLogic}
+import com.om.mxs.client.internal.TaggedIOException
 import com.om.mxs.client.japi.{MXFSFileAttributes, MatrixStore, MxsObject, UserInfo, Vault}
 import helpers.MetadataHelper
 import models.{FileAttributes, MxsMetadata, ObjectMatrixEntry}
@@ -16,7 +17,7 @@ import scala.util.{Failure, Success}
   * look up metadata for the given objectmatrix entry
   * @param userInfo UserInfo instance giving the appliance to connect to
   */
-class OMLookupMetadata(userInfo:UserInfo) extends GraphStage[FlowShape[ObjectMatrixEntry,ObjectMatrixEntry]] {
+class OMLookupMetadata(userInfo:UserInfo, ignoreOnLocked:Boolean=true) extends GraphStage[FlowShape[ObjectMatrixEntry,ObjectMatrixEntry]] {
   private final val in:Inlet[ObjectMatrixEntry] = Inlet.create("OMLookupMetadata.in")
   private final val out:Outlet[ObjectMatrixEntry] = Outlet.create("OMLookupMetadata.out")
 
@@ -30,17 +31,42 @@ class OMLookupMetadata(userInfo:UserInfo) extends GraphStage[FlowShape[ObjectMat
       override def onPush(): Unit = {
         val elem=grab(in)
 
-        try {
-          val obj = vault.get.getObject(elem.oid)
+        def doLookup():Unit = {
+          try {
+            val obj = vault.get.getObject(elem.oid)
 
-          val meta = MetadataHelper.getAttributeMetadataSync(obj)
-          val updated = elem.copy(attributes=Some(meta),fileAttribues = Some(FileAttributes(MetadataHelper.getMxfsMetadata(obj))))
-          push(out, updated)
-        } catch {
-          case err:Throwable=>
-            logger.error(s"Could not look up object metadata: ", err)
-            failStage(err)
+            val meta = MetadataHelper.getAttributeMetadataSync(obj)
+            val updated = elem.copy(attributes = Some(meta), fileAttribues = Some(FileAttributes(MetadataHelper.getMxfsMetadata(obj))))
+            push(out, updated)
+          } catch {
+            case err:java.io.IOException=>
+              if(err.getMessage.contains("error 311")){
+                logger.error(s"OMLookupMetadata got 'unable to lock object' on ${elem.oid}, retrying")
+                if(ignoreOnLocked){
+                  pull(in)
+                } else {
+                  Thread.sleep(1000)
+                  doLookup()
+                }
+              } else {
+                logger.error(s"Could not look up object metadata: ", err)
+                failStage(err)
+              }
+            case err:TaggedIOException=>
+              if(err.getError==311){
+                logger.error(s"OMLookupMetadata got 'unable to lock object' on ${elem.oid}, retrying")
+                Thread.sleep(1000)
+                doLookup()
+              } else {
+                logger.error(s"Could not look up object metadata: ", err)
+                failStage(err)
+              }
+            case err: Throwable =>
+              logger.error(s"Could not look up object metadata: ", err)
+              failStage(err)
+          }
         }
+        doLookup()
       }
     })
 

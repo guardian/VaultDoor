@@ -226,6 +226,9 @@ class Application @Inject() (cc:ControllerComponents,
   }
 
   def frontendConfig = Action {
-    Ok(FrontendConfigResponse("ok",config.get[String]("projectlocker.baseUri")).asJson)
+    Ok(FrontendConfigResponse("ok",
+      config.get[String]("projectlocker.baseUri"),
+      config.getOptional[String]("pluto.baseUri")
+    ).asJson)
   }
 }

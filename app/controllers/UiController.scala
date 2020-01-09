@@ -17,7 +17,7 @@ class UiController @Inject() (config:Configuration,cc:ControllerComponents) exte
       Option(prop.getProperty("build-sha"))
     } catch {
       case e:Throwable=>
-        logger.warn("Could not get build-sha property: ", e)
+        //logger.warn("Could not get build-sha property: ", e)
         None
     }
     Ok(views.html.index("VaultDoor")(cbVersionString.getOrElse("no-cachebusting")))

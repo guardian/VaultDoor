@@ -12,6 +12,7 @@ class ByProjectComponent extends React.Component {
             loading: false,
             currentProjectSearch: "",
             projectLockerBaseUrl: "",
+            plutoBaseUrl: "",
             lastError: null,
             vaultId: ""
         };
@@ -37,8 +38,8 @@ class ByProjectComponent extends React.Component {
     }
 
     componentDidMount() {
-        this.setupCurrentSearch().then(()=> {
-            this.loadFrontendConfig();
+        this.loadFrontendConfig().then(()=>{
+            this.setupCurrentSearch()
         });
     }
 
@@ -47,7 +48,7 @@ class ByProjectComponent extends React.Component {
         if(response.ok){
             const content = await response.json();
             return new Promise((resolve, reject)=> {
-                this.setState({projectLockerBaseUrl: content.projectLockerBaseUrl}, ()=>resolve())
+                this.setState({projectLockerBaseUrl: content.projectLockerBaseUrl, plutoBaseUrl: content.plutoBaseUrl}, ()=>resolve())
             });
         } else {
             const content = await response.text();
@@ -72,7 +73,7 @@ class ByProjectComponent extends React.Component {
                                         projectSelectionChanged={newProject=>this.setState({currentProjectSearch: newProject})}
                                         size={8}
                 />
-            <ProjectContentSummary vaultId={this.state.vaultId} projectId={this.state.currentProjectSearch}/>
+            <ProjectContentSummary vaultId={this.state.vaultId} projectId={this.state.currentProjectSearch} plutoBaseUrl={this.state.plutoBaseUrl}/>
         </div>
     }
 }

@@ -110,7 +110,9 @@ class FileListController @Inject() (cc:ControllerComponents,
 
   def projectsummary(vaultId:String, forProject:String) = IsAuthenticatedAsync { uid => request =>
     withVaultAsync(vaultId) { userInfo=>
-      val t = SearchTerm.createSimpleTerm(new Attribute(Constants.CONTENT, s"""GNM_PROJECT_ID:"$forProject""""))
+      logger.info(s"projectsummary: looking up '$forProject' on $vaultId (${userInfo.getVault}")
+      val t = SearchTerm.createSimpleTerm("GNM_PROJECT_ID", forProject)
+      //val t = SearchTerm.createSimpleTerm(new Attribute(Constants.CONTENT, s"""GNM_PROJECT_ID:"$forProject""""))
       summaryFor(userInfo, t).map(summary=>{
         Ok(summary.asJson)
       })
@@ -125,7 +127,7 @@ class FileListController @Inject() (cc:ControllerComponents,
     */
   def projectSearchStreaming(vaultId:String, forProject:String) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo=>
-      val searchAttrib = new Attribute(Constants.CONTENT, s"""GNM_PROJECT_ID:"$forProject"""")
+      val searchAttrib = new Attribute("GNM_PROJECT_ID", forProject)//s"""GNM_PROJECT_ID:"$forProject"""")
       val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
 
       Result(
