@@ -3,24 +3,29 @@
 # ~~~~
 
 # Home page
-GET     /                           @controllers.Application.index
+GET     /                                           @controllers.Application.index
 
-GET     /stream/:targetUriString    @controllers.Application.streamTargetContent(targetUriString)
-HEAD    /stream/:targetUriString    @controllers.Application.headTargetContent(targetUriString)
+GET     /stream/:targetUriString                    @controllers.Application.streamTargetContent(targetUriString)
+HEAD    /stream/:targetUriString                    @controllers.Application.headTargetContent(targetUriString)
+GET     /api/config                                 @controllers.Application.frontendConfig
 
-POST    /api/login                         @controllers.Login.authenticate
-POST    /api/logout                        @controllers.Login.logout
-GET     /api/isLoggedIn                    @controllers.Login.isLoggedIn
-GET     /api/isAdmin                       @controllers.Login.checkIsAdmin
+POST    /api/login                                  @controllers.Login.authenticate
+POST    /api/logout                                 @controllers.Login.logout
+GET     /api/isLoggedIn                             @controllers.Login.isLoggedIn
+GET     /api/isAdmin                                @controllers.Login.checkIsAdmin
 
-GET     /audit/scan                        @controllers.AuditController.getAll(limit:Option[Int])
+GET     /audit/scan                                 @controllers.AuditController.getAll(limit:Option[Int])
 
-GET     /api/vault                      @controllers.VaultController.knownVaults()
+GET     /api/vault                                  @controllers.VaultController.knownVaults()
 
-GET     /api/vault/:vaultId/list        @controllers.FileListController.pathSearchStreaming(vaultId, forFile:Option[String])
+GET     /api/vault/:vaultId/list                    @controllers.FileListController.pathSearchStreaming(vaultId, forFile:Option[String])
+GET     /api/vault/:vaultId/byProject/:projectId    @controllers.FileListController.projectSearchStreaming(vaultId, projectId)
+PUT     /api/vault/:vaultId/list                    @controllers.FileListController.customSearchStreaming(vaultId)
+GET     /api/vault/:vaultId/summary                 @controllers.FileListController.vaultSummary(vaultId)
+GET     /api/vault/:vaultId/projectSummary/:projectId @controllers.FileListController.projectsummary(vaultId, projectId)
 
-HEAD    /api/vault/:vaultId/:oid        @controllers.VaultController.headTargetContent(vaultId, oid)
-GET     /api/vault/:vaultId/:oid        @controllers.VaultController.streamTargetContent(vaultId, oid)
+HEAD    /api/vault/:vaultId/:oid                    @controllers.VaultController.headTargetContent(vaultId, oid)
+GET     /api/vault/:vaultId/:oid                    @controllers.VaultController.streamTargetContent(vaultId, oid)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

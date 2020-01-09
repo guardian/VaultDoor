@@ -24,11 +24,12 @@ object MetadataHelper {
   def getAttributeMetadata(obj:MxsObject)(implicit mat:Materializer, ec:ExecutionContext) = {
     val view = obj.getAttributeView
 
-    val sink = Sink.fold[MxsMetadata,(String,Any)](MxsMetadata(Map(),Map(),Map(),Map()))((acc,elem)=>{
+    val sink = Sink.fold[MxsMetadata,(String,Any)](MxsMetadata.empty)((acc,elem)=>{
       elem._2 match {
         case boolValue: Boolean => acc.copy(boolValues = acc.boolValues ++ Map(elem._1->boolValue))
         case intValue:Int => acc.copy(intValues = acc.intValues ++ Map(elem._1 -> intValue))
         case longValue:Long => acc.copy(longValues = acc.longValues ++ Map(elem._1 -> longValue))
+        case floatValue:java.lang.Float =>  acc.copy(floatValues = acc.floatValues ++ Map(elem._1->Float2float(floatValue)))//acc.copy(floatValues = acc.floatValues ++ Map(elem._1 -> floatValue))
         case byteBuffer:ByteBuffer => acc.copy(stringValues = acc.stringValues ++ Map(elem._1 -> Hex.encodeHexString(byteBuffer.array())))
         case stringValue:String => acc.copy(stringValues = acc.stringValues ++ Map(elem._1 -> stringValue))
         case _=>
@@ -51,6 +52,7 @@ object MetadataHelper {
         case boolValue: Boolean => acc.copy(boolValues = acc.boolValues ++ Map(elem.getKey->boolValue))
         case intValue:Int => acc.copy(intValues = acc.intValues ++ Map(elem.getKey -> intValue))
         case longValue:Long => acc.copy(longValues = acc.longValues ++ Map(elem.getKey -> longValue))
+        case floatValue:java.lang.Float =>  acc.copy(floatValues = acc.floatValues ++ Map(elem.getKey->Float2float(floatValue)))
         case byteBuffer:ByteBuffer => acc.copy(stringValues = acc.stringValues ++ Map(elem.getKey -> Hex.encodeHexString(byteBuffer.array())))
         case stringValue:String => acc.copy(stringValues = acc.stringValues ++ Map(elem.getKey -> stringValue))
         case _=>

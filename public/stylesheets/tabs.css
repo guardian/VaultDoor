@@ -1,0 +1,45 @@
+div.metadata-view-container {
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.tab-header-row {
+    width: 100%;
+    display: block;
+    padding-top: 0.1em;
+}
+
+.tab-header {
+    font-weight: bold;
+    font-size: 1.1em;
+    text-align: center;
+    cursor: pointer;
+    box-sizing: border-box;
+    padding-left:0.5em;
+    padding-right: 0.5em;
+    border: 1px dashed white;
+}
+
+.tab-header:hover {
+    background-color: rgba(255,255,255,200);
+    color: black;
+}
+
+.selected {
+    background-color: black;
+}
+
+table.metadata-view-table {
+    border: none;
+}
+
+td.metadata-view-key {
+    font-weight: bold;
+}
+
+td.metadata-view-value {
+    font-weight: normal;
+}

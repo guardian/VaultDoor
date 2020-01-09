@@ -10,20 +10,23 @@ class PathView extends React.Component {
     static propTypes = {
         pathParts: PropTypes.array.isRequired,
         limit: PropTypes.number,
-        truncateMode: PropTypes.number.isRequired       //should be one of the TRUNC_ constants above
+        truncateMode: PropTypes.number.isRequired,       //should be one of the TRUNC_ constants above
+        stripStart: PropTypes.number
     };
 
     truncateParts() {
+        const pathParts = this.props.stripStart ? this.props.pathParts.slice(this.props.stripStart) : this.props.pathParts;
+
         switch(this.props.truncateMode){
             case PathView.TRUNC_START:
                 const truncateFrom = this.props.limit;
-                return ["..."].concat(this.props.pathParts.slice(truncateFrom));
+                return ["..."].concat(pathParts.slice(truncateFrom));
             case PathView.TRUNC_END:
                 const truncateTo = this.props.limit;
-                return this.props.pathParts.slice(0, truncateTo).concat(["..."]);
+                return pathParts.slice(0, truncateTo).concat(["..."]);
             default:
                 const sectionLength = this.props.limit / 2;
-                const firstPart = this.props.pathParts.slice(0, sectionLength+1);
+                const firstPart = pathParts.slice(0, sectionLength+1);
                 const lastPart = ["..."].concat(this.props.pathParts.slice(this.props.pathParts.length - sectionLength +1));
                 return firstPart.concat(lastPart);
         }

@@ -39,6 +39,7 @@ class OMSearchSource (userInfo:UserInfo, searchTerm:Option[SearchTerm], searchAt
               if (iter.hasNext) {
                 val oid = iter.next()
                 val elem = ObjectMatrixEntry(oid)
+                logger.debug(s"Got element $elem")
                 push(out, elem)
                 ctr+=1
               } else {
@@ -53,10 +54,12 @@ class OMSearchSource (userInfo:UserInfo, searchTerm:Option[SearchTerm], searchAt
       override def preStart(): Unit = {
         //establish connection to OM
         try {
+          logger.debug("OMSearchSource starting up")
           logger.info(s"Establishing connection to ${userInfo.getVault} on ${userInfo.getAddresses} as ${userInfo.getUser}")
           vault = Some(MatrixStore.openVault(userInfo))
           iterator = searchTerm match {
-            case Some(actualSearchTerm)=>Some(vault.get.searchObjectsIterator(actualSearchTerm, atOnce).asScala)
+            case Some(actualSearchTerm)=>
+              Some(vault.get.searchObjectsIterator(actualSearchTerm, atOnce).asScala)
             case None=>
               searchAttribute match {
                 case Some(actualSearchAttribute)=>Some(vault.get.searchObjectsIterator(actualSearchAttribute,atOnce).asScala)

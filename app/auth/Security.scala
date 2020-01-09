@@ -88,8 +88,8 @@ trait Security extends BaseController {
     uid=> Action.async(b)(request => f(uid)(request))
   }
 
-  def IsAuthenticated(b: BodyParser[MultipartFormData[TemporaryFile]] = BodyParsers.parse.multipartFormData)(f: => String => Request[MultipartFormData[TemporaryFile]] => Result) = {
-    Security.Authenticated(username, onUnauthorized) { uid => Action(b)(request => f(uid)(request)) }
+  def IsAuthenticated[A](b: BodyParser[A])(f: =>String => Request[A] => Result) = Security.Authenticated(username, onUnauthorized) {
+    uid=> Action(b)(request=> f(uid)(request))
   }
 
   /**

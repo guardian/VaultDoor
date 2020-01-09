@@ -11,6 +11,7 @@ import play.api.Configuration
 import play.api.http.HttpEntity
 import play.api.mvc._
 import helpers.BadDataError
+
 import scala.util.{Failure, Success, Try}
 import akka.pattern.ask
 import akka.stream.{Attributes, Materializer, SourceShape}
@@ -18,13 +19,16 @@ import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
 import streamcomponents.{MatrixStoreFileSourceWithRanges, MultipartSource}
 import models.{AuditEvent, AuditFile, ObjectMatrixEntry}
 import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges}
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.cache.SyncCacheApi
 import auth.Security
 import play.api.libs.circe.Circe
-
+import responses.FrontendConfigResponse
+import io.circe.syntax._
+import io.circe.generic.auto._
 
 @Singleton
 class Application @Inject() (cc:ControllerComponents,
@@ -221,4 +225,10 @@ class Application @Inject() (cc:ControllerComponents,
 
   }
 
+  def frontendConfig = Action {
+    Ok(FrontendConfigResponse("ok",
+      config.get[String]("projectlocker.baseUri"),
+      config.getOptional[String]("pluto.baseUri")
+    ).asJson)
+  }
 }
