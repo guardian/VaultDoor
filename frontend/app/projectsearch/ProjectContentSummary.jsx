@@ -39,7 +39,29 @@ class ProjectContentSummary extends React.Component {
         return new Promise((resolve, reject)=>this.setState(newState, ()=>resolve()))
     }
 
+    checkVaultId(resolve, reject, iteration){
+        if(this.props.vaultId){
+            resolve();
+        } else {
+            const count = iteration ? iteration+1 : 2;
+            if(count>10){
+                console.error("Timed out waiting for vault ID to be set");
+                reject("Timeout");
+            }
+            window.setTimeout(()=>this.waitForVaultId(resolve, count), 100);
+        }
+    }
+
+    waitForVaultId() {
+        return new Promise((resolve,reject)=>{
+            this.checkVaultId(resolve, reject, 0);
+        })
+    }
+
     async getSummaryInfo() {
+        await this.waitForVaultId();    //when the view is passed a project ID in the URL on a fresh load then this can (on occasion) get triggered _before_ the vaultid is set.
+                                        //we chain ourselves to a Promise that only resolves once the vaultid is set, using a promise-timeout that does not block so the backend can
+                                        //set up the vaultId property correctly.
         if(!this.props.projectId) return new Promise((resolve,reject)=>reject("no projectid set"));
 
         const url = "/api/vault/" + this.props.vaultId + "/projectSummary/" + this.props.projectId;
@@ -73,7 +95,8 @@ class ProjectContentSummary extends React.Component {
     }
 
     componentDidMount() {
-        this.setState({loading: true}, ()=>this.getSummaryInfo().catch(()=>this.setState({loading: false})));
+        this.setState({loading: true}, ()=>
+            this.getSummaryInfo().catch(()=>this.setState({loading: false})));
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
