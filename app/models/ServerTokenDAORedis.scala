@@ -38,4 +38,6 @@ class ServerTokenDAORedis @Inject() (config:Configuration) (override protected i
   override def put(entry: ServerTokenEntry, expiresIn:Int): Future[Boolean] = {
     redisClient.setEX(s"vaultdoor:servertoken:${entry.value}",entry.asJson.noSpaces, expiresIn).map(_=>true)
   }
+
+  override def remove(tokenValue:String):Future[Boolean] = redisClient.del(s"vaultdoor:servertoken:$tokenValue").map(_=>true)
 }

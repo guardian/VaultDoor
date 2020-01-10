@@ -15,4 +15,6 @@ trait ServerTokenDAO {
   def put(entry:ServerTokenEntry, expiresIn:Int):Future[Boolean]
 
   def get(tokenValue:String):Future[Option[ServerTokenEntry]]
+
+  def remove(tokenValue:String):Future[Boolean]
 }
