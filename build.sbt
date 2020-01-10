@@ -43,6 +43,7 @@ libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test",
   "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test",
+  "com.github.scredis" %% "scredis" % "2.3.3",
   "org.specs2" %% "specs2-core" % "4.5.1" % Test,
   "org.specs2" %% "specs2-mock" % "4.5.1" % Test,
   "org.mockito" % "mockito-core" % "2.28.2" % Test,
