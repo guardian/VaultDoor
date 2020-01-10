@@ -2,7 +2,7 @@ package controllers
 
 import akka.actor.ActorSystem
 import akka.stream.{ClosedShape, Materializer, SourceShape}
-import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Source}
+import akka.stream.scaladsl.{GraphDSL, Keep, RunnableGraph, Source}
 import akka.util.ByteString
 import auth.Security
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
@@ -89,15 +89,17 @@ class FileListController @Inject() (cc:ControllerComponents,
     */
   def summaryFor(userInfo:UserInfo, searchTerm:SearchTerm) = {
     val sinkFact = new ProjectSummarySink
-    val graph = GraphDSL.create(sinkFact) { implicit builder => sink=>
-      import akka.stream.scaladsl.GraphDSL.Implicits._
+//    val graph = GraphDSL.create(sinkFact) { implicit builder => sink=>
+//      import akka.stream.scaladsl.GraphDSL.Implicits._
+//
+//      val src = builder.add(new OMSearchSource(userInfo, Some(searchTerm), None))
+//      val lookup = builder.add(new OMLookupMetadata(userInfo).async)
+//      src ~> lookup ~>sink
+//      ClosedShape
+//    }
+//    RunnableGraph.fromGraph(graph).run()
 
-      val src = builder.add(new OMSearchSource(userInfo, Some(searchTerm), None))
-      val lookup = builder.add(new OMLookupMetadata(userInfo).async)
-      src ~> lookup ~>sink
-      ClosedShape
-    }
-    RunnableGraph.fromGraph(graph).run()
+    ProjectSummarySink.suitableFastSource(userInfo,Array(searchTerm)).toMat(sinkFact)(Keep.right).run()
   }
 
   def vaultSummary(vaultId:String) = IsAuthenticatedAsync { uid=> request=>
@@ -113,7 +115,6 @@ class FileListController @Inject() (cc:ControllerComponents,
     withVaultAsync(vaultId) { userInfo=>
       logger.info(s"projectsummary: looking up '$forProject' on $vaultId (${userInfo.getVault}")
       val t = SearchTerm.createSimpleTerm("GNM_PROJECT_ID", forProject)
-      //val t = SearchTerm.createSimpleTerm(new Attribute(Constants.CONTENT, s"""GNM_PROJECT_ID:"$forProject""""))
       summaryFor(userInfo, t).map(summary=>{
         Ok(summary.asJson)
       })

@@ -3,11 +3,13 @@ package models
 import io.circe.{Encoder, Json}
 import io.circe.generic.auto._
 import io.circe.syntax._
+import javax.activation.MimeType
 
 case class SummaryEntry(count:Int, size:Long)
 
 case class ProjectSummary (gnmType: Map[String,SummaryEntry],
                            fileType: Map[String,SummaryEntry],
+                           mediaType: Map[String,SummaryEntry],
                            hiddenFile:Map[Boolean,SummaryEntry],
                            gnmProject:Map[String,SummaryEntry],
                            total:SummaryEntry) {
@@ -21,6 +23,13 @@ case class ProjectSummary (gnmType: Map[String,SummaryEntry],
     val toUpdate = fileType.getOrElse(newType, SummaryEntry(0,0))
     val updated = toUpdate.copy(count=toUpdate.count+1, size=toUpdate.size+size)
     this.copy(fileType=fileType + (newType->updated))
+  }
+
+  def addMediaType(mimeType:MimeType, size:Long) = {
+    val typeName = if(mimeType.getPrimaryType!="application") mimeType.getPrimaryType else "data"
+    val toUpdate = mediaType.getOrElse(typeName, SummaryEntry(0,0))
+    val updated = toUpdate.copy(count=toUpdate.count+1, size=toUpdate.size+size)
+    this.copy(mediaType=mediaType + (typeName->updated))
   }
 
   def addHiddenFile(isHidden:Boolean,size:Long) = {
@@ -42,9 +51,9 @@ case class ProjectSummary (gnmType: Map[String,SummaryEntry],
 }
 
 object ProjectSummary {
-  def apply(gnmType: Map[String, SummaryEntry], fileType: Map[String,SummaryEntry], hiddenFile: Map[Boolean, SummaryEntry], gnmProject: Map[String, SummaryEntry], total:SummaryEntry): ProjectSummary = new ProjectSummary(gnmType, fileType, hiddenFile, gnmProject, total)
+  def apply(gnmType: Map[String, SummaryEntry], fileType: Map[String,SummaryEntry], mediaType: Map[String,SummaryEntry], hiddenFile: Map[Boolean, SummaryEntry], gnmProject: Map[String, SummaryEntry], total:SummaryEntry): ProjectSummary = new ProjectSummary(gnmType, fileType, mediaType, hiddenFile, gnmProject, total)
 
-  def apply():ProjectSummary = ProjectSummary(Map(), Map(), Map(),Map(),SummaryEntry(0,0))
+  def apply():ProjectSummary = ProjectSummary(Map(), Map(), Map(),Map(),Map(),SummaryEntry(0,0))
 }
 
 class MapEntryEncoder[A:io.circe.Encoder] {

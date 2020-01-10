@@ -60,7 +60,7 @@ class OMFastSearchSource(userInfo:UserInfo, searchTerms:Array[SearchTerm], inclu
     override def preStart(): Unit = {
       //establish connection to OM
       try {
-        logger.debug("OMSearchSource starting up")
+        logger.debug("OMFastSearchSource starting up")
         logger.info(s"Establishing connection to ${userInfo.getVault} on ${userInfo.getAddresses} as ${userInfo.getUser}")
         vault = Some(MatrixStore.openVault(userInfo))
 

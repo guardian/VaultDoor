@@ -29,7 +29,11 @@ class ProjectContentSummary extends React.Component {
                 total: emptySummary
             },
             typePieData: pieCasing,
-            fileTypePieData: pieCasing
+            fileTypePieData: pieCasing,
+            mediaTypePieData: pieCasing,
+            showType: true,
+            showExtensions: false,
+            showMediaType: true
         };
 
         this.initiateDownload = this.initiateDownload.bind(this);
@@ -91,7 +95,15 @@ class ProjectContentSummary extends React.Component {
             }],
             labels: Object.keys(this.state.summaryData.fileType)
         };
-        return this.setStatePromise({typePieData: updatedTypePieData, fileTypePieData: updatedFileTypePieData});
+
+        const updatedMediaTypePieData = {
+            datasets: [{
+                data: Object.values(this.state.summaryData.mediaType).map(entry=>entry.count)
+            }],
+            labels: Object.keys(this.state.summaryData.mediaType)
+        };
+
+        return this.setStatePromise({typePieData: updatedTypePieData, fileTypePieData: updatedFileTypePieData, mediaTypePieData: updatedMediaTypePieData});
     }
 
     componentDidMount() {
@@ -142,11 +154,14 @@ class ProjectContentSummary extends React.Component {
                 <a onClick={this.initiateDownload} style={{fontSize: "1.4em", display: this.state.summaryData.total.count>0 ? "block" : "none"}} className="clickable">Open in Download Manager ></a>
                 <p className="error">{this.state.lastError}</p>
             </div>
-            <div className="chart-holder">
+            <div className="chart-holder" style={{display: this.state.showType ? "inline-block" : "none"}}>
                 <Doughnut data={this.state.typePieData}/>
             </div>
-            <div className="chart-holder">
+            <div className="chart-holder" style={{display: this.state.showExtensions ? "inline-block" : "none"}}>
                 <Doughnut data={this.state.fileTypePieData}/>
+            </div>
+            <div className="chart-holder" style={{display: this.state.showMediaType ? "inline-block" : "none"}}>
+                <Doughnut data={this.state.mediaTypePieData}/>
             </div>
         </div>
     }
