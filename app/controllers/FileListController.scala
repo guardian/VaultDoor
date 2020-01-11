@@ -89,15 +89,6 @@ class FileListController @Inject() (cc:ControllerComponents,
     */
   def summaryFor(userInfo:UserInfo, searchTerm:SearchTerm) = {
     val sinkFact = new ProjectSummarySink
-//    val graph = GraphDSL.create(sinkFact) { implicit builder => sink=>
-//      import akka.stream.scaladsl.GraphDSL.Implicits._
-//
-//      val src = builder.add(new OMSearchSource(userInfo, Some(searchTerm), None))
-//      val lookup = builder.add(new OMLookupMetadata(userInfo).async)
-//      src ~> lookup ~>sink
-//      ClosedShape
-//    }
-//    RunnableGraph.fromGraph(graph).run()
 
     ProjectSummarySink.suitableFastSource(userInfo,Array(searchTerm)).toMat(sinkFact)(Keep.right).run()
   }
