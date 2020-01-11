@@ -18,6 +18,7 @@ GET     /audit/scan                                 @controllers.AuditController
 
 GET     /api/vault                                  @controllers.VaultController.knownVaults()
 
+GET     /api/vault/:vaultId/testFastSearch          @controllers.FileListController.testFastSearch(vaultId, field:String,value:String)
 GET     /api/vault/:vaultId/list                    @controllers.FileListController.pathSearchStreaming(vaultId, forFile:Option[String])
 GET     /api/vault/:vaultId/byProject/:projectId    @controllers.FileListController.projectSearchStreaming(vaultId, projectId)
 PUT     /api/vault/:vaultId/list                    @controllers.FileListController.customSearchStreaming(vaultId)
@@ -26,6 +27,7 @@ GET     /api/vault/:vaultId/projectSummary/:projectId @controllers.FileListContr
 
 HEAD    /api/vault/:vaultId/:oid                    @controllers.VaultController.headTargetContent(vaultId, oid)
 GET     /api/vault/:vaultId/:oid                    @controllers.VaultController.streamTargetContent(vaultId, oid)
+
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
