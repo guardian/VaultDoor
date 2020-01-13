@@ -8,7 +8,7 @@ import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source}
 import auth.Security
 import com.om.mxs.client.japi.{MatrixStore, SearchTerm, UserInfo, Vault}
 import helpers.{MetadataHelper, UserInfoCache}
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import models.{ArchiveEntryDownloadSynopsis, LightboxBulkEntry, ObjectMatrixEntry, ServerTokenDAO, ServerTokenEntry}
 import play.api.Configuration
 import play.api.libs.circe.Circe
@@ -24,6 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
+@Singleton
 class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configuration, serverTokenDAO: ServerTokenDAO, userInfoCache: UserInfoCache)
                                        (implicit mat:Materializer, system:ActorSystem, override implicit val cache:SyncCacheApi)
   extends AbstractController(cc) with Circe with Security with ObjectMatrixEntryMixin{

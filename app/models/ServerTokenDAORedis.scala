@@ -2,13 +2,15 @@ package models
 
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.slf4j.LoggerFactory
+
 import scala.concurrent.Future
 
+@Singleton
 class ServerTokenDAORedis @Inject() (config:Configuration) (override protected implicit val actorSystem:ActorSystem, override implicit val mat:Materializer) extends ServerTokenDAO {
   private final val logger = LoggerFactory.getLogger(getClass)
   lazy val redisClient = scredis.Client(
