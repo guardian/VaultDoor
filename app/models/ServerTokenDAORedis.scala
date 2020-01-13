@@ -13,7 +13,7 @@ class ServerTokenDAORedis @Inject() (config:Configuration) (override protected i
   private final val logger = LoggerFactory.getLogger(getClass)
   lazy val redisClient = scredis.Client(
     host = config.get[String]("redis.host"),
-    port = config.getOptional[Int]("redis.port").getOrElse(6376),
+    port = config.getOptional[Int]("redis.port").getOrElse(6379),
     passwordOpt = config.getOptional[String]("redis.password")
   )
 

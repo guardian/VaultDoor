@@ -13,7 +13,7 @@ import models.{ArchiveEntryDownloadSynopsis, LightboxBulkEntry, ObjectMatrixEntr
 import play.api.Configuration
 import play.api.libs.circe.Circe
 import play.api.mvc.{AbstractController, AnyContent, ControllerComponents, Request, ResponseHeader, Result}
-import responses.{BulkDownloadInitiateResponse, GenericErrorResponse, GenericObjectResponse}
+import responses.{BulkDownloadInitiateResponse, DownloadManagerItemResponse, GenericErrorResponse, GenericObjectResponse}
 import io.circe.syntax._
 import io.circe.generic.auto._
 import play.api.cache.SyncCacheApi
@@ -42,7 +42,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configur
 
   def withVaultAsync(vaultId:String)(block:UserInfo=>Future[Result]) = userInfoCache.infoForVaultId(vaultId) match {
     case Some(userInfo)=>block(userInfo)
-    case None=>Future(NotFound(GenericErrorResponse("not_found","").asJson))
+    case None=>Future(NotFound(GenericErrorResponse("not_found",vaultId).asJson))
   }
 
   /**
@@ -118,9 +118,11 @@ class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configur
             logger.error(s"Token $tokenId is invalid, it does not contain a project ID")
             Future(NotFound(GenericErrorResponse("not_found","Invalid token").asJson))
           case Some(combinedId)=>
-            val ids = combinedId.split("|")
+            val ids = combinedId.split("\\|")
             val projectId = ids.head
             val vaultId = ids(1)
+
+            logger.debug(s"Combined ID is $combinedId, project ID is $projectId, vault ID is $vaultId")
 
             withVaultAsync(vaultId) { userInfo =>
               createRetrievalToken(token.createdForUser.getOrElse(""), combinedId).flatMap(retrievalToken=> {
@@ -139,6 +141,14 @@ class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configur
     })
   }
 
+  def eitherOr[T](opt1:Option[T],opt2:Option[T]):Option[T] = {
+    if(opt1.isDefined){
+      opt1
+    } else {
+      opt2
+    }
+  }
+
   /**
     * validates that there is a token in the headers of the given request and that it is valid.
     * if so, pass it on to the provided Block and return the result. Otherwise return a Play response indicating the error
@@ -147,28 +157,29 @@ class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configur
     *              Takes three parameters, being the entire ServerTokenEntry, the project ID and the vault ID as encoded in the ServerTokenEntry
     * @return the result of the Block or a JSON formatted error response
     */
-  def validateTokenAsync(request:Request[AnyContent])(block: (ServerTokenEntry,String,String)=>Future[Result]):Future[Result] = {
-    request.headers.get("X-Download-Token") match {
+  def validateTokenAsync(request:Request[AnyContent], actualTokenValue:Option[String])(block: (ServerTokenEntry,String,String)=>Future[Result]):Future[Result] = {
+    eitherOr(actualTokenValue, request.headers.get("X-Download-Token")) match {
       case None=>
         logger.error(s"Attempt to download with no X-Download-Token header")
-        Future(BadRequest(GenericErrorResponse("bad_request","No download token in headers")))
+        Future(BadRequest(GenericErrorResponse("bad_request","No download token in headers").asJson))
       case Some(tokenId)=>
+        logger.debug(s"Got token ID $tokenId")
         serverTokenDAO.get(tokenId).flatMap({
           case Some(serverToken)=>
             logger.debug(s"Got server token $serverToken for $tokenId")
             val updatedServerToken = serverToken.copy(uses=serverToken.uses+1)
-            val expirySeconds = Instant.now().getEpochSecond - serverToken.expiry.get.toInstant.getEpochSecond
-            if(expirySeconds<1){
+            val expirySeconds = serverToken.expiry.get.toInstant.getEpochSecond - Instant.now().getEpochSecond
+          if(expirySeconds<1){
               logger.error(s"Server token $serverToken is expired")
-              Future(BadRequest(GenericErrorResponse("token_error","Expired token")))
+              Future(BadRequest(GenericErrorResponse("token_error","Expired token").asJson))
             } else {
               serverTokenDAO.put(updatedServerToken, expirySeconds.toInt).flatMap(_ => {
-                val idSplit = serverToken.associatedId.get.split("|")
+                val idSplit = serverToken.associatedId.get.split("\\|")
                 block(serverToken, idSplit.head, idSplit(1))
               })
             }
           case None=>
-            Future(NotFound(GenericErrorResponse("not_found","item was not found")))
+            Future(NotFound(GenericErrorResponse("not_found","item was not found").asJson))
         })
     }
   }
@@ -189,32 +200,47 @@ class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configur
 
   def getMaybeMimetype(entry:ObjectMatrixEntry):Option[String] = entry.attributes.flatMap(_.stringValues.get("MXFS_MIMETYPE"))
 
-  def bulkDownloadItem(itemId:String) = Action.async { request=>
-    validateTokenAsync(request) { (serverToken, projectId, vaultId)=>
-      logger.info(s"In bulkDownloadItem for $itemId")
+  def bulkDownloadItem(tokenValue:String, itemId:String) = Action {
+    //in ArchiveHunter this step is necessary to compute a presigned URL. Here it's not, we can stream the data right away.
+    //but to keep the same protocol, we just send back the "right" URL for the data and a flag saying it's available.
+    Ok(DownloadManagerItemResponse("ok","RS_ALREADY",s"/api/bulk/$tokenValue/get/$itemId/data").asJson)
+  }
+
+  def bulkDownloadItemData(tokenValue:String, itemId:String) = Action.async { request=>
+    logger.warn(s"bulkDownloadItem: token is $tokenValue, item ID is $itemId")
+    validateTokenAsync(request, Some(tokenValue)) { (serverToken, projectId, vaultId)=>
+      logger.debug(s"In bulkDownloadItem for $itemId on vault $vaultId")
 
       userInfoCache.infoForVaultId(vaultId) match {
         case None=>
           logger.error(s"bulkDownloadItem - vaultId is not valid, had no userInfoCache entry")
           Future(NotFound(GenericErrorResponse("not_found","item or vault not found").asJson))
         case Some(userInfo)=>
-          implicit val vault = MatrixStore.openVault(userInfo)
+          implicit val vault:Vault = MatrixStore.openVault(userInfo)
           ObjectMatrixEntry(itemId).getMetadata.map(entry=>{
             entry.attributes.flatMap(_.stringValues.get("GNM_PROJECT_ID")) match {
               case None=>
                 logger.error(s"Item $itemId found in vault $vaultId but it is not a member of any project!")
+                vault.dispose()
                 NotFound(GenericErrorResponse("not_found","item or vault not found").asJson)
               case Some(itemsProjectId)=>
                 if(projectId!=itemsProjectId) {
                   logger.error(s"Item $itemId found in vault $vaultId but it is a member of project $itemsProjectId not $projectId")
+                  vault.dispose()
                   NotFound(GenericErrorResponse("not_found","item or vault not found").asJson)
                 } else {
+                  vault.dispose()
                   Result(
                     ResponseHeader(200,headersForEntry(entry, Seq(), getMaybeResponseSize(entry, None))),
                     HttpEntity.Streamed(getStreamingSourceFor(userInfo, entry), getMaybeResponseSize(entry, None), getMaybeMimetype(entry))
                   )
                 }
             }
+          }).recover({
+            case err:Throwable=>
+              logger.error(s"Could not get metadata for $itemId: ", err)
+              vault.dispose()
+              InternalServerError(GenericErrorResponse("sever_error","Could not get metadata").asJson)
           })
       }
     }
