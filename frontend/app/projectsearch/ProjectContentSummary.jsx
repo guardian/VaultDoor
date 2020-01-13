@@ -124,7 +124,7 @@ class ProjectContentSummary extends React.Component {
         if(result.ok){
             const content = JSON.parse(bodyText);
             if(content.status==="ok" && content.itemClass==="link"){
-                window.location.href = content.entry;
+                return this.setStatePromise({lastError: null}).then(()=>window.location.href = content.entry);
             } else {
                 console.log("Got malformed response ", content);
                 return this.setStatePromise({lastError: "malformed server response, check javascript logs for details"});

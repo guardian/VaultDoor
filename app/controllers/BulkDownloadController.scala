@@ -81,7 +81,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configur
       import akka.stream.scaladsl.GraphDSL.Implicits._
 
       val src = builder.add(new OMFastSearchSource(userInfo, searchTerms, usefulFields))
-      val converter = builder.add(new MakeDownloadSynopsis)
+      val converter = builder.add(new MakeDownloadSynopsis(config.getOptional[Seq[String]]("bulkDownload.stripPrefixes")))
       src ~> converter ~> sink
       ClosedShape
     }
