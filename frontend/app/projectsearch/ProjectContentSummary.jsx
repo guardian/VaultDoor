@@ -116,8 +116,29 @@ class ProjectContentSummary extends React.Component {
 
     }
 
+    async requestDownloadLink() {
+        const url = "/api/bulk/new/" + this.props.vaultId + "/" + this.props.projectId;
+        const result = await fetch(url);
+        const bodyText = await result.text();
+
+        if(result.ok){
+            const content = JSON.parse(bodyText);
+            if(content.status==="ok" && content.itemClass==="link"){
+                window.location.href = content.entry;
+            } else {
+                console.log("Got malformed response ", content);
+                return this.setStatePromise({lastError: "malformed server response, check javascript logs for details"});
+            }
+        } else {
+            return this.setStatePromise({lastError: bodyText});
+        }
+    }
+
     initiateDownload(){
-        this.setState({lastError: "Not yet implemented"})
+        this.requestDownloadLink().catch(err=>{
+            console.error(err);
+            this.setState({lastError: "Clientside error, check javascript logs for details"});
+        })
     }
 
     render(){
