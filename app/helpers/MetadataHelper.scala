@@ -4,13 +4,15 @@ import java.nio.ByteBuffer
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Keep, Sink, Source}
+import com.om.mxs.client.internal.TaggedIOException
 import com.om.mxs.client.japi.MxsObject
 import models.MxsMetadata
 import org.apache.commons.codec.binary.Hex
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.JavaConverters._
+import scala.util.{Failure, Success, Try}
 
 object MetadataHelper {
   private val logger = LoggerFactory.getLogger(getClass)
@@ -80,5 +82,78 @@ object MetadataHelper {
     newMetadata.longValues.foreach(entry=>view.writeLong(entry._1, entry._2))
     newMetadata.intValues.foreach(entry=>view.writeInt(entry._1,entry._2))
     newMetadata.boolValues.foreach(entry=>view.writeBoolean(entry._1, entry._2))
+  }
+
+  def isNonNull(arr:Array[Byte], charAt:Int=0, maybeLength:Option[Int]=None):Boolean = {
+    val length = maybeLength.getOrElse(arr.length)
+    if(charAt>=length) return false
+
+    if(arr(charAt) != 0) {
+      true
+    } else {
+      isNonNull(arr,charAt+1,Some(length))
+    }
+  }
+
+  /**
+    * request MD5 checksum of the given object, as calculated by the appliance.
+    * as per the MatrixStore documentation, a blank string implies that the digest is still being calculated; in this
+    * case we sleep 1 second and try again.
+    * for this reason we do the operation in a sub-thread
+    * @param f MxsObject representing the object to checksum
+    * @return a Future, which resolves to a Try containing a String of the checksum.
+    */
+  def getOMFileMd5(f:MxsObject, maxAttempts:Int=2):Try[String] = {
+
+    def lookup(attempt:Int=1):Try[String] = {
+      if(attempt>maxAttempts) return Failure(new RuntimeException(s"Could not get valid checksum after $attempt tries"))
+      val view = f.getAttributeView
+      val result = Try {
+        logger.debug(s"getting result for ${f.getId}...")
+        val buf = ByteBuffer.allocate(16)
+        view.read("__mxs__calc_md5", buf)
+        buf
+      }
+
+      result match {
+        case Failure(err:TaggedIOException)=>
+          if(err.getError==302){
+            logger.warn(s"Got 302 (server busy) from appliance, retrying after delay")
+            Thread.sleep(500)
+            lookup(attempt+1)
+          } else {
+            Failure(err)
+          }
+        case Failure(err:java.io.IOException)=>
+          if(err.getMessage.contains("error 302")){
+            logger.warn(err.getMessage)
+            logger.warn(s"Got an error containing 302 string, assuming server busy, retrying after delay")
+            Thread.sleep(500)
+            lookup(attempt+1)
+          } else {
+            Failure(err)
+          }
+        case Failure(otherError)=>Failure(otherError)
+        case Success(buffer)=>
+          val arr = buffer.array()
+          if(! isNonNull(arr)) {
+            logger.info(s"Empty string returned for file MD5 on attempt $attempt, assuming still calculating. Will retry...")
+            Thread.sleep(1000) //this feels nasty but without resorting to actors i can't think of an elegant way
+            //to delay and re-call in a non-blocking way
+            lookup(attempt + 1)
+          } else {
+            val converted = Hex.encodeHexString(arr)
+            if (converted.length == 32)
+              Success(converted)
+            else {
+              logger.warn(s"Returned checksum $converted is wrong length (${converted.length}; should be 32).")
+              Thread.sleep(1500)
+              lookup(attempt + 1)
+            }
+          }
+      }
+    }
+
+    lookup()
   }
 }

@@ -1,11 +1,14 @@
 package controllers
 
-import helpers.RangeHeader
+import helpers.{MetadataHelper, RangeHeader}
 import models.ObjectMatrixEntry
 import org.slf4j.Logger
 
+import scala.util.Try
+
 trait ObjectMatrixEntryMixin {
   protected val logger:Logger
+
   /**
     * gathers appropriate headers for the given [[ObjectMatrixEntry]]
     * @param entry [[ObjectMatrixEntry]] instance
@@ -16,7 +19,7 @@ trait ObjectMatrixEntryMixin {
     val contentRangeHeader = ranges.headOption.map(range=>s"bytes ${range.headerString}${totalSize.map(s=>s"/$s").getOrElse("")}")
 
     val optionalFields = Seq(
-      entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"Etag"->s),
+      //entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"ETag"->s),
       contentRangeHeader.map(hdr=>"Content-Range"->hdr),
       entry.attributes.flatMap(_.stringValues.get("MXFS_FILENAME")).map(filename=>"Content-Disposition"->s"filename=$filename")
     ).collect({case Some(field)=>field})

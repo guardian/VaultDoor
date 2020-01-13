@@ -22,6 +22,7 @@ import streamcomponents.{MakeDownloadSynopsis, MatrixStoreFileSourceWithRanges, 
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configuration, serverTokenDAO: ServerTokenDAO, userInfoCache: UserInfoCache)
                                        (implicit mat:Materializer, system:ActorSystem, override implicit val cache:SyncCacheApi)
@@ -229,9 +230,18 @@ class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configur
                   vault.dispose()
                   NotFound(GenericErrorResponse("not_found","item or vault not found").asJson)
                 } else {
+                  val headers = headersForEntry(entry, Seq(), getMaybeResponseSize(entry, None))
+                  val mxsEntry = vault.getObject(itemId)
+                  val updatedHeaders = MetadataHelper.getOMFileMd5(mxsEntry) match {
+                    case Failure(err)=>
+                      logger.warn(s"Could not get appliance MD5: ", err)
+                      headers
+                    case Success(checksum)=>headers + ("ETag"->checksum)
+                  }
+
                   vault.dispose()
                   Result(
-                    ResponseHeader(200,headersForEntry(entry, Seq(), getMaybeResponseSize(entry, None))),
+                    ResponseHeader(200, updatedHeaders),
                     HttpEntity.Streamed(getStreamingSourceFor(userInfo, entry), getMaybeResponseSize(entry, None), getMaybeMimetype(entry))
                   )
                 }
