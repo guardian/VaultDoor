@@ -42,4 +42,9 @@ class ServerTokenDAORedis @Inject() (config:Configuration) (override protected i
   }
 
   override def remove(tokenValue:String):Future[Boolean] = redisClient.del(s"vaultdoor:servertoken:$tokenValue").map(_=>true)
+
+  override def finalize(): Unit = {
+    redisClient.quit()
+    super.finalize()
+  }
 }
