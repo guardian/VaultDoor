@@ -9,6 +9,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 
 import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/free-solid-svg-icons'
 import ByProjectComponent from "./ByProjectComponent.jsx";
+import LoginComponent from "./LoginComponent.jsx";
 
 library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog);
 
@@ -20,7 +21,8 @@ class App extends React.Component {
             isLoggedIn: false,
             currentUsername: "",
             isAdmin: false,
-            loading: false
+            loading: true,
+            redirectingTo: null
         };
 
         this.onLoggedIn = this.onLoggedIn.bind(this);
@@ -43,28 +45,34 @@ class App extends React.Component {
     }
 
     checkLogin(){
-        this.setState({loading: true, haveChecked: true}, ()=>
-            axios.get("/api/isLoggedIn")
-                .then(response=>{ //200 response means we are logged in
-                    this.setState({
-                        isLoggedIn: true,
-                        loading: false,
-                        currentUsername: response.data.uid,
-                        isAdmin: response.data.isAdmin
-                    });
-                })
-                .catch(error=>{
-                    this.setState({
-                        isLoggedIn: false,
-                        loading: false,
-                        currentUsername: ""
+        return new Promise((resolve,reject)=>
+            this.setState({loading: true, haveChecked: true}, ()=>
+                axios.get("/api/isLoggedIn")
+                    .then(response=>{ //200 response means we are logged in
+                        this.setState({
+                            isLoggedIn: true,
+                            loading: false,
+                            currentUsername: response.data.uid,
+                            isAdmin: response.data.isAdmin
+                        }, ()=>resolve());
                     })
-                })
+                    .catch(error=>{
+                        this.setState({
+                            isLoggedIn: false,
+                            loading: false,
+                            currentUsername: ""
+                        }, ()=>resolve())
+                    })
+            )
         );
     }
 
-    componentWillMount(){
-        this.checkLogin();
+    componentDidMount(){
+        this.checkLogin().then(()=>{
+            if(!this.state.loading && !this.state.isLoggedIn) {
+                this.setState({redirectingTo: window.location.href });
+            }
+        })
     }
 
     onLoggedIn(userid, isAdmin){
@@ -72,7 +80,11 @@ class App extends React.Component {
         console.log("Is an admin? " + isAdmin);
 
         this.setState({currentUsername: userid, isAdmin: isAdmin, isLoggedIn: true}, ()=>{
-            if(!isAdmin) window.location.href="/project/?mine";
+            if(this.state.redirectingTo){
+                window.location.href = this.state.redirectingTo;
+            } else {
+                if (!isAdmin) window.location.href = "/project/?mine";
+            }
         })
     }
 
@@ -82,6 +94,11 @@ class App extends React.Component {
 
 
     render(){
+        if(!this.state.loading && !this.state.isLoggedIn) {
+            return <div>
+                <LoginComponent onLoggedIn={this.onLoggedIn} onLoggedOut={this.onLoggedOut} currentlyLoggedIn={this.state.isLoggedIn}/>
+            </div>
+        }
         return <div>
             <h1 onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
             <Switch>
