@@ -113,7 +113,7 @@ class ProjectContentSummary extends React.Component {
 
     componentDidUpdate(prevProps, prevState, snapshot) {
         if(prevProps.projectId!==this.props.projectId) this.setState({loading: true}, ()=>this.getSummaryInfo());
-
+        if(prevProps.vaultId!==this.props.vaultId) this.setState({loading: true}, ()=>this.getSummaryInfo());
     }
 
     async requestDownloadLink() {
