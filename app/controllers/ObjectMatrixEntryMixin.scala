@@ -19,7 +19,6 @@ trait ObjectMatrixEntryMixin {
     val contentRangeHeader = ranges.headOption.map(range=>s"bytes ${range.headerString}${totalSize.map(s=>s"/$s").getOrElse("")}")
 
     val optionalFields = Seq(
-      //entry.attributes.flatMap(_.stringValues.get("MXFS_MODIFICATION_TIME")).map(s=>"ETag"->s),
       contentRangeHeader.map(hdr=>"Content-Range"->hdr),
       entry.attributes.flatMap(_.stringValues.get("MXFS_FILENAME")).map(filename=>"Content-Disposition"->s"filename=${java.net.URLEncoder.encode(filename, "utf-8")}")
     ).collect({case Some(field)=>field})
