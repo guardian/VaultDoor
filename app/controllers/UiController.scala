@@ -2,11 +2,12 @@ package controllers
 
 import java.util.Properties
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import org.slf4j.LoggerFactory
 import play.api.Configuration
 import play.api.mvc.{AbstractController, ControllerComponents}
 
+@Singleton
 class UiController @Inject() (config:Configuration,cc:ControllerComponents) extends AbstractController(cc) {
   private val logger = LoggerFactory.getLogger(getClass)
 

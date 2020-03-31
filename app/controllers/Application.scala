@@ -26,7 +26,7 @@ import scala.concurrent.Future
 import play.api.cache.SyncCacheApi
 import auth.Security
 import play.api.libs.circe.Circe
-import responses.FrontendConfigResponse
+import responses.{FrontendConfigResponse, GenericErrorResponse}
 import io.circe.syntax._
 import io.circe.generic.auto._
 
@@ -150,12 +150,12 @@ class Application @Inject() (cc:ControllerComponents,
         case ObjectNotFound(_) =>
           val auditFile = AuditFile("",locator.filePath)
           auditActor ! actors.Audit.LogEvent(AuditEvent.NOTFOUND, uid, Some(auditFile), Seq())
-          Left(NotFound(s"could not find object $targetUriString")) //FIXME: replace with proper json response
+          Left(NotFound(GenericErrorResponse("not_found", s"no object at $targetUriString").asJson))
         case ObjectLookupFailed(_, err) =>
           val auditFile = AuditFile("",locator.filePath)
           auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile), Seq(),notes=Some(err.toString))
           logger.error(s"Could not look up object for $targetUriString: ", err)
-          Left(InternalServerError(s"lookup failed for $targetUriString"))
+          Left(InternalServerError(GenericErrorResponse("server_error", s"lookup failed for $targetUriString").asJson))
         case ObjectFound(_, objectEntry) =>
           Right(objectEntry)
       })
