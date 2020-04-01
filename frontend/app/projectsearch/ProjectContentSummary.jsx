@@ -66,7 +66,9 @@ class ProjectContentSummary extends React.Component {
         await this.waitForVaultId();    //when the view is passed a project ID in the URL on a fresh load then this can (on occasion) get triggered _before_ the vaultid is set.
                                         //we chain ourselves to a Promise that only resolves once the vaultid is set, using a promise-timeout that does not block so the backend can
                                         //set up the vaultId property correctly.
-        if(!this.props.projectId) return new Promise((resolve,reject)=>reject("no projectid set"));
+        if(!this.props.projectId) {
+            return this.setStatePromise({loading: false, lastError: "No project requested!"})
+        }
 
         const url = "/api/vault/" + this.props.vaultId + "/projectSummary/" + this.props.projectId;
         const result = await fetch(url);
@@ -107,13 +109,12 @@ class ProjectContentSummary extends React.Component {
     }
 
     componentDidMount() {
-        this.setState({loading: true}, ()=>
-            this.getSummaryInfo().catch(()=>this.setState({loading: false})));
+        this.setState({loading: true}, ()=>this.getSummaryInfo())
     }
 
     componentDidUpdate(prevProps, prevState, snapshot) {
         if(prevProps.projectId!==this.props.projectId) this.setState({loading: true}, ()=>this.getSummaryInfo());
-
+        if(prevProps.vaultId!==this.props.vaultId) this.setState({loading: true}, ()=>this.getSummaryInfo());
     }
 
     async requestDownloadLink() {
