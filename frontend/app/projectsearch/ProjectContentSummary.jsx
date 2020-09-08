@@ -39,6 +39,18 @@ class ProjectContentSummary extends React.Component {
         this.initiateDownload = this.initiateDownload.bind(this);
     }
 
+    static getDerivedStateFromError(error) {
+        return {
+            loading: false,
+            lastError: error ? error.toString : "Internal error, see console"
+        }
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error(error);
+        console.error("A subcomponent threw an error: ", errorInfo);
+    }
+
     setStatePromise(newState){
         return new Promise((resolve, reject)=>this.setState(newState, ()=>resolve()))
     }

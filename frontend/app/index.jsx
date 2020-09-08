@@ -10,6 +10,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/free-solid-svg-icons'
 import ByProjectComponent from "./ByProjectComponent.jsx";
 import LoginComponent from "./LoginComponent.jsx";
+import LoadingIndicator from "./LoadingIndicator.jsx";
 
 library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog);
 
@@ -70,15 +71,12 @@ class App extends React.Component {
     componentDidMount(){
         this.checkLogin().then(()=>{
             if(!this.state.loading && !this.state.isLoggedIn) {
-                this.setState({redirectingTo: window.location.href });
+                this.setState({redirectingTo: "/" });
             }
         })
     }
 
     onLoggedIn(userid, isAdmin){
-        console.log("Logged in as " + userid);
-        console.log("Is an admin? " + isAdmin);
-
         this.setState({currentUsername: userid, isAdmin: isAdmin, isLoggedIn: true}, ()=>{
             if(this.state.redirectingTo){
                 window.location.href = this.state.redirectingTo;
@@ -92,13 +90,17 @@ class App extends React.Component {
         this.setState({currentUsername: "", isLoggedIn: false})
     }
 
-
     render(){
-        if(!this.state.loading && !this.state.isLoggedIn) {
+        if(this.state.loading) {
+            return <LoadingIndicator/>;
+        }
+
+        if(!this.state.isLoggedIn) {
             return <div>
                 <LoginComponent onLoggedIn={this.onLoggedIn} onLoggedOut={this.onLoggedOut} currentlyLoggedIn={this.state.isLoggedIn}/>
             </div>
         }
+
         return <div>
             <h1 onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
             <Switch>
