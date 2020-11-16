@@ -50,7 +50,7 @@ object HMAC {
     */
   def getAlgos:Array[Tuple3[String,String,String]] = {
     for {
-      provider <- Security.getProviders
+      provider <- java.security.Security.getProviders
       key <- provider.stringPropertyNames.asScala
     } yield Tuple3(provider.getName, key, provider.getProperty(key))
 

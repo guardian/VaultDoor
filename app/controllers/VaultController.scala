@@ -6,7 +6,7 @@ import actors.ObjectCache.{Lookup, OCMsg, ObjectFound, ObjectLookupFailed, Objec
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.scaladsl.{GraphDSL, Source}
 import akka.stream.{Attributes, Materializer, SourceShape}
-import auth.Security
+import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
 import helpers.{BadDataError, OMAccess, OMLocator, RangeHeader, UserInfoCache, ZonedDateTimeEncoder}
 import javax.inject.{Inject, Named, Singleton}
@@ -28,7 +28,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
 class VaultController @Inject() (cc:ControllerComponents,
-                                 config:Configuration,
+                                 override implicit val config:Configuration,
+                                 override val bearerTokenAuth:BearerTokenAuth,
                                  omAccess: OMAccess,
                                  @Named("object-cache") objectCache:ActorRef,
                                  @Named("audit-actor") auditActor:ActorRef,

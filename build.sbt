@@ -57,7 +57,10 @@ libraryDependencies ++= Seq(
 libraryDependencies += "io.sentry" % "sentry-logback" % "1.7.2"
 
 //authentication
-libraryDependencies += "com.unboundid" % "unboundid-ldapsdk" % "4.0.5"
+libraryDependencies ++= Seq(
+  "com.unboundid" % "unboundid-ldapsdk" % "4.0.5",
+  "com.nimbusds" % "nimbus-jose-jwt" % "8.17",
+)
 
 enablePlugins(RpmPlugin, SystemdPlugin)
 rpmVendor := "Andy Gallagher <andy.gallagher@theguardian.com>"

@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.{ClosedShape, Materializer, SourceShape}
 import akka.stream.scaladsl.{GraphDSL, Keep, RunnableGraph, Source}
 import akka.util.ByteString
-import auth.Security
+import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
 import helpers.{OMAccess, OMLocator, UserInfoCache, ZonedDateTimeEncoder}
 import javax.inject.{Inject, Singleton}
@@ -27,7 +27,8 @@ import io.circe.generic.semiauto._
 
 @Singleton
 class FileListController @Inject() (cc:ControllerComponents,
-                                    config:Configuration,
+                                    override implicit val config:Configuration,
+                                    override val bearerTokenAuth:BearerTokenAuth,
                                     omAccess: OMAccess,
                                     userInfoCache: UserInfoCache
                                    )(implicit mat:Materializer, system:ActorSystem, override implicit val cache:SyncCacheApi)
