@@ -10,6 +10,7 @@ import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/f
 import ByProjectComponent from "./ByProjectComponent.jsx";
 import LoadingIndicator from "./LoadingIndicator.jsx";
 import {authenticatedFetch} from "./auth";
+import LoginButton from "./LoginButton.jsx";
 
 library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog);
 
@@ -22,13 +23,19 @@ class App extends React.Component {
             currentUsername: "",
             isAdmin: false,
             loading: true,
-            redirectingTo: null
+            redirectingTo: null,
+            clientId: "",
+            resource: "",
+            oAuthUri: "",
+            tokenUri: "",
+            startup: true
         };
 
-        this.onLoggedIn = this.onLoggedIn.bind(this);
-        this.onLoggedOut = this.onLoggedOut.bind(this);
-
         this.returnToRoot = this.returnToRoot.bind(this);
+
+        const currentUri = new URL(window.location.href);
+        this.redirectUri =
+            currentUri.protocol + "//" + currentUri.host + "/oauth2/callback";
 
         authenticatedFetch("/system/publicdsn").then(async (response)=>{
             if(response.status===200) {
@@ -50,6 +57,10 @@ class App extends React.Component {
 
     returnToRoot(){
         this.props.history.push("/");
+    }
+
+    setStatePromise(newstate) {
+        return new Promise((resolve, reject)=>this.setState(newstate, ()=>resolve()));
     }
 
     checkLogin(){
@@ -76,36 +87,67 @@ class App extends React.Component {
         );
     }
 
-    componentDidMount(){
-        this.checkLogin().then(()=>{
-            if(!this.state.loading && !this.state.isLoggedIn) {
-                this.setState({redirectingTo: "/" });
-            }
-        })
+    async loadOauthData() {
+        const response = await fetch("/meta/oauth/config.json");
+        switch (response.status) {
+            case 200:
+                console.log("got response data");
+                try {
+                    const content = await response.json();
+
+                    return this.setStatePromise({
+                        clientId: content.clientId,
+                        resource: content.resource,
+                        oAuthUri: content.oAuthUri,
+                        tokenUri: content.tokenUri,
+                        startup: false,
+                    });
+                } catch(err) {
+                    console.error("Could not load oauth config: ", err);
+                    return this.setStatePromise({
+                        startup: false
+                    });
+                }
+            case 404:
+                await response.text(); //consume body and discard it
+                return this.setStatePromise({
+                    startup: false,
+                    lastError:
+                        "Metadata not found on server, please contact administrator",
+                });
+            default:
+                await response.text(); //consume body and discard it
+                return this.setStatePromise({
+                    startup: false,
+                    lastError:
+                        "Server returned a " +
+                        response.status +
+                        " error trying to access metadata",
+                });
+        }
     }
 
-    onLoggedIn(userid, isAdmin){
-        this.setState({currentUsername: userid, isAdmin: isAdmin, isLoggedIn: true}, ()=>{
-            if(this.state.redirectingTo){
-                window.location.href = this.state.redirectingTo;
-            } else {
-                if (!isAdmin) window.location.href = "/project/?mine";
-            }
-        })
-    }
+    async componentDidMount(){
+        await this.loadOauthData();
+        await this.checkLogin();
 
-    onLoggedOut(){
-        this.setState({currentUsername: "", isLoggedIn: false})
+        if(!this.state.loading && !this.state.isLoggedIn) {
+            this.setState({redirectingTo: "/" });
+        }
     }
 
     render(){
-        if(this.state.loading) {
+        if(this.state.loading || this.state.startup) {
             return <LoadingIndicator/>;
         }
 
         if(!this.state.isLoggedIn) {
             return <div>
-                Not logged in, oauth login init is not implemented yet
+                Click here to log in to VaultDoor: <LoginButton oAuthUri={this.state.oAuthUri}
+                                                     tokenUri={this.state.tokenUri}
+                                                     clientId={this.state.clientId}
+                                                     redirectUri={this.redirectUri}
+                                                     resource={this.state.redirectingTo}/>
             </div>
         }
 
@@ -115,8 +157,6 @@ class App extends React.Component {
                 <Route path="/byproject" component={ByProjectComponent}/>
                 <Route path="/search" component={SearchComponent}/>
                 <Route exact path="/" component={()=><RootComponent
-                    onLoggedOut={this.onLoggedOut}
-                    onLoggedIn={this.onLoggedIn}
                     currentUsername={this.state.currentUsername}
                     isLoggedIn={this.state.isLoggedIn}
                     isAdmin={this.state.isAdmin}

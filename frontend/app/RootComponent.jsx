@@ -3,8 +3,6 @@ import PropTypes from 'prop-types';
 
 class RootComponent extends React.Component {
     static propTypes = {
-        onLoggedIn: PropTypes.func.isRequired,
-        onLoggedOut: PropTypes.func.isRequired,
         currentUsername: PropTypes.string,
         isLoggedIn: PropTypes.bool.isRequired
     };

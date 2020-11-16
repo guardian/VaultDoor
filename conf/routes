@@ -34,6 +34,9 @@ GET     /api/bulk/:codeValue                        @controllers.BulkDownloadCon
 GET     /api/bulk/:tokenValue/get/:fileId           @controllers.BulkDownloadController.bulkDownloadItem(tokenValue, fileId)
 GET     /api/bulk/:tokenValue/get/:fileId/data      @controllers.BulkDownloadController.bulkDownloadItemData(tokenValue, fileId)
 
+GET     /meta/oauth/config.json                     @controllers.OAuthMetaController.oauthConfig
+GET     /meta/oauth/publickey.pem                   @controllers.OAuthMetaController.signingKey
+
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
 GET     /*tail                      @controllers.UiController.index(tail)
