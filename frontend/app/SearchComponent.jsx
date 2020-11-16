@@ -4,6 +4,7 @@ import ndjsonStream from "can-ndjson-stream";
 import ResultsPanel from './searchnbrowse/ResultsPanel.jsx';
 import PopupPreview from "./PopupPreview.jsx";
 import { withRouter } from 'react-router-dom';
+import {authenticatedFetch} from "./auth";
 
 class SearchComponent extends React.Component {
     static resultsLimit = 100;
@@ -52,7 +53,7 @@ class SearchComponent extends React.Component {
     async asyncDownload(url){
         const abortController = new AbortController();
 
-        const response = await fetch(url, {signal: abortController.signal});
+        const response = await authenticatedFetch(url, {signal: abortController.signal});
         const stream = await ndjsonStream(response.body);
         const reader = stream.getReader();
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {authenticatedFetch} from "../auth";
 
 /**
  * presents a listbox with a filter control above it to the user.
@@ -78,7 +79,7 @@ class FilterableList extends React.Component {
         const getUrl = this.props.unfilteredContentFetchUrl + "?" + this.props.fetchUrlFilterQuery + "=" + searchParam;
         const credentialsValue = this.props.allowCredentials ? "include" : "omit";
 
-        const result = await (this.props.makeSearchDoc ? fetch(this.props.unfilteredContentFetchUrl ,{method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(this.props.makeSearchDoc(searchParam)), credentials: credentialsValue}) : fetch(getUrl));
+        const result = await (this.props.makeSearchDoc ? authenticatedFetch(this.props.unfilteredContentFetchUrl ,{method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(this.props.makeSearchDoc(searchParam)), credentials: credentialsValue}) : authenticatedFetch(getUrl));
         const content = await result.json();
 
         try {

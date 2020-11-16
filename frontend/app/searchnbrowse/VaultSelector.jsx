@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import {authenticatedFetch} from "../auth";
 
 class VaultSelector extends React.Component {
     static propTypes = {
@@ -18,7 +19,7 @@ class VaultSelector extends React.Component {
     }
 
     async refresh() {
-        const response = await fetch("/api/vault");
+        const response = await authenticatedFetch("/api/vault");
         const content = await response.json();
         this.setState({loading: false, lastError: null, knownVaults: content});
         if(this.props.currentvault==="") this.props.vaultWasChanged(content[0].vaultId)

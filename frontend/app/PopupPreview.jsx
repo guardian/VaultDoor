@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import ContentHolder from "./searchnbrowse/ContentHolder.jsx";
+import {authenticatedFetch} from "./auth";
 
 class PopupPreview extends React.Component {
     static PREVIEW_IMAGE=1;
@@ -41,7 +42,7 @@ class PopupPreview extends React.Component {
         await this.setStatePromise({loading: true});
 
         const url = "/api/vault/" + this.props.vaultId + "/" + this.props.oid;
-        const response = await fetch(url, {method: "HEAD"});
+        const response = await authenticatedFetch(url, {method: "HEAD"});
         if(response.ok) {
             const maybeContentType = response.headers.get("content-type");
             await this.setStatePromise({

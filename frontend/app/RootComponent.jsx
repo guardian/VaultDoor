@@ -1,5 +1,4 @@
 import React from 'react';
-import LoginComponent from './LoginComponent.jsx';
 import PropTypes from 'prop-types';
 
 class RootComponent extends React.Component {
@@ -12,11 +11,9 @@ class RootComponent extends React.Component {
 
     render() {
         return(<div>
-            <LoginComponent onLoggedIn={this.props.onLoggedIn}
-                            onLoggedOut={this.props.onLoggedOut}
-                            username={this.props.currentUsername}
-                            currentlyLoggedIn={this.props.isLoggedIn}
-            />
+            {
+                this.props.isLoggedIn ? <p>You are currently logged in as {this.props.currentUsername}</p> : <p>Not logged in, oauth init not implemented yet</p>
+            }
         </div>);
     }
 }

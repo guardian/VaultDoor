@@ -3,6 +3,7 @@ import ProjectLockerSearchBar from "./projectsearch/ProjectLockerSearchBar.jsx";
 import { withRouter } from 'react-router-dom';
 import ProjectContentSummary from "./projectsearch/ProjectContentSummary.jsx";
 import VaultSelector from "./searchnbrowse/VaultSelector.jsx";
+import {authenticatedFetch} from "./auth";
 
 class ByProjectComponent extends React.Component {
     constructor(props){
@@ -44,7 +45,7 @@ class ByProjectComponent extends React.Component {
     }
 
     async loadFrontendConfig() {
-        const response = await fetch("/api/config");
+        const response = await authenticatedFetch("/api/config");
         if(response.ok){
             const content = await response.json();
             return new Promise((resolve, reject)=> {
