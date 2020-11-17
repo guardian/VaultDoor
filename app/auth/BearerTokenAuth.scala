@@ -11,11 +11,19 @@ import org.slf4j.LoggerFactory
 import play.api.mvc.RequestHeader
 import play.api.Configuration
 import play.api.libs.typedmap.TypedKey
+import scala.jdk.CollectionConverters._
 
 import scala.io.Source
 import scala.util.{Failure, Success, Try}
+
 object BearerTokenAuth {
   final val ClaimsAttributeKey = TypedKey[JWTClaimsSet]("claims")
+}
+
+object ClaimsSetExtensions {
+  implicit class ExtendedClaimsSet(val s:JWTClaimsSet) extends AnyVal {
+    def getAzp:Option[String] = Option(s.getClaim("azp")).map(_.asInstanceOf[String])
+  }
 }
 
 /**
@@ -41,6 +49,7 @@ object BearerTokenAuth {
  */
 @Singleton
 class BearerTokenAuth @Inject() (config:Configuration) {
+  import ClaimsSetExtensions._
   private val logger = LoggerFactory.getLogger(getClass)
 
   //see https://stackoverflow.com/questions/475074/regex-to-parse-or-validate-base64-data
@@ -110,7 +119,22 @@ class BearerTokenAuth @Inject() (config:Configuration) {
             if (signedJWT.verify(verifier)) {
               logger.debug("verified JWT")
               logger.debug(s"${signedJWT.getJWTClaimsSet.toJSONObject(true).toJSONString}")
-              Right(LoginResultOK(signedJWT.getJWTClaimsSet))
+
+              val claimsSet = signedJWT.getJWTClaimsSet
+              val audiences = claimsSet.getAudience.asScala ++ claimsSet.getAzp
+              logger.info(s"JWT audiences: $audiences")
+              config.getOptional[Seq[String]]("auth.validAudiences") match {
+                case None=>
+                  logger.error(s"No valid audiences configured. Set auth.validAudiences. Token audiences were $audiences")
+                  Left(LoginResultMisconfigured("Server configuration problem"))
+                case Some(audienceList)=>
+                  if(audiences.intersect(audienceList).nonEmpty) {
+                    logger.debug("Audience permitted")
+                    Right(LoginResultOK(signedJWT.getJWTClaimsSet))
+                  } else {
+                    Left(LoginResultInvalid("Invalid audience"))
+                  }
+              }
             } else {
               Left(LoginResultInvalid(token.content))
             }

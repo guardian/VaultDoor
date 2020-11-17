@@ -5,7 +5,7 @@ import RootComponent from './RootComponent.jsx';
 import Raven from 'raven-js';
 import SearchComponent from './SearchComponent.jsx';
 import { library } from '@fortawesome/fontawesome-svg-core'
-
+import OAuthCallbackComponent from "./OAuthCallbackComponent.jsx";
 import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/free-solid-svg-icons'
 import ByProjectComponent from "./ByProjectComponent.jsx";
 import LoadingIndicator from "./LoadingIndicator.jsx";
@@ -141,25 +141,33 @@ class App extends React.Component {
             return <LoadingIndicator/>;
         }
 
-        if(!this.state.isLoggedIn) {
-            return <div>
-                Click here to log in to VaultDoor: <LoginButton oAuthUri={this.state.oAuthUri}
-                                                     tokenUri={this.state.tokenUri}
-                                                     clientId={this.state.clientId}
-                                                     redirectUri={this.redirectUri}
-                                                     resource={this.state.redirectingTo}/>
-            </div>
-        }
-
         return <div>
-            <h1 onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
+            <h1 style={{marginTop: 0}} onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
             <Switch>
                 <Route path="/byproject" component={ByProjectComponent}/>
                 <Route path="/search" component={SearchComponent}/>
+                <Route
+                    exact
+                    path="/oauth2/callback"
+                    render={(props) => (
+                        <OAuthCallbackComponent
+                            {...props}
+                            oAuthUri={this.state.oAuthUri}
+                            tokenUri={this.state.tokenUri}
+                            clientId={this.state.clientId}
+                            redirectUri={this.redirectUri}
+                            resource={this.state.resource}
+                        />
+                    )}
+                />
                 <Route exact path="/" component={()=><RootComponent
                     currentUsername={this.state.currentUsername}
                     isLoggedIn={this.state.isLoggedIn}
                     isAdmin={this.state.isAdmin}
+                    oAuthUri={this.state.oAuthUri}
+                    tokenUri={this.state.tokenUri}
+                    clientId={this.state.clientId}
+                    resource={this.state.resource}
                 />}/>
             </Switch>
         </div>

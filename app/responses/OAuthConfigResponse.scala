@@ -8,4 +8,5 @@ case class OAuthConfigResponse(
                               resource: String,
                               oAuthUri: String,
                               tokenUri: String,
+                              allowedAudiences: Seq[String],
                               )
