@@ -7,6 +7,7 @@ class RootComponent extends React.Component {
     static propTypes = {
         currentUsername: PropTypes.string,
         isLoggedIn: PropTypes.bool.isRequired,
+        loginErrorDetail: PropTypes.string,
         oAuthUri: PropTypes.string.isRequired,
         tokenUri: PropTypes.string.isRequired,
         clientId: PropTypes.string.isRequired,
@@ -41,7 +42,11 @@ class RootComponent extends React.Component {
                 <button style={{marginLeft: "1em"}} onClick={this.doLogout}>Log out</button>
             </div>
         } else {
+
             return <div>
+                {
+                    this.props.loginErrorDetail ? <p className="error">{this.props.loginErrorDetail}</p> : null
+                }
                 Click here to log in to VaultDoor: <LoginButton oAuthUri={this.props.oAuthUri}
                                                                 tokenUri={this.props.tokenUri}
                                                                 clientId={this.props.clientId}

@@ -23,6 +23,7 @@ class App extends React.Component {
             currentUsername: "",
             isAdmin: false,
             loading: true,
+            loginDetail: null,
             redirectingTo: null,
             clientId: "",
             resource: "",
@@ -75,10 +76,29 @@ class App extends React.Component {
                         currentUsername: responseJson.uid,
                         isAdmin: responseJson.isAdmin
                     }, () => resolve());
+                } else if(response.status === 403 || response.status===401) {
+                    try {
+                        const responseJson = await response.json();
+
+                        this.setState({
+                            isLoggedIn: false,
+                            loading: false,
+                            loginDetail: responseJson.detail
+                        });
+                    } catch(e) {
+                        const responseText = await response.text();
+                        console.error("Permission denied but response invalid: ", responseText);
+                        this.setState({
+                            isLoggedIn: false,
+                            loading: false,
+                            loginDetail: "Permission denied, but response was invalid"
+                        })
+                    }
                 } else {
-                    await response.text();
+                    const serverError = await response.text();
                     this.setState({
                         isLoggedIn: false,
+                        loginDetail: serverError,
                         loading: false,
                         currentUsername: ""
                     }, () => resolve())
@@ -163,6 +183,7 @@ class App extends React.Component {
                 <Route exact path="/" component={()=><RootComponent
                     currentUsername={this.state.currentUsername}
                     isLoggedIn={this.state.isLoggedIn}
+                    loginErrorDetail={this.state.loginDetail}
                     isAdmin={this.state.isAdmin}
                     oAuthUri={this.state.oAuthUri}
                     tokenUri={this.state.tokenUri}

@@ -88,7 +88,7 @@ class BearerTokenAuth @Inject() (config:Configuration) {
         Right(LoginResultOK(token))
       case _=>
         logger.warn("no bearer token found or it failed to validate")
-        Left(LoginResultInvalid("no token"))
+        Left(LoginResultInvalid("No token presented, this is probably a frontend bug"))
     }
 
   /**
@@ -118,14 +118,14 @@ class BearerTokenAuth @Inject() (config:Configuration) {
           logger.debug("Audience permitted")
           Right(LoginResultOK(claimsSet))
         } else {
-          Left(LoginResultInvalid("Invalid audience"))
+          Left(LoginResultInvalid("The token was not from a supported app"))
         }
     }
   }
 
   def checkUserGroup(claimsSet: JWTClaimsSet) = {
     if(!claimsSet.getIsMMAdmin && !claimsSet.getIsMMCreator) {
-      Left(LoginResultInvalid("User is not permitted to log in"))
+      Left(LoginResultInvalid("You don't have access to this system.  Contact Multimediatech if you think this is an error."))
     } else {
       Right(LoginResultOK(claimsSet))
     }
@@ -172,7 +172,7 @@ class BearerTokenAuth @Inject() (config:Configuration) {
         }
       case Failure(err) =>
         logger.error(s"Failed to validate token for ${token.content}: ${err.getMessage}")
-        Left(LoginResultInvalid(token.content))
+        Left(LoginResultInvalid("Authentication not valid"))
     }
   }
 

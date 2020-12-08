@@ -36,7 +36,7 @@ class BearerTokenAuthSpec extends Specification with Mockito {
         .build()
 
       val toTest = new BearerTokenAuth(fakeConfig)
-      toTest.checkAudience(mockedClaims) must beLeft(LoginResultInvalid("Invalid audience"))
+      toTest.checkAudience(mockedClaims) must beLeft(LoginResultInvalid("The token was not from a supported app"))
     }
   }
 
@@ -48,7 +48,7 @@ class BearerTokenAuthSpec extends Specification with Mockito {
         .build()
 
       val toTest = new BearerTokenAuth(fakeConfig)
-      toTest.checkUserGroup(mockedClaims) must beLeft(LoginResultInvalid("User is not permitted to log in"))
+      toTest.checkUserGroup(mockedClaims) must beLeft(LoginResultInvalid("You don't have access to this system.  Contact Multimediatech if you think this is an error."))
     }
 
     "return right if the user is an MM creator only" in {
@@ -156,7 +156,7 @@ class BearerTokenAuthSpec extends Specification with Mockito {
         override protected def getVerifier(jwk: JWK): RSASSAVerifier = mockedVerifier
       }
 
-      toTest.validateToken(LoginResultOK("fake-token")) must beLeft(LoginResultInvalid("User is not permitted to log in"))
+      toTest.validateToken(LoginResultOK("fake-token")) must beLeft(LoginResultInvalid("You don't have access to this system.  Contact Multimediatech if you think this is an error."))
       there was one(mockedJwt).verify(mockedVerifier)
     }
   }

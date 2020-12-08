@@ -146,8 +146,10 @@ trait Security extends BaseController {
   }
 
   private def onUnauthorized(request: RequestHeader, loginResult: LoginResult) = loginResult match {
+    case LoginResultInvalid(detailString:String)=>
+      Results.Forbidden(Json.obj("status"->"error","detail"->detailString))
     case LoginResultInvalid(_)=>
-      Results.Forbidden(Json.obj("status"->"error","detail"->"Invalid credentials"))
+      Results.Forbidden(Json.obj("status"->"error", "detail"->"Unknown error"))
     case LoginResultExpired(user:String)=>
       Results.Unauthorized(Json.obj("status"->"expired","detail"->"Your login has expired","username"->user))
     case LoginResultExpired(_)=>  //this shouldn't happen, but it keeps the compiler happy
