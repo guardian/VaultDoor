@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import LoadingIndicator from "./LoadingIndicator.jsx";
 
 class LoginButton extends React.Component {
     static propTypes = {
@@ -39,7 +40,12 @@ class LoginButton extends React.Component {
     }
 
     render() {
-        return <button onClick={this.startLogin}>&gt;&nbsp;&nbsp;Log in&nbsp;&nbsp;&lt;</button>
+        if(!this.props.oAuthUri || !this.props.tokenUri || !this.props.clientId || !this.props.redirectUri || !this.props.resource) {
+            console.error("Missing some openauth parameters: ", this.props);
+            return <LoadingIndicator blank={true}/>
+        } else {
+            return <button onClick={this.startLogin}>&gt;&nbsp;&nbsp;Log in&nbsp;&nbsp;&lt;</button>
+        }
     }
 }
 

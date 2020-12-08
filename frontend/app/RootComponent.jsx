@@ -51,7 +51,8 @@ class RootComponent extends React.Component {
                                                                 tokenUri={this.props.tokenUri}
                                                                 clientId={this.props.clientId}
                                                                 redirectUri={this.redirectUri}
-                                                                resource={this.props.redirectingTo}/>
+                                                                resource={this.props.resource}
+                                                                state={this.props.redirectingTo}/>
             </div>
         }
 

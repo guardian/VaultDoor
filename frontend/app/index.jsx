@@ -125,6 +125,7 @@ class App extends React.Component {
                 } catch(err) {
                     console.error("Could not load oauth config: ", err);
                     return this.setStatePromise({
+                        loginDetail: "Could not load auth configuration, please contact multimediatech",
                         startup: false
                     });
                 }
