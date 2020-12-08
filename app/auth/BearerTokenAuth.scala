@@ -22,7 +22,16 @@ object BearerTokenAuth {
 
 object ClaimsSetExtensions {
   implicit class ExtendedClaimsSet(val s:JWTClaimsSet) extends AnyVal {
+    /**
+     * A handy extension method for JWTClaimsSet that will get the "azp" field as an Optional string, since there isn't a method
+     * for that already
+     * @return the string content of the "azp" field or Non
+     */
     def getAzp:Option[String] = Option(s.getClaim("azp")).map(_.asInstanceOf[String])
+
+    def getIsMMAdmin:Boolean = Option(s.getClaim("multimedia_admin").asInstanceOf[String]).exists(value => value.toLowerCase == "true")
+
+    def getIsMMCreator:Boolean = Option(s.getClaim("multimedia_creator").asInstanceOf[String]).exists(value => value.toLowerCase == "true")
   }
 }
 
@@ -30,16 +39,9 @@ object ClaimsSetExtensions {
  * this class implements bearer token authentication. It's injectable because it needs to access app config.
  * You don't need to integrate it directly in your controller, it is required by the Security trait.
  *
- * This expects there to be an `auth` section in the application.conf which should contain two keys:
- * auth {
- *   adminClaim = "claim-field-indicating-admin"
- *   tokenSigningCert = """----- BEGIN CERTIFICATE -----
- *   {your certificate....}
- *   ----- END CERTIFICATE -----"""
- * }
- *
- * A given bearer token must authenticate against the provided certificate to be allowed access, and its expiry time
- * must not be in the past. The token's subject field ("sub") is used as the username.
+ * A given bearer token must authenticate against the provided certificate to be allowed access, its expiry time
+ * must not be in the past and it must have at least one of the `validAudiences` in either the `aud` or `azp` fields.
+ * The token's subject field ("sub") is used as the username.
  * Admin access is only granted if the token's field given by auth.adminClaim is a string that equates to "true" or "yes".
  *
  * So, in order to use it:
@@ -60,8 +62,10 @@ class BearerTokenAuth @Inject() (config:Configuration) {
       if(!sys.env.contains("CI")) logger.warn(s"No token validation cert in config so bearer token auth will not work. Error was ${err.getMessage}")
       None
     case Success(jwk)=>
-      Some(new RSASSAVerifier(jwk.toRSAKey))
+      Some(getVerifier(jwk))
   }
+
+  protected def getVerifier(jwk:JWK) = new RSASSAVerifier(jwk.toRSAKey)
 
   /**
    * returns the configured name for the claim field that will give whether a user is an admin or not.
@@ -102,6 +106,34 @@ class BearerTokenAuth @Inject() (config:Configuration) {
     }
   }
 
+  def checkAudience(claimsSet:JWTClaimsSet) = {
+    val audiences = claimsSet.getAudience.asScala ++ claimsSet.getAzp
+    logger.debug(s"JWT audiences: $audiences")
+    config.getOptional[Seq[String]]("auth.validAudiences") match {
+      case None=>
+        logger.error(s"No valid audiences configured. Set auth.validAudiences. Token audiences were $audiences")
+        Left(LoginResultMisconfigured("Server configuration problem"))
+      case Some(audienceList)=>
+        if(audiences.intersect(audienceList).nonEmpty) {
+          logger.debug("Audience permitted")
+          Right(LoginResultOK(claimsSet))
+        } else {
+          Left(LoginResultInvalid("Invalid audience"))
+        }
+    }
+  }
+
+  def checkUserGroup(claimsSet: JWTClaimsSet) = {
+    if(!claimsSet.getIsMMAdmin && !claimsSet.getIsMMCreator) {
+      Left(LoginResultInvalid("User is not permitted to log in"))
+    } else {
+      Right(LoginResultOK(claimsSet))
+    }
+  }
+
+  protected def parseTokenContent(content:String) = Try {
+    SignedJWT.parse(content)
+  }
   /**
    * try to validate the given token with the key provided
    * returns a JWTClaimsSet if successful
@@ -110,30 +142,27 @@ class BearerTokenAuth @Inject() (config:Configuration) {
    */
   def validateToken(token:LoginResultOK[String]):Either[LoginResult,LoginResultOK[JWTClaimsSet]] = {
     logger.debug(s"validating token $token")
-    Try {
-      SignedJWT.parse(token.content)
-    } match {
+    parseTokenContent(token.content) match {
       case Success(signedJWT) =>
         maybeVerifier match {
           case Some(verifier) =>
             if (signedJWT.verify(verifier)) {
               logger.debug("verified JWT")
-              logger.debug(s"${signedJWT.getJWTClaimsSet.toJSONObject(true).toJSONString}")
+              //logger.debug(s"${signedJWT.getJWTClaimsSet.toJSONObject(true).toJSONString}")
 
               val claimsSet = signedJWT.getJWTClaimsSet
-              val audiences = claimsSet.getAudience.asScala ++ claimsSet.getAzp
-              logger.info(s"JWT audiences: $audiences")
-              config.getOptional[Seq[String]]("auth.validAudiences") match {
-                case None=>
-                  logger.error(s"No valid audiences configured. Set auth.validAudiences. Token audiences were $audiences")
-                  Left(LoginResultMisconfigured("Server configuration problem"))
-                case Some(audienceList)=>
-                  if(audiences.intersect(audienceList).nonEmpty) {
-                    logger.debug("Audience permitted")
-                    Right(LoginResultOK(signedJWT.getJWTClaimsSet))
-                  } else {
-                    Left(LoginResultInvalid("Invalid audience"))
-                  }
+              (checkAudience(claimsSet), checkUserGroup(claimsSet)) match {
+                case (Left(audErr), Left(userErr))=>
+                  logger.error(s"JWT is not valid: $audErr, $userErr")
+                  Left(audErr)
+                case (Left(audErr), _)=>
+                  logger.error(s"JWT audience is not valid: $audErr")
+                  Left(audErr)
+                case (_, Left(userErr))=>
+                  logger.error(s"User ${claimsSet.getSubject} is not allowed to login in: $userErr")
+                  Left(userErr)
+                case (valid@Right(claims), Right(_))=>
+                  valid
               }
             } else {
               Left(LoginResultInvalid(token.content))
