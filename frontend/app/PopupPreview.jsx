@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import ContentHolder from "./searchnbrowse/ContentHolder.jsx";
 import {authenticatedFetch} from "./auth";
+import DownloadFile from "./searchnbrowse/DownloadFile.jsx";
 
 class PopupPreview extends React.Component {
     static PREVIEW_IMAGE=1;
@@ -26,6 +27,7 @@ class PopupPreview extends React.Component {
        };
 
        this.loadup = this.loadup.bind(this);
+       this.downloadFile = this.downloadFile.bind(this);
     }
 
     setStatePromise(newState) {
@@ -80,6 +82,11 @@ class PopupPreview extends React.Component {
             <tr>
                 <td>Size</td>
                 <td>{this.state.size}</td>
+            </tr>
+            <tr>
+                {//FIXME: hardcoded filename
+                }
+                <td><DownloadFile oid={this.props.oid} vaultId={this.props.vaultId} fileName="download.dat"/></td>
             </tr>
             </tbody>
         </table>

@@ -18,7 +18,8 @@ class ContentHolder extends React.Component {
             case "image":
                 return <img src={"/api/vault/" + this.props.vaultId + "/" + this.props.oid} alt="image preview"/>;
             default:
-                return <p className="centered">Don't know how to display a type of {this.props.contentType}.<br/>You could try to <a href={"/api/vault/" + this.props.vaultId + "/" + this.props.oid} target="_blank">download</a> it instead.</p>;
+                return <p className="centered">Don't know how to display a type of {this.props.contentType}.</p>
+                //<br/>You could try to <a href={"/api/vault/" + this.props.vaultId + "/" + this.props.oid} target="_blank">download</a> it instead.</p>;
         }
     }
 }
