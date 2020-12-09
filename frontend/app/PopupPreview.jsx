@@ -23,11 +23,11 @@ class PopupPreview extends React.Component {
            loading: false,
            size: -1,
            type: "application/unknown",
-           lastError: null
+           lastError: null,
+           appFailure: null
        };
 
        this.loadup = this.loadup.bind(this);
-       this.downloadFile = this.downloadFile.bind(this);
     }
 
     setStatePromise(newState) {
@@ -65,6 +65,13 @@ class PopupPreview extends React.Component {
         this.loadup();
     }
 
+    static getDerivedStateFromError(err) {
+        console.error("Internal failure in PopupPreview: ", err);
+        return {
+            appFailure: "A program bug prevented this panel from loading. Please contact multimediatech@theguardian.com"
+        }
+    }
+
     renderDialogContent() {
         if(this.state.loading){
             return <p className="centered large">Loading...</p>
@@ -72,21 +79,12 @@ class PopupPreview extends React.Component {
         return <table>
             <tbody>
             <tr>
-                <td/>
-                <td><ContentHolder vaultId={this.props.vaultId} oid={this.props.oid} contentType={this.state.type}/></td>
-            </tr>
-            <tr>
                 <td>Type</td>
                 <td>{this.state.type}</td>
             </tr>
             <tr>
                 <td>Size</td>
                 <td>{this.state.size}</td>
-            </tr>
-            <tr>
-                {//FIXME: hardcoded filename
-                }
-                <td><DownloadFile oid={this.props.oid} vaultId={this.props.vaultId} fileName="download.dat"/></td>
             </tr>
             </tbody>
         </table>
@@ -97,7 +95,8 @@ class PopupPreview extends React.Component {
             <div className="popup_inner">
                 <span style={{float: "right"}} className="clickable" onClick={this.props.dialogClose}>
                     <FontAwesomeIcon icon="times" size="2x" style={{padding: "5px"}}/></span>
-                {this.renderDialogContent()}
+                {this.state.appFailure ? <p className="error">{this.state.appFailure}</p> : this.renderDialogContent()}
+                {this.state.appFailure ? null : <DownloadFile oid={this.props.oid} vaultId={this.props.vaultId} fileName="download.dat"/>}
             </div>
         </div>
     }

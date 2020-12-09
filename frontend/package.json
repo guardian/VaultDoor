@@ -68,7 +68,9 @@
     "react-tooltip": "^3.11.6",
     "react-typist": "^2.0.5",
     "serialize-javascript": "^5.0.1",
+    "streamsaver": "^2.0.5",
     "style-loader": "^0.20.2",
+    "web-streams-polyfill": "^3.0.1",
     "webpack": "^4.44.2",
     "webpack-cli": "^3.3.12"
   },
