@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import ContentHolder from "./searchnbrowse/ContentHolder.jsx";
 import {authenticatedFetch} from "./auth";
+import DownloadButton from "./common/DownloadButton.jsx";
 
 class PopupPreview extends React.Component {
     static PREVIEW_IMAGE=1;
@@ -67,12 +68,9 @@ class PopupPreview extends React.Component {
         if(this.state.loading){
             return <p className="centered large">Loading...</p>
         }
-        return <table>
+        return <div>
+            <table>
             <tbody>
-            <tr>
-                <td/>
-                <td><ContentHolder vaultId={this.props.vaultId} oid={this.props.oid} contentType={this.state.type}/></td>
-            </tr>
             <tr>
                 <td>Type</td>
                 <td>{this.state.type}</td>
@@ -83,6 +81,8 @@ class PopupPreview extends React.Component {
             </tr>
             </tbody>
         </table>
+              <DownloadButton vaultId={this.props.vaultId} oid={this.props.oid} fileName="changeme.dat"/>
+        </div>
     }
 
     render() {
