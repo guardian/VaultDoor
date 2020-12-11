@@ -24,7 +24,7 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import play.api.cache.SyncCacheApi
-import auth.Security
+import auth.{BearerTokenAuth, Security}
 import play.api.libs.circe.Circe
 import responses.{FrontendConfigResponse, GenericErrorResponse}
 import io.circe.syntax._
@@ -32,8 +32,9 @@ import io.circe.generic.auto._
 
 @Singleton
 class Application @Inject() (cc:ControllerComponents,
-                             config:Configuration,
+                             override implicit val config:Configuration,
                              omAccess: OMAccess,
+                             override val bearerTokenAuth:BearerTokenAuth,
                              @Named("object-cache") objectCache:ActorRef,
                              @Named("audit-actor") auditActor:ActorRef,
                              userInfoCache:UserInfoCache

@@ -4,6 +4,7 @@ import ndjsonStream from "can-ndjson-stream";
 import ResultsPanel from './searchnbrowse/ResultsPanel.jsx';
 import PopupPreview from "./PopupPreview.jsx";
 import { withRouter } from 'react-router-dom';
+import {authenticatedFetch} from "./auth";
 
 class SearchComponent extends React.Component {
     static resultsLimit = 100;
@@ -52,7 +53,7 @@ class SearchComponent extends React.Component {
     async asyncDownload(url){
         const abortController = new AbortController();
 
-        const response = await fetch(url, {signal: abortController.signal});
+        const response = await authenticatedFetch(url, {signal: abortController.signal});
         const stream = await ndjsonStream(response.body);
         const reader = stream.getReader();
 
@@ -136,7 +137,11 @@ class SearchComponent extends React.Component {
         return <div className="windowpanel">
             <SearchBarFile filePath={this.state.filePathSearch} filePathUpdated={this.updateFilePath} selectedVault={this.state.vaultId} vaultSelectionChanged={this.updateVaultId}/>
             <span style={{"float":"right","margin-right": "2em", "display":this.state.searching ? "inline-block" : "none"}}>Loaded {this.state.fileEntries.length}...</span>
-            <ResultsPanel entries={this.state.fileEntries} previewRequestedCb={this.previewRequested} projectClicked={this.projectClicked}/>
+            <ResultsPanel entries={this.state.fileEntries}
+                          previewRequestedCb={this.previewRequested}
+                          projectClicked={this.projectClicked}
+                          vaultId={this.state.vaultId}
+            />
             {
                 this.state.requestedPreview ? <PopupPreview oid={this.state.requestedPreview} vaultId={this.state.vaultId} dialogClose={this.previewClosed}/> : ""
             }

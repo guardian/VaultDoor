@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from "prop-types";
+import {authenticatedFetch} from "../auth";
 
 class ProjectLockerLoginComponent extends React.Component {
     static propTypes = {
@@ -32,7 +33,7 @@ class ProjectLockerLoginComponent extends React.Component {
         };
 
         try {
-            const result = await fetch(this.props.projectLockerBaseUrl + "/api/login", {
+            const result = await authenticatedFetch(this.props.projectLockerBaseUrl + "/api/login", {
                 method: "POST",
                 body: JSON.stringify(loginData),
                 headers: {"Content-Type": "application/json"},

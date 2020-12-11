@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import FilterableList from "../common/FilterableList.jsx";
 import ProjectLockerLoginComponent from "./ProjectLockerLoginComponent.jsx";
+import {authenticatedFetch} from "../auth";
 
 class ProjectLockerSearchBar extends React.Component {
     static propTypes = {
@@ -43,7 +44,7 @@ class ProjectLockerSearchBar extends React.Component {
         if(this.props.projectLockerBaseUrl==="") return;
 
         try {
-            const response = await fetch(this.props.projectLockerBaseUrl + "/api/isLoggedIn", {credentials: "include"});
+            const response = await authenticatedFetch(this.props.projectLockerBaseUrl + "/api/isLoggedIn", {credentials: "include"});
             const bodyContent = await response.json();
 
             return new Promise((resolve, reject) => {

@@ -4,6 +4,7 @@ import CommissionProjectView from "../metadata/CommissionProjectView.jsx";
 import {Doughnut, Pie} from "react-chartjs-2";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import BytesFormatter from "../common/BytesFormatter.jsx";
+import {authenticatedFetch} from "../auth";
 
 class ProjectContentSummary extends React.Component {
     static propTypes = {
@@ -83,7 +84,7 @@ class ProjectContentSummary extends React.Component {
         }
 
         const url = "/api/vault/" + this.props.vaultId + "/projectSummary/" + this.props.projectId;
-        const result = await fetch(url);
+        const result = await authenticatedFetch(url);
         const bodyText = await result.text();
 
         if(result.ok){
@@ -131,7 +132,7 @@ class ProjectContentSummary extends React.Component {
 
     async requestDownloadLink() {
         const url = "/api/bulk/new/" + this.props.vaultId + "/" + this.props.projectId;
-        const result = await fetch(url);
+        const result = await authenticatedFetch(url);
         const bodyText = await result.text();
 
         if(result.ok){

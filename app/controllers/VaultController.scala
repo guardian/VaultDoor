@@ -1,23 +1,23 @@
 package controllers
 
 import java.net.URI
-
 import actors.ObjectCache.{Lookup, OCMsg, ObjectFound, ObjectLookupFailed, ObjectNotFound}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.scaladsl.{GraphDSL, Source}
 import akka.stream.{Attributes, Materializer, SourceShape}
-import auth.Security
+import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
 import helpers.{BadDataError, OMAccess, OMLocator, RangeHeader, UserInfoCache, ZonedDateTimeEncoder}
+
 import javax.inject.{Inject, Named, Singleton}
 import play.api.Configuration
 import play.api.cache.SyncCacheApi
 import play.api.libs.circe.Circe
-import play.api.mvc.{AbstractController, ControllerComponents, ResponseHeader, Result}
-import responses.{GenericErrorResponse, KnownVaultResponse}
+import play.api.mvc.{AbstractController, AnyContent, ControllerComponents, Request, ResponseHeader, Result}
+import responses.{GenericErrorResponse, KnownVaultResponse, SingleItemDownloadTokenResponse}
 import io.circe.generic.auto._
 import io.circe.syntax._
-import models.{AuditEvent, AuditFile, ObjectMatrixEntry}
+import models.{AuditEvent, AuditFile, ObjectMatrixEntry, ServerTokenDAO, ServerTokenEntry}
 import play.api.http.HttpEntity
 import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges, MultipartSource}
 import akka.pattern.ask
@@ -28,11 +28,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 @Singleton
 class VaultController @Inject() (cc:ControllerComponents,
-                                 config:Configuration,
+                                 override implicit val config:Configuration,
+                                 override val bearerTokenAuth:BearerTokenAuth,
                                  omAccess: OMAccess,
                                  @Named("object-cache") objectCache:ActorRef,
                                  @Named("audit-actor") auditActor:ActorRef,
-                                 userInfoCache:UserInfoCache
+                                 userInfoCache:UserInfoCache,
+                                 serverTokenDAO: ServerTokenDAO,
                                 )(implicit mat:Materializer,system:ActorSystem, override implicit val cache:SyncCacheApi)
   extends AbstractController(cc) with Security with ObjectMatrixEntryMixin with Circe with ZonedDateTimeEncoder{
 
@@ -97,6 +99,48 @@ class VaultController @Inject() (cc:ControllerComponents,
     }
   }
 
+  def createSingleDownloadToken(vaultId:String, oid:String) = IsAuthenticatedAsync { uid=> request=>
+    withVaultForId(vaultId) { _=>
+      val expiry = config.getOptional[Int]("serverToken.shortLivedDuration").getOrElse(10)
+      val token = ServerTokenEntry.create(Some(s"${vaultId}:${oid}"), forUser=Some(uid))
+      serverTokenDAO.put(token, expiry).map({
+        case true=>
+          Ok(SingleItemDownloadTokenResponse(s"/api/rawdownload/${token.value}").asJson)
+        case false=>
+          InternalServerError(GenericErrorResponse("error","Could not save server token, see logs for details").asJson)
+      })
+        .recover({
+          case err:Throwable=>
+            logger.error(s"Could not save token: ${err.getMessage}", err)
+            InternalServerError(GenericErrorResponse("error","Save token operation failed, see server logs").asJson)
+        })
+    }
+  }
+
+  private def splitAssociatedIds(from:Option[String]):Option[(String,String)] = from.flatMap(str=>{
+    val parts = str.split(":")
+    if(parts.length==2){
+      Some((parts.head, parts(1)))
+    } else {
+      None
+    }
+  })
+
+  def singleTokenDownload(token:String) = Action.async { request=>
+    serverTokenDAO.get(token).flatMap({
+      case Some(serverToken)=>
+        serverTokenDAO.remove(token)
+        splitAssociatedIds(serverToken.associatedId) match {
+          case Some((vaultId, oid))=>
+            streamTargetContent(vaultId, oid, request, serverToken.createdForUser.getOrElse("anonymous"))
+          case None=>
+            logger.error(s"Server token $token for ${serverToken.createdForUser} was invalid, did not have vault and object IDs")
+            Future(NotFound(GenericErrorResponse("not_found","invalid token").asJson))
+        }
+      case None=>
+        Future(NotFound(GenericErrorResponse("not_found","").asJson))
+    })
+  }
   /**
     * gets a multipart source if needed or just gets a single source if no ranges specified
     * @param ranges a sequence of [[RangeHeader]] objects. If empty a single source for the entire file is returned
@@ -133,7 +177,7 @@ class VaultController @Inject() (cc:ControllerComponents,
     * @param targetUriString omms URI of the object that we are trying to get
     * @return
     */
-  def streamTargetContent(vaultId:String, oid:String) = IsAuthenticatedAsync { uid=> request=>
+  def streamTargetContent(vaultId:String, oid:String, request:Request[AnyContent], uid:String) = {
     /*
     break down the ranges header into structured data
      */
@@ -173,7 +217,7 @@ class VaultController @Inject() (cc:ControllerComponents,
 
       maybeResult match {
         case Success((byteSource, maybeResponseSize, headers, maybeMimetype, isPartialTransfer)) =>
-          logger.info(s"maybeResponseSize is $maybeResponseSize")
+          logger.debug(s"maybeResponseSize is $maybeResponseSize")
 
           Result(
             ResponseHeader(if (isPartialTransfer) 206 else 200, headers),

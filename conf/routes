@@ -26,13 +26,17 @@ GET     /api/vault/:vaultId/summary                 @controllers.FileListControl
 GET     /api/vault/:vaultId/projectSummary/:projectId @controllers.FileListController.projectsummary(vaultId, projectId)
 
 HEAD    /api/vault/:vaultId/:oid                    @controllers.VaultController.headTargetContent(vaultId, oid)
-GET     /api/vault/:vaultId/:oid                    @controllers.VaultController.streamTargetContent(vaultId, oid)
+GET     /api/vault/:vaultId/:oid/token              @controllers.VaultController.createSingleDownloadToken(vaultId, oid)
+GET     /api/rawdownload/:token                     @controllers.VaultController.singleTokenDownload(token)
 
 # these endpoints mirror ArchiveHunter so that the protocol used by DownloadManager works
 GET     /api/bulk/new/:vaultId/:projectId           @controllers.BulkDownloadController.initiate(vaultId, projectId)
 GET     /api/bulk/:codeValue                        @controllers.BulkDownloadController.getBulkDownload(codeValue)
 GET     /api/bulk/:tokenValue/get/:fileId           @controllers.BulkDownloadController.bulkDownloadItem(tokenValue, fileId)
 GET     /api/bulk/:tokenValue/get/:fileId/data      @controllers.BulkDownloadController.bulkDownloadItemData(tokenValue, fileId)
+
+GET     /meta/oauth/config.json                     @controllers.OAuthMetaController.oauthConfig
+GET     /meta/oauth/publickey.pem                   @controllers.OAuthMetaController.signingKey
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

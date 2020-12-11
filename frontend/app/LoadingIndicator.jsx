@@ -1,9 +1,15 @@
 import React, {useEffect} from "react";
+import PropTypes from "prop-types";
 
 /**
  * simple little loading indicator that puts a dot onto the end of the string every 1/10 second
  */
 class LoadingIndicator extends React.Component {
+    static propTypes = {
+        messageText: PropTypes.string,
+        blank: PropTypes.boolean
+    }
+
     constructor(props) {
         super(props);
 
@@ -38,7 +44,7 @@ class LoadingIndicator extends React.Component {
     }
 
     render() {
-        return <span className="loading">Loading {this.state.dots}</span>
+        return <span className="loading">{(this.props.messageText &&!this.props.blank) ?? "Loading"} {this.state.dots}</span>
     }
 }
 

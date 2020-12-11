@@ -3,12 +3,14 @@ import PropTypes from 'prop-types';
 import PathView from "./PathView.jsx";
 import CommissionProjectView from "../metadata/CommissionProjectView.jsx";
 import MetadataTabView from "../metadata/MetadataTabView.jsx";
+import DownloadButton from "../common/DownloadButton.jsx";
 
 class DetailsPanel extends React.Component {
     static propTypes = {
         entry: PropTypes.object,
         previewRequestedCb: PropTypes.func.isRequired,
-        projectClicked: PropTypes.func
+        projectClicked: PropTypes.func,
+        vaultId: PropTypes.string
     };
 
     static mdTabNames = [
@@ -50,7 +52,15 @@ class DetailsPanel extends React.Component {
         return <div className="results-subpanel">
             <span className="centered filename semilarge">{fileName}</span>
             <span className="centered">{this.props.entry.gnmMetadata ? this.props.entry.gnmMetadata.type : "(no filetype)"}</span>
-            <a className="centered clickable" onClick={()=>this.props.previewRequestedCb(entry.oid)}>&gt;&gt; Preview &lt;&lt;</a>
+            {
+                this.props.vaultId && this.props.entry ? <span className="centered">
+                    <DownloadButton vaultId={this.props.vaultId} oid={this.props.entry.oid} fileName={fileName}/>
+                </span> : null
+            }
+            {/*
+            "preview" link is currently hidden until proper proxy playback is implemented
+            */}
+            <a style={{display:"none"}} className="centered clickable" onClick={()=>this.props.previewRequestedCb(entry.oid)}>&gt;&gt; Preview &lt;&lt;</a>
             <CommissionProjectView entry={this.props.entry} clickable={true} onProjectClicked={this.projectClicked}/>
             <PathView pathParts={pathParts.slice(0,-1)} truncateMode={PathView.TRUNC_MIDDLE} limit={5} stripStart={5}/>
             <MetadataTabView tabNames={DetailsPanel.mdTabNames} tabPrefixes={DetailsPanel.mdTabPrefixes} metaDataString={entry.customMeta} />

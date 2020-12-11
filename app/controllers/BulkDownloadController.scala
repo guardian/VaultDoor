@@ -5,7 +5,7 @@ import java.time.{Instant, ZonedDateTime}
 import akka.actor.ActorSystem
 import akka.stream.{ClosedShape, Materializer, SourceShape}
 import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source}
-import auth.Security
+import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{MatrixStore, SearchTerm, UserInfo, Vault}
 import helpers.{MetadataHelper, UserInfoCache}
 import javax.inject.{Inject, Singleton}
@@ -25,7 +25,11 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 @Singleton
-class BulkDownloadController @Inject() (cc:ControllerComponents, config:Configuration, serverTokenDAO: ServerTokenDAO, userInfoCache: UserInfoCache)
+class BulkDownloadController @Inject() (cc:ControllerComponents,
+                                        override implicit val config:Configuration,
+                                        override val bearerTokenAuth:BearerTokenAuth,
+                                        serverTokenDAO: ServerTokenDAO,
+                                        userInfoCache: UserInfoCache)
                                        (implicit mat:Materializer, system:ActorSystem, override implicit val cache:SyncCacheApi)
   extends AbstractController(cc) with Circe with Security with ObjectMatrixEntryMixin{
 

@@ -1,31 +1,89 @@
 #VaultDoor
 
-This app implements an alternative method for getting content from an ObjectMatrix appliance.
-It's been developed to ease the load on our Vidispine application server, which has been having to 
-stream the media out itself in the past.
+## What is Vaultdoor?
 
-## Usage
+Vaultdoor is the "restore" in our nearline-backup-and-restore process. It's designed to rely on as few external components
+as possible, storing all metadata within the Objectmatrix appliances, so it can act as a "failsafe" in a DR scenario.
 
-Simply request to `/stream/{urlencoded-objectmatrix-url}` to obtain data:
+Under the hood, this is a standard Play Framework webapp using Play 2.7 and Java 1.8 on Scala 2.12 with a frontend
+provided by ReactJS.
 
-- a **HEAD** request returns the metadata that would be returned for the streaming operation.
-This is useful e.g. for getting the total content length before proceeding with a download operation
-- a **GET** request will stream the content down the HTTP connection using Akka Streams.  The **Range** header is
-not just supported but encouraged; although any range other than `bytes` will return a 400 error.
+**JAVA COMPATIBILITY NOTE** - at the time of writing, the MatrixStore librarie do NOT support any java higher than
+1.8, so you should not attempt to run under a higher version.  We usually run on OpenJDK.
 
-Going to the root url in a browser will display a basic management dashboard.
+---
 
-## Session cookie setup
+## How does it work?
 
-Logins are persisted by using session cookies. This is controlled by the `play.http.session` section of `application.conf`.
+Media is pushed onto the nearline storage appliances by manual-media-backup and the applicances themselves replicate
+cross-site.
+The backup process also collects a whole load of metadata, including the commission, project and working group that
+the given media belongs to.
 
-When deploying, you should ensure that the `domain = ` setting is configured to be the domain within which you are deploying,
-to prevent cookie theft.  It's also recommended to serve via https and set `secure = true` (but this could be problematic if you're
-only implementing https to the loadbalancer)
+It's therefore possible to perform a search on the appliance for a given project ID and pull all of that content back,
+even if the entire primary data centre has disappeared.
 
-## Authentication Setup
+Download of multiple media files is performed via the Archivehunter download protocol, with client-side implementations
+at https://github.com/guardian/plutohelperagent (Mac desktop) and https://github.com/guardian/autopull (cross-platform
+commandline).
 
-Projectlocker is intended to run against an ldap-based authentication system, such as Active Directory. This is configured
+---
+
+## Authentication
+
+Vaultdoor uses OAuth2 for authentication.  The authentication dance is performed by the frontend and the backend relies
+on signed JWTs presented as bearer-token authentication in order to validate the user.
+
+See the seperate (forthcoming) readme for more details on the authentication process.
+
+### Signing requests for server->server interactions
+
+Vaultdoor supports HMAC signing of requests for server-server actions.
+In order to use this, you must:
+
+- provide a base64 encoded SHA-384 checksum of your request's content in a header called `X-Sha384-Checksum`
+- ensure that an HTTP date is present in a header called `Date`
+- ensure that the length of your body content is present in a header called `Content-Length`. If there is no body then this value should be 0.
+- provide a signature in a header called 'Authorization'.  This should be of the form `{uid}:{auth}`, where {uid} is a user-provided
+  identifier of the client and {auth} is the signature
+
+The signature should be calculated like this:
+
+- make a string of the contents of the Date, Content-Length and Checksum headers separated by newlines followed by the
+  request method and URI path (not query parts) also separated by newlines.
+- use the server's shared secret to calculate an SHA-384 digest of this string, and base64 encode it
+- the server performs the same calculation (in `auth/HMAC.scala`) and if the two signatures match then you are in.
+- if you have troubles, turn on debug at the server end to check the string_to_sign and digests
+
+There is a working example of how to do this in Python in `scripts/test_hmac_auth.py`
+
+---
+
+## Development setup
+
+1. You'll need an Oauth2 identity provider in order to perform login.  I'd recommend grabbing
+   https://gitlab.com/codmill/customer-projects/guardian/prexit-local and following the instructions there to set up
+   Keycloak within minikube
+2. Once you've got minikube and keycloak certified and running, you're ready to configure it. Log in to https://keycloak.local
+   as `admin`.
+3. Click 'Administration Console' in the keycloak man window then click 'Clients' in the lefthand menu
+4. Click 'Create' at the top-right of the list.  Client ID is `vaultdoor`, you don't need to change anything else. Click 'Save'.
+5. Click 'Edit' next to the newly created 'vaultdoor' entry in the clients list
+6. Under 'Valid Redirect URIs', enter http://localhost:9000/oauth2/callback
+7. Under 'Web Origins', enter '+' (a single plus symbol)
+8. Then hit Save.
+9. Go to 'Realm Settings' in the left-hand menu, then the 'Keys' tab. Download the Certificate for the RS256 key and save it to
+`keycloak-local.pem` in the root of your checked-out vaultdoor repo (this path is already gitignored)
+10. Check the application configuration under `conf/application.conf`, specifically the `auth` section, to make sure it is
+all valid.
+11. Go to the `frontend/` directory and run `npm i; npm run dev` to start the frontend transpiler
+12. Now you should be good to run the app, either via `sbt run` or through your IDE
+
+----
+
+## Old Authentication Setup
+
+Vaultdoor was originally intended to run against an ldap-based authentication system, such as Active Directory. This is configured
 in `application.conf`.
 
 ### ldaps
@@ -79,24 +137,3 @@ Authentication can be disabled, if you are working on development without access
 
 Fairly obviously, don't deploy the system like this!
 
-
-### Signing requests for server->server interactions
-
-Projectlocker supports HMAC signing of requests for server-server actions.
-In order to use this, you must:
-
-- provide a base64 encoded SHA-384 checksum of your request's content in a header called `X-Sha384-Checksum`
-- ensure that an HTTP date is present in a header called `Date`
-- ensure that the length of your body content is present in a header called `Content-Length`. If there is no body then this value should be 0.
-- provide a signature in a header called 'Authorization'.  This should be of the form `{uid}:{auth}`, where {uid} is a user-provided
-identifier of the client and {auth} is the signature
-
-The signature should be calculated like this:
-
-- make a string of the contents of the Date, Content-Length and Checksum headers separated by newlines followed by the
- request method and URI path (not query parts) also separated by newlines.
-- use the server's shared secret to calculate an SHA-384 digest of this string, and base64 encode it
-- the server performs the same calculation (in `auth/HMAC.scala`) and if the two signatures match then you are in.
-- if you have troubles, turn on debug at the server end to check the string_to_sign and digests
-
-There is a working example of how to do this in Python in `scripts/test_hmac_auth.py`

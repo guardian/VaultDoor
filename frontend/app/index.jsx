@@ -2,15 +2,15 @@ import React from 'react';
 import {render} from 'react-dom';
 import {BrowserRouter, Link, Route, Switch, Redirect, withRouter} from 'react-router-dom';
 import RootComponent from './RootComponent.jsx';
-import axios from 'axios';
 import Raven from 'raven-js';
 import SearchComponent from './SearchComponent.jsx';
 import { library } from '@fortawesome/fontawesome-svg-core'
-
+import OAuthCallbackComponent from "./OAuthCallbackComponent.jsx";
 import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/free-solid-svg-icons'
 import ByProjectComponent from "./ByProjectComponent.jsx";
-import LoginComponent from "./LoginComponent.jsx";
 import LoadingIndicator from "./LoadingIndicator.jsx";
+import {authenticatedFetch} from "./auth";
+import LoginButton from "./LoginButton.jsx";
 
 library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog);
 
@@ -23,95 +23,173 @@ class App extends React.Component {
             currentUsername: "",
             isAdmin: false,
             loading: true,
-            redirectingTo: null
+            loginDetail: null,
+            redirectingTo: null,
+            clientId: "",
+            resource: "",
+            oAuthUri: "",
+            tokenUri: "",
+            startup: true
         };
-
-        this.onLoggedIn = this.onLoggedIn.bind(this);
-        this.onLoggedOut = this.onLoggedOut.bind(this);
 
         this.returnToRoot = this.returnToRoot.bind(this);
 
-        axios.get("/system/publicdsn").then(response=> {
-            Raven
-                .config(response.data.publicDsn)
-                .install();
-            console.log("Sentry initialised for " + response.data.publicDsn);
-        }).catch(error => {
-            console.error("Could not intialise sentry", error);
-        });
+        const currentUri = new URL(window.location.href);
+        this.redirectUri =
+            currentUri.protocol + "//" + currentUri.host + "/oauth2/callback";
+
+        authenticatedFetch("/system/publicdsn").then(async (response)=>{
+            if(response.status===200) {
+                try {
+                    const responseJson = await response.json();
+                    Raven
+                        .config(responseJson.publicDsn)
+                        .install();
+                    console.log("Sentry initialised for " + responseJson.publicDsn);
+                } catch(error) {
+                    console.error("Could not intialise sentry", error);
+                }
+            } else {
+                const responseBody = await response.text();
+                console.error("Could not get public DSN from backend: ", responseBody)
+            }
+        })
     }
 
     returnToRoot(){
         this.props.history.push("/");
     }
 
+    setStatePromise(newstate) {
+        return new Promise((resolve, reject)=>this.setState(newstate, ()=>resolve()));
+    }
+
     checkLogin(){
         return new Promise((resolve,reject)=>
-            this.setState({loading: true, haveChecked: true}, ()=>
-                axios.get("/api/isLoggedIn")
-                    .then(response=>{ //200 response means we are logged in
-                        this.setState({
-                            isLoggedIn: true,
-                            loading: false,
-                            currentUsername: response.data.uid,
-                            isAdmin: response.data.isAdmin
-                        }, ()=>resolve());
-                    })
-                    .catch(error=>{
+            this.setState({loading: true, haveChecked: true}, async ()=> {
+                const response = await authenticatedFetch("/api/isLoggedIn")
+                if (response.status === 200) {
+                    const responseJson = await response.json();
+                    this.setState({
+                        isLoggedIn: true,
+                        loading: false,
+                        currentUsername: responseJson.uid,
+                        isAdmin: responseJson.isAdmin
+                    }, () => resolve());
+                } else if(response.status === 403 || response.status===401) {
+                    try {
+                        const responseJson = await response.json();
+
                         this.setState({
                             isLoggedIn: false,
                             loading: false,
-                            currentUsername: ""
-                        }, ()=>resolve())
-                    })
-            )
+                            loginDetail: responseJson.detail
+                        });
+                    } catch(e) {
+                        const responseText = await response.text();
+                        console.error("Permission denied but response invalid: ", responseText);
+                        this.setState({
+                            isLoggedIn: false,
+                            loading: false,
+                            loginDetail: "Permission denied, but response was invalid"
+                        })
+                    }
+                } else {
+                    const serverError = await response.text();
+                    this.setState({
+                        isLoggedIn: false,
+                        loginDetail: serverError,
+                        loading: false,
+                        currentUsername: ""
+                    }, () => resolve())
+                }
+            })
         );
     }
 
-    componentDidMount(){
-        this.checkLogin().then(()=>{
-            if(!this.state.loading && !this.state.isLoggedIn) {
-                this.setState({redirectingTo: "/" });
-            }
-        })
+    async loadOauthData() {
+        const response = await fetch("/meta/oauth/config.json");
+        switch (response.status) {
+            case 200:
+                console.log("got response data");
+                try {
+                    const content = await response.json();
+
+                    return this.setStatePromise({
+                        clientId: content.clientId,
+                        resource: content.resource,
+                        oAuthUri: content.oAuthUri,
+                        tokenUri: content.tokenUri,
+                        startup: false,
+                    });
+                } catch(err) {
+                    console.error("Could not load oauth config: ", err);
+                    return this.setStatePromise({
+                        loginDetail: "Could not load auth configuration, please contact multimediatech",
+                        startup: false
+                    });
+                }
+            case 404:
+                await response.text(); //consume body and discard it
+                return this.setStatePromise({
+                    startup: false,
+                    lastError:
+                        "Metadata not found on server, please contact administrator",
+                });
+            default:
+                await response.text(); //consume body and discard it
+                return this.setStatePromise({
+                    startup: false,
+                    lastError:
+                        "Server returned a " +
+                        response.status +
+                        " error trying to access metadata",
+                });
+        }
     }
 
-    onLoggedIn(userid, isAdmin){
-        this.setState({currentUsername: userid, isAdmin: isAdmin, isLoggedIn: true}, ()=>{
-            if(this.state.redirectingTo){
-                window.location.href = this.state.redirectingTo;
-            } else {
-                if (!isAdmin) window.location.href = "/project/?mine";
-            }
-        })
-    }
+    async componentDidMount(){
+        await this.loadOauthData();
+        await this.checkLogin();
 
-    onLoggedOut(){
-        this.setState({currentUsername: "", isLoggedIn: false})
+        if(!this.state.loading && !this.state.isLoggedIn) {
+            this.setState({redirectingTo: "/" });
+        }
     }
 
     render(){
-        if(this.state.loading) {
+        if(this.state.loading || this.state.startup) {
             return <LoadingIndicator/>;
         }
 
-        if(!this.state.isLoggedIn) {
-            return <div>
-                <LoginComponent onLoggedIn={this.onLoggedIn} onLoggedOut={this.onLoggedOut} currentlyLoggedIn={this.state.isLoggedIn}/>
-            </div>
-        }
-
         return <div>
-            <h1 onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
+            <h1 style={{marginTop: 0}} onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
             <Switch>
                 <Route path="/byproject" component={ByProjectComponent}/>
                 <Route path="/search" component={SearchComponent}/>
+                <Route
+                    exact
+                    path="/oauth2/callback"
+                    render={(props) => (
+                        <OAuthCallbackComponent
+                            {...props}
+                            oAuthUri={this.state.oAuthUri}
+                            tokenUri={this.state.tokenUri}
+                            clientId={this.state.clientId}
+                            redirectUri={this.redirectUri}
+                            resource={this.state.resource}
+                        />
+                    )}
+                />
                 <Route exact path="/" component={()=><RootComponent
-                    onLoggedOut={this.onLoggedOut}
-                    onLoggedIn={this.onLoggedIn}
                     currentUsername={this.state.currentUsername}
                     isLoggedIn={this.state.isLoggedIn}
+                    loginErrorDetail={this.state.loginDetail}
                     isAdmin={this.state.isAdmin}
+                    oAuthUri={this.state.oAuthUri}
+                    tokenUri={this.state.tokenUri}
+                    clientId={this.state.clientId}
+                    resource={this.state.resource}
                 />}/>
             </Switch>
         </div>

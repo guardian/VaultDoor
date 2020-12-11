@@ -11,7 +11,8 @@ lazy val `vaultdoor` = (project in file(".")).enablePlugins(PlayScala)
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
       
 scalaVersion := "2.12.3"
-
+scalacOptions +="-target:jvm-1.8"
+javacOptions ++= Seq("-source", "1.8","-target","1.8")
 
 libraryDependencies ++= Seq( guice , ehcache, ws , specs2 % Test )
 
@@ -57,7 +58,10 @@ libraryDependencies ++= Seq(
 libraryDependencies += "io.sentry" % "sentry-logback" % "1.7.2"
 
 //authentication
-libraryDependencies += "com.unboundid" % "unboundid-ldapsdk" % "4.0.5"
+libraryDependencies ++= Seq(
+  "com.unboundid" % "unboundid-ldapsdk" % "4.0.5",
+  "com.nimbusds" % "nimbus-jose-jwt" % "8.17",
+)
 
 enablePlugins(RpmPlugin, SystemdPlugin)
 rpmVendor := "Andy Gallagher <andy.gallagher@theguardian.com>"

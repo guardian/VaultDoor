@@ -1,6 +1,6 @@
 package controllers
 
-import auth.{LDAP, Security, User}
+import auth.{BearerTokenAuth, LDAP, Security, User}
 import com.unboundid.ldap.sdk.LDAPConnectionPool
 import javax.inject.{Inject, Singleton}
 import models.LoginRequest
@@ -17,7 +17,10 @@ import scala.collection.JavaConverters._
 import scala.util.{Failure, Success}
 
 @Singleton
-class Login @Inject()(config:Configuration, cc:ControllerComponents)(override implicit val cache:SyncCacheApi)
+class Login @Inject()(override implicit val config:Configuration,
+                      override val bearerTokenAuth:BearerTokenAuth,
+                      cc:ControllerComponents
+                     )(override implicit val cache:SyncCacheApi)
   extends AbstractController(cc) with Security with Circe {
 
   private lazy val adminRoles = config.get[Option[Seq[String]]]("ldap.admin-groups").getOrElse(List("Administrator"))
