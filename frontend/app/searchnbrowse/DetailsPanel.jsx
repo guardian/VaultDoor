@@ -10,8 +10,7 @@ class DetailsPanel extends React.Component {
         entry: PropTypes.object,
         previewRequestedCb: PropTypes.func.isRequired,
         projectClicked: PropTypes.func,
-        vaultId: PropTypes.string,
-        oid: PropTypes.string
+        vaultId: PropTypes.string
     };
 
     static mdTabNames = [
