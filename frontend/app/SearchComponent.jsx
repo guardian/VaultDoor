@@ -140,7 +140,7 @@ class SearchComponent extends React.Component {
             <ResultsPanel entries={this.state.fileEntries}
                           previewRequestedCb={this.previewRequested}
                           projectClicked={this.projectClicked}
-                          vaultId={this.props.vaultId}
+                          vaultId={this.state.vaultId}
             />
             {
                 this.state.requestedPreview ? <PopupPreview oid={this.state.requestedPreview} vaultId={this.state.vaultId} dialogClose={this.previewClosed}/> : ""
