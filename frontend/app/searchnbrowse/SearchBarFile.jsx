@@ -10,7 +10,32 @@ class SearchBarFile extends React.Component {
         vaultSelectionChanged: PropTypes.func.isRequired
     };
 
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            internalError: null
+        }
+    }
+
+    static getDerivedStateFromError(err) {
+        return {
+            internalError: err.toString()
+        }
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error("The following error occurred in SearchBarFile:")
+        console.error(error, errorInfo);
+    }
+
     render(){
+        if(this.state.internalError) {
+            return <div className="searchbar">
+                <p className="error">The search bar component failed: {this.state.internalError}</p>
+                <p className="error">Please reload the page</p>
+            </div>
+        }
         return <div className="searchbar">
             <VaultSelector currentvault={this.props.selectedVault} vaultWasChanged={this.props.vaultSelectionChanged}/>
             <label htmlFor="filePathSearch">File path: </label>

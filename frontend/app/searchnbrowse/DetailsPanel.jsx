@@ -57,7 +57,7 @@ class DetailsPanel extends React.Component {
             {/*
             "preview" link is currently hidden until proper proxy playback is implemented
             */}
-            <a style="display:none" className="centered clickable" onClick={()=>this.props.previewRequestedCb(entry.oid)}>&gt;&gt; Preview &lt;&lt;</a>
+            <a style={{display:"none"}} className="centered clickable" onClick={()=>this.props.previewRequestedCb(entry.oid)}>&gt;&gt; Preview &lt;&lt;</a>
             <CommissionProjectView entry={this.props.entry} clickable={true} onProjectClicked={this.projectClicked}/>
             <PathView pathParts={pathParts.slice(0,-1)} truncateMode={PathView.TRUNC_MIDDLE} limit={5} stripStart={5}/>
             <MetadataTabView tabNames={DetailsPanel.mdTabNames} tabPrefixes={DetailsPanel.mdTabPrefixes} metaDataString={entry.customMeta} />
