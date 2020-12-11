@@ -56,7 +56,7 @@ class DownloadButton extends React.Component {
                     <button onClick={this.performDownload}>&gt;&nbsp;&nbsp;Download&nbsp;&nbsp;&lt;</button>
             }
             {
-                this.state.succeeded ? <p>Download successful, please check your browser downloads</p> : null
+                this.state.succeeded ? <p>Download running, please check your browser downloads</p> : null
             }
             {
                 this.state.lastError ? <p className="error">{this.lastError}</p> : null

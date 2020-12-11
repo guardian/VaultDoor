@@ -7,7 +7,8 @@ class ResultsPanel extends React.Component {
     static propTypes = {
         entries: PropTypes.array.isRequired,
         previewRequestedCb: PropTypes.func.isRequired,
-        projectClicked: PropTypes.func
+        projectClicked: PropTypes.func,
+        vaultId: PropTypes.string
     };
 
     constructor(props){
@@ -62,7 +63,11 @@ class ResultsPanel extends React.Component {
                     }
                 </ul>
             </div>
-            <DetailsPanel entry={this.state.selectedEntry} previewRequestedCb={this.props.previewRequestedCb} projectClicked={this.props.projectClicked}/>
+            <DetailsPanel entry={this.state.selectedEntry}
+                          previewRequestedCb={this.props.previewRequestedCb}
+                          projectClicked={this.props.projectClicked}
+                          vaultId={this.props.vaultId}
+            />
         </div>
     }
 }

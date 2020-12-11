@@ -137,7 +137,11 @@ class SearchComponent extends React.Component {
         return <div className="windowpanel">
             <SearchBarFile filePath={this.state.filePathSearch} filePathUpdated={this.updateFilePath} selectedVault={this.state.vaultId} vaultSelectionChanged={this.updateVaultId}/>
             <span style={{"float":"right","margin-right": "2em", "display":this.state.searching ? "inline-block" : "none"}}>Loaded {this.state.fileEntries.length}...</span>
-            <ResultsPanel entries={this.state.fileEntries} previewRequestedCb={this.previewRequested} projectClicked={this.projectClicked}/>
+            <ResultsPanel entries={this.state.fileEntries}
+                          previewRequestedCb={this.previewRequested}
+                          projectClicked={this.projectClicked}
+                          vaultId={this.props.vaultId}
+            />
             {
                 this.state.requestedPreview ? <PopupPreview oid={this.state.requestedPreview} vaultId={this.state.vaultId} dialogClose={this.previewClosed}/> : ""
             }

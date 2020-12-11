@@ -9,7 +9,9 @@ class DetailsPanel extends React.Component {
     static propTypes = {
         entry: PropTypes.object,
         previewRequestedCb: PropTypes.func.isRequired,
-        projectClicked: PropTypes.func
+        projectClicked: PropTypes.func,
+        vaultId: PropTypes.string,
+        oid: PropTypes.string
     };
 
     static mdTabNames = [
@@ -51,9 +53,11 @@ class DetailsPanel extends React.Component {
         return <div className="results-subpanel">
             <span className="centered filename semilarge">{fileName}</span>
             <span className="centered">{this.props.entry.gnmMetadata ? this.props.entry.gnmMetadata.type : "(no filetype)"}</span>
-            <span className="centered">
-                <DownloadButton vaultId={this.props.vaultId} oid={this.props.oid} fileName={fileName}/>
-            </span>
+            {
+                this.props.vaultId && this.props.entry ? <span className="centered">
+                    <DownloadButton vaultId={this.props.vaultId} oid={this.props.entry.oid} fileName={fileName}/>
+                </span> : null
+            }
             {/*
             "preview" link is currently hidden until proper proxy playback is implemented
             */}
