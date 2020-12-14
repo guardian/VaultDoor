@@ -2,12 +2,12 @@ package actors
 
 import java.util.UUID
 import java.util.concurrent.TimeUnit
-
 import actors.ObjectCache.{CacheEntry, ExpiryTick, Lookup, ObjectFound, ObjectLookupFailed, ObjectNotFound, UpdateCache}
 import akka.actor.{Actor, ActorRef, ActorSystem}
 import akka.stream.Materializer
 import com.om.mxs.client.japi.{MatrixStore, SearchTerm, UserInfo, Vault}
-import helpers.{OMLocator, UserInfoCache}
+import helpers.{OMLocator, UserInfoBuilder, UserInfoCache}
+
 import javax.inject.{Inject, Singleton}
 import models.ObjectMatrixEntry
 import org.slf4j.LoggerFactory
@@ -69,8 +69,8 @@ class ObjectCache @Inject() (userInfoCache:UserInfoCache, config:Configuration)(
     * @param fileName file name to search for
     * @return a Future, containing either a sequence of zero or more results as String oids or an error
     */
-  def findByFilename(userInfo:UserInfo, fileName:String):Future[Option[ObjectMatrixEntry]] =
-    Try { MatrixStore.openVault(userInfo) } match {
+  def findByFilename(userInfoBuilder:UserInfoBuilder, fileName:String):Future[Option[ObjectMatrixEntry]] =
+    userInfoBuilder.getUserInfo.flatMap(userInfo=>Try { MatrixStore.openVault(userInfo) }) match {
       case Success(vault)=>
         implicit val vaultImpl = vault
         Future {
