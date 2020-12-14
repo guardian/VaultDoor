@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
   private val logger = LoggerFactory.getLogger(getClass)
   private val content:Map[String,UserInfoBuilder] = loadInFiles()
-  private val byVaultId:Map[String, Seq[UserInfo]] = mapForVaultId
+  final val byVaultId:Map[String, Seq[UserInfoBuilder]] = mapForVaultId
 
   private val vaultFileFilter = new FilenameFilter {
     override def accept(dir: File, name: String): Boolean ={
@@ -114,19 +114,7 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
     * makes a shortcut map for lookups by vault ID
     */
   protected def mapForVaultId = {
-    val infoTuples = content.values.map(builder=>{
-      builder.vault.map(v=>(v, builder.getUserInfo))
-    }).collect({ case Some(info)=>info}).toVector
-
-    val failedTuples = infoTuples.filter(_._2.isFailure)
-    if(failedTuples.nonEmpty) {
-      logger.error(s"${failedTuples.length} vault information could not be extracted: ")
-      failedTuples.foreach(failed=>logger.error(s"\t${failed._1}: ${failed._2.failed.get}"))
-    }
-
-    val successTuples = infoTuples.filter(_._2.isSuccess).map(t=>(t._1, t._2.get))
-
-    def addToMap(entry:(String, UserInfo), remaining:Seq[(String, UserInfo)], existingEntries:Map[String, Seq[UserInfo]]): Map[String, Seq[UserInfo]] = {
+    def addToMap(entry:(String, UserInfoBuilder), remaining:Seq[(String, UserInfoBuilder)], existingEntries:Map[String, Seq[UserInfoBuilder]]): Map[String, Seq[UserInfoBuilder]] = {
       val updated = existingEntries.get(entry._1) match {
         case Some(existingValues)=>
           val newValues = existingValues :+ entry._2
@@ -142,12 +130,14 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
       }
     }
 
-    successTuples.headOption match {
+    val contentSeq = content.toSeq
+
+    contentSeq.headOption match {
       case Some(firstEntry)=>
-        addToMap (firstEntry, successTuples.tail, Map () )
+        addToMap (firstEntry, contentSeq.tail, Map () )
       case None=>
         logger.warn("No vaults were available to map by ID")
-        Map[String, Seq[UserInfo]]()
+        Map[String, Seq[UserInfoBuilder]]()
     }
   }
 
@@ -157,7 +147,16 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
     * @return
     */
   def infoForVaultId(vaultId:String) = {
-    byVaultId.get(vaultId).flatMap(_.headOption)
+    byVaultId
+      .get(vaultId)
+      .flatMap(_.headOption)
+      .map(_.getUserInfo) match {
+      case Some(Success(userInfo))=>Some(userInfo)
+      case Some(Failure(err))=>
+        logger.error(s"Could not instatiate UserInfor for vault $vaultId: ${err.getMessage}", err)
+        None
+      case None=>None
+    }
   }
 
 }

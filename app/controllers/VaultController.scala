@@ -36,8 +36,10 @@ class VaultController @Inject() (cc:ControllerComponents,
   extends AbstractController(cc) with Security with ObjectMatrixEntryMixin with Circe with ZonedDateTimeEncoder{
 
   def knownVaults() = IsAuthenticated { uid=> request=>
-    val content = userInfoCache.allKnownVaults()
-    val responses = content.map(KnownVaultResponse.fromBuilder)
+    val content = userInfoCache.byVaultId
+    val responses = content.values
+      .flatMap(_.headOption)
+      .map(KnownVaultResponse.fromBuilder)
 
     Ok(responses.asJson)
   }
