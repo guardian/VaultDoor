@@ -25,13 +25,13 @@ describe("VaultSelector", ()=>{
             try {
                 rendered.update();
                 const selector = rendered.find("#vaultsDropdown");
-                //console.log(rendered.html());
+                console.log(rendered.html());
 
                 expect(selector.children("option").length).toEqual(2);
-                expect(selector.children("option").at(0).text()).toEqual("Vault 1");
-                expect(selector.children("option").at(0).prop("value")).toEqual("fake-id-1");
-                expect(selector.children("option").at(1).text()).toEqual("Vault 2");
-                expect(selector.children("option").at(1).prop("value")).toEqual("fake-id-2");
+                expect(selector.children("option").at(1).text()).toEqual("Vault 1");
+                expect(selector.children("option").at(1).prop("value")).toEqual("fake-id-1");
+                expect(selector.children("option").at(0).text()).toEqual("Vault 2");
+                expect(selector.children("option").at(0).prop("value")).toEqual("fake-id-2");
                 done();
             } catch(err) {
                 done.fail(err);
