@@ -23,7 +23,6 @@ case class UserInfoBuilder(cluster:Option[String],user:Option[String],
   def withDescriptiveLabel(value:String) = this.copy(descriptiveLabel=Some(value))
 
   def getUserInfo:Try[UserInfo] = Try { new UserInfo(addresses.get, cluster.get, vault.get, user.get, password.get) }
-
 }
 
 object UserInfoBuilder {

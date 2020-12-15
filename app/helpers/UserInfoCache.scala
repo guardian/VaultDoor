@@ -17,9 +17,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 @Singleton()
 class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
   private val logger = LoggerFactory.getLogger(getClass)
-  private val content:Map[String,UserInfo] = loadInFiles()
+  private val content:Map[String,UserInfoBuilder] = loadInFiles()
+  final val byVaultId:Map[String, Seq[UserInfoBuilder]] = mapForVaultId
 
-  content.foreach(kvTuple=>logger.debug(s"${kvTuple._1} -> ${kvTuple._2}"))
   private val vaultFileFilter = new FilenameFilter {
     override def accept(dir: File, name: String): Boolean ={
       logger.warn(s"checking $name: ${name.endsWith(".vault")}")
@@ -44,7 +44,7 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
     * returned map, one for each address each pointing to the same `UserInfo` instance.
     * @return Map of (String,UserInfo)
     */
-  protected def loadInFiles():Map[String,UserInfo] = {
+  protected def loadInFiles():Map[String,UserInfoBuilder] = {
     val vaultSettingsDir = config.get[String]("vaults.settings-path")
 
     logger.info(s"Loading configuration files from $vaultSettingsDir")
@@ -57,33 +57,41 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
       terminate(2)
     }
 
-    val maybeUserInfos = files.map(f=>{
+    val maybeBuilders = files.map(f=>{
       if(f.isFile) {
         logger.info(s"Loading login info from ${f.getAbsolutePath}")
-        Some(UserInfoBuilder.fromFile(f))
+        Some(UserInfoBuilder.builderFromFile(f))
       } else {
         None
       }
     }).collect({ case Some(entry)=>entry})
 
-    val failures = maybeUserInfos.collect({case Failure(err)=>err})
+    val failures = maybeBuilders.collect({case Failure(err)=>err})
 
     if(failures.nonEmpty){
-      logger.error(s"${failures.length} out of ${maybeUserInfos.length} vault files failed to load: ")
+      logger.error(s"${failures.length} out of ${maybeBuilders.length} vault files failed to load: ")
       failures.foreach(err=>logger.error("Vault file failed: ", err))
     }
 
-    val userInfos = maybeUserInfos.collect({case Success(info)=>info})
+    val builders = maybeBuilders.collect({case Success(info)=>info})
 
-    if(userInfos.isEmpty){
+    if(builders.isEmpty){
       logger.error(s"Could not load any vault information files from $vaultSettingsDir, exiting app")
       terminate(2)
     }
 
-    userInfos.foreach(info=>logger.debug(s"${info.toString}: ${info.getVault} on ${info.getAddresses.mkString(",")}"))
-    logger.info(s"Loaded ${userInfos.length} vault information files")
-
-    userInfos.flatMap(i=>i.getAddresses.map(addr=>(s"$addr-${i.getVault}",i))).toMap
+    //userInfos.foreach(info=>logger.debug(s"${info.toString}: ${info.getVault} on ${info.getAddresses.mkString(",")}"))
+    val names = builders.map(_.vaultName.getOrElse("(no description)"))
+    logger.info(s"Loaded ${builders.length} vault information files: $names")
+    
+    builders.map(b=>{
+      b.getUserInfo.map(userInfo=>{
+        userInfo.getAddresses.map(addr=>(s"$addr-${userInfo.getVault}", b))
+      })
+    })
+      .collect({case Success(elem)=>elem})
+      .flatten
+      .toMap
   }
 
   /**
@@ -99,12 +107,63 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
   }
 
   def allKnownVaults() = {
-    content.map(kv=>(kv._2.getVault, kv._2.getAddresses)).toSeq
+    content.values
   }
 
+  /**
+    * makes a shortcut map for lookups by vault ID
+    */
+  protected def mapForVaultId = {
+    def addToMap(entry:(String, UserInfoBuilder), remaining:Seq[(String, UserInfoBuilder)], existingEntries:Map[String, Seq[UserInfoBuilder]]): Map[String, Seq[UserInfoBuilder]] = {
+      val updated = entry._2.vault match {
+        case Some(newVaultId)=>
+          existingEntries.get (newVaultId) match {
+            case Some (existingValues) =>
+              val newValues = existingValues :+ entry._2
+              existingEntries + (newVaultId -> newValues)
+            case None =>
+              val newValues = Seq (entry._2)
+              existingEntries + (newVaultId-> newValues)
+          }
+        case None=>
+          logger.warn(s"Vault informaiton ${entry._2} does not have a vault id??")
+          existingEntries
+      }
+
+      if(remaining.isEmpty) {
+        updated
+      } else {
+        addToMap(remaining.head, remaining.tail, updated)
+      }
+    }
+
+    val contentSeq = content.toSeq
+
+    contentSeq.headOption match {
+      case Some(firstEntry)=>
+        addToMap (firstEntry, contentSeq.tail, Map () )
+      case None=>
+        logger.warn("No vaults were available to map by ID")
+        Map[String, Seq[UserInfoBuilder]]()
+    }
+  }
+
+  /**
+    * look up the UserInfo for a given vault ID
+    * @param vaultId vault ID to look up
+    * @return
+    */
   def infoForVaultId(vaultId:String) = {
-    val maps = content.map(kv=>(kv._2.getVault,kv._2))
-    maps.get(vaultId)
+    byVaultId
+      .get(vaultId)
+      .flatMap(_.headOption)
+      .map(_.getUserInfo) match {
+      case Some(Success(userInfo))=>Some(userInfo)
+      case Some(Failure(err))=>
+        logger.error(s"Could not instatiate UserInfor for vault $vaultId: ${err.getMessage}", err)
+        None
+      case None=>None
+    }
   }
 
 }

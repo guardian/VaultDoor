@@ -4,7 +4,7 @@ import java.net.URI
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.scaladsl.{Framing, GraphDSL, Keep, Sink, Source}
-import helpers.{ByteBufferSource, OMAccess, OMLocator, RangeHeader, UserInfoCache}
+import helpers.{ OMLocator, RangeHeader, UserInfoCache}
 import javax.inject.{Inject, Named, Singleton}
 import org.slf4j.LoggerFactory
 import play.api.Configuration
@@ -33,7 +33,6 @@ import io.circe.generic.auto._
 @Singleton
 class Application @Inject() (cc:ControllerComponents,
                              override implicit val config:Configuration,
-                             omAccess: OMAccess,
                              override val bearerTokenAuth:BearerTokenAuth,
                              @Named("object-cache") objectCache:ActorRef,
                              @Named("audit-actor") auditActor:ActorRef,
@@ -132,7 +131,7 @@ class Application @Inject() (cc:ControllerComponents,
   }
 
   /**
-    * third test, use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
+    * use the MatrixStoreFileSourceWithRanges to efficiently stream ranges of content
     * @param targetUriString omms URI of the object that we are trying to get
     * @return
     */
@@ -162,6 +161,7 @@ class Application @Inject() (cc:ControllerComponents,
       })
     })
 
+
     /*
     break down the ranges header into structured data
      */
@@ -173,36 +173,12 @@ class Application @Inject() (cc:ControllerComponents,
     /*
     get hold of a streaming source, if possible
      */
-    val srcOrFailureFut = Future.sequence(Seq(objectEntryFut,rangesOrFailureFut)).map(results=>{
-      val ranges = results(1).asInstanceOf[Seq[RangeHeader]]
+    //maybeLocator.get is safe because if maybeLocator is a Failure we don't execute this block
+    val srcOrFailureFut = getSourceFuture(maybeLocator.get, objectEntryFut, rangesOrFailureFut, uid)
 
-      results.head.asInstanceOf[Either[Result,ObjectMatrixEntry]] match {
-        case Right(omEntry)=>
-          //maybeLocator.get is safe because if maybeLocator is a Failure we don't execute this block
-          val userInfo = userInfoCache.infoForAddress(maybeLocator.get.host,maybeLocator.get.vaultId.toString)
-
-          val responseSize = if(ranges.nonEmpty){
-            Some(ranges.foldLeft(0L)((acc,range)=>acc+(range.end.getOrElse(omEntry.fileAttribues.get.size)-range.start.getOrElse(0L))))
-          } else {
-            omEntry.fileAttribues.map(_.size)
-          }
-
-          //log that we are starting a streamout
-          val auditFile = AuditFile(omEntry.oid,maybeLocator.get.filePath)
-          auditActor ! actors.Audit.LogEvent(AuditEvent.STREAMOUT,uid,Some(auditFile), ranges)
-
-          getStreamingSource(ranges,userInfo.get, omEntry, auditFile, uid) match {
-            case Success(partialGraph) =>
-              Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, ranges, responseSize), getMaybeMimetype(omEntry), ranges.nonEmpty))
-            case Failure(err)=> //if we did not get a source, log that
-              auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile),ranges, notes=Some(err.getMessage))
-              logger.error(s"Could not set up streaming source: ", err)
-              Left(InternalServerError(s"Could not set up streaming source, see logs for more details"))
-          }
-
-        case Left(err)=> Left(err)
-    }})
-
+    /*
+    now either manifest the source to stream data to the client or output an error response to explain why we couldn't
+     */
     srcOrFailureFut.map({
       case Right((byteSource, maybeResponseSize, headers, maybeMimetype, isPartialTransfer)) =>
         logger.info(s"maybeResponseSize is $maybeResponseSize")
@@ -223,7 +199,46 @@ class Application @Inject() (cc:ControllerComponents,
         logger.error(s"Could not get data for $targetUriString: ", err)
         InternalServerError("see the logs for more information")
     })
+  }
 
+  private def getSourceFuture(locator:OMLocator, objectEntryFut:Future[Either[Result, ObjectMatrixEntry]], rangesOrFailureFut:Future[Seq[RangeHeader]], uid:String) = {
+    Future.sequence(Seq(objectEntryFut,rangesOrFailureFut)).map(results=>{
+      val ranges = results(1).asInstanceOf[Seq[RangeHeader]]
+
+      results.head.asInstanceOf[Either[Result,ObjectMatrixEntry]] match {
+        case Right(omEntry)=>
+          withUserInfo(locator) { userInfo =>
+            val responseSize = if (ranges.nonEmpty) {
+              Some(ranges.foldLeft(0L)((acc, range) => acc + (range.end.getOrElse(omEntry.fileAttribues.get.size) - range.start.getOrElse(0L))))
+            } else {
+              omEntry.fileAttribues.map(_.size)
+            }
+
+            //log that we are starting a streamout
+            val auditFile = AuditFile(omEntry.oid, locator.filePath)
+            auditActor ! actors.Audit.LogEvent(AuditEvent.STREAMOUT, uid, Some(auditFile), ranges)
+
+            getStreamingSource(ranges, userInfo, omEntry, auditFile, uid) match {
+              case Success(partialGraph) =>
+                Right((Source.fromGraph(partialGraph), responseSize, headersForEntry(omEntry, ranges, responseSize), getMaybeMimetype(omEntry), ranges.nonEmpty))
+              case Failure(err) => //if we did not get a source, log that
+                auditActor ! actors.Audit.LogEvent(AuditEvent.OMERROR, uid, Some(auditFile), ranges, notes = Some(err.getMessage))
+                logger.error(s"Could not set up streaming source: ", err)
+                Left(InternalServerError(s"Could not set up streaming source, see logs for more details"))
+            }
+          }
+        case Left(err)=> Left(err)
+      }})
+  }
+
+  def withUserInfo[T](locator:OMLocator)(block: (UserInfo)=>Either[Result, T]) = {
+    userInfoCache.infoForAddress(locator.host, locator.vaultId.toString).map(_.getUserInfo) match {
+      case Some(Success(userInfo))=>block(userInfo)
+      case None=>Left(NotFound(GenericErrorResponse("not_found", "no vault found").asJson))
+      case Some(Failure(err))=>
+        logger.error(s"Could not get userInfo for $locator: ${err.getMessage}", err)
+        Left(InternalServerError(GenericErrorResponse("internal_error", "Could not get UserInfo, see server logs for details").asJson))
+    }
   }
 
   def frontendConfig = Action {

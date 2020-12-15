@@ -1,13 +1,11 @@
 package controllers
 
-import java.net.URI
-import actors.ObjectCache.{Lookup, OCMsg, ObjectFound, ObjectLookupFailed, ObjectNotFound}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.scaladsl.{GraphDSL, Source}
 import akka.stream.{Attributes, Materializer, SourceShape}
 import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
-import helpers.{BadDataError, OMAccess, OMLocator, RangeHeader, UserInfoCache, ZonedDateTimeEncoder}
+import helpers.{RangeHeader, UserInfoCache, ZonedDateTimeEncoder}
 
 import javax.inject.{Inject, Named, Singleton}
 import play.api.Configuration
@@ -30,8 +28,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class VaultController @Inject() (cc:ControllerComponents,
                                  override implicit val config:Configuration,
                                  override val bearerTokenAuth:BearerTokenAuth,
-                                 omAccess: OMAccess,
-                                 @Named("object-cache") objectCache:ActorRef,
                                  @Named("audit-actor") auditActor:ActorRef,
                                  userInfoCache:UserInfoCache,
                                  serverTokenDAO: ServerTokenDAO,
@@ -39,10 +35,10 @@ class VaultController @Inject() (cc:ControllerComponents,
   extends AbstractController(cc) with Security with ObjectMatrixEntryMixin with Circe with ZonedDateTimeEncoder{
 
   def knownVaults() = IsAuthenticated { uid=> request=>
-    val content = userInfoCache.allKnownVaults()
-    val responses = content.map(entry=>
-      (KnownVaultResponse.apply _) tupled entry
-    )
+    val content = userInfoCache.byVaultId
+    val responses = content.values
+      .flatMap(_.headOption)
+      .map(KnownVaultResponse.fromBuilder)
 
     Ok(responses.asJson)
   }

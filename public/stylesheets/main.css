@@ -41,6 +41,10 @@ select {
     background-image: url('data:image/svg+xml;charset=US-ASCII,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22iso-8859-1%22%3F%3E%0A%3C%21DOCTYPE%20svg%20PUBLIC%20%22-%2F%2FW3C%2F%2FDTD%20SVG%201.1%2F%2FEN%22%20%22http%3A%2F%2Fwww.w3.org%2FGraphics%2FSVG%2F1.1%2FDTD%2Fsvg11.dtd%22%3E%0A%3Csvg%20version%3D%221.1%22%20id%3D%22Capa_1%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20x%3D%220px%22%20y%3D%220px%22%0A%09%20width%3D%2296.154px%22%20height%3D%2296.154px%22%20viewBox%3D%220%200%2096.154%2096.154%22%20style%3D%22enable-background%3Anew%200%200%2096.154%2096.154%3B%22%0A%09%20xml%3Aspace%3D%22preserve%22%3E%0A%3Cg%3E%0A%09%3Cpath%20d%3D%22M0.561%2C20.971l45.951%2C57.605c0.76%2C0.951%2C2.367%2C0.951%2C3.127%2C0l45.956-57.609c0.547-0.689%2C0.709-1.716%2C0.414-2.61%0A%09%09c-0.061-0.187-0.129-0.33-0.186-0.437c-0.351-0.65-1.025-1.056-1.765-1.056H2.093c-0.736%2C0-1.414%2C0.405-1.762%2C1.056%0A%09%09c-0.059%2C0.109-0.127%2C0.253-0.184%2C0.426C-0.15%2C19.251%2C0.011%2C20.28%2C0.561%2C20.971z%22%2F%3E%0A%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A');
 }
 
+option {
+    background-color: darkgray;
+}
+
 select[size]{
     background-image:none;
 }

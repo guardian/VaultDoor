@@ -57,13 +57,13 @@ class ObjectCacheSpec extends Specification with Mockito {
       val mockSelf = TestProbe()
 
       val mockedUserCache = mock[UserInfoCache]
-      mockedUserCache.infoForAddress(any, any) returns Some(mock[UserInfo])
+      mockedUserCache.infoForAddress(any, any) returns Some(mock[UserInfoBuilder])
       val objectCache = system.actorOf(Props(new ObjectCache(mockedUserCache,Configuration.empty) {
         override protected val ownRef = mockSelf.ref
 
         override protected def setupTimer(): Cancellable = Cancellable.alreadyCancelled
 
-        override def findByFilename(userInfo: UserInfo, fileName: String): Future[Option[ObjectMatrixEntry]] = Future(None)
+        override def findByFilename(userInfo: UserInfoBuilder, fileName: String): Future[Option[ObjectMatrixEntry]] = Future(None)
         content = Map(
           (fakeVaultId,"path/to/some/file")->CacheEntry(ObjectMatrixEntry("dda069ae-8e2f-4e12-a494-81970c7555ae"), 12345678L)
         )
@@ -83,7 +83,7 @@ class ObjectCacheSpec extends Specification with Mockito {
       val mockSelf = TestProbe()
 
       val mockedUserCache = mock[UserInfoCache]
-      mockedUserCache.infoForAddress(any, any) returns Some(mock[UserInfo])
+      mockedUserCache.infoForAddress(any, any) returns Some(mock[UserInfoBuilder])
 
       val mockedReturnValue = mock[ObjectMatrixEntry]
       mockedReturnValue.oid returns "f0103f1f-b8ec-4ecb-bda3-cf0236fdc922"
@@ -96,7 +96,7 @@ class ObjectCacheSpec extends Specification with Mockito {
 
         //get-metadata call is made in here; because this relies on global (therefore un-mockable) MatrixStore object
         // then we can't (easily) test for the call
-        override def findByFilename(userInfo: UserInfo, fileName: String): Future[Option[ObjectMatrixEntry]] = Future(Some(mockedReturnValue))
+        override def findByFilename(userInfo: UserInfoBuilder, fileName: String): Future[Option[ObjectMatrixEntry]] = Future(Some(mockedReturnValue))
         content = Map(
           (fakeVaultId,"path/to/some/file")->CacheEntry(ObjectMatrixEntry("dda069ae-8e2f-4e12-a494-81970c7555ae"), 12345678L)
         )
@@ -116,7 +116,7 @@ class ObjectCacheSpec extends Specification with Mockito {
       implicit val mat:Materializer = ActorMaterializer.create(system)
       val mockSelf = TestProbe()
       val mockedUserCache = mock[UserInfoCache]
-      mockedUserCache.infoForAddress(any, any) returns Some(mock[UserInfo])
+      mockedUserCache.infoForAddress(any, any) returns Some(mock[UserInfoBuilder])
 
       val mockedOMResult = ObjectMatrixEntry("f0103f1f-b8ec-4ecb-bda3-cf0236fdc922")
 
@@ -125,7 +125,7 @@ class ObjectCacheSpec extends Specification with Mockito {
 
         override protected def setupTimer(): Cancellable = Cancellable.alreadyCancelled
 
-        override def findByFilename(userInfo: UserInfo, fileName: String): Future[Option[ObjectMatrixEntry]] = Future(None)
+        override def findByFilename(userInfo: UserInfoBuilder, fileName: String): Future[Option[ObjectMatrixEntry]] = Future(None)
         content = Map()
       }))
 
@@ -149,7 +149,7 @@ class ObjectCacheSpec extends Specification with Mockito {
       implicit val mat:Materializer = ActorMaterializer.create(system)
       val mockSelf = TestProbe()
       val mockedUserCache = mock[UserInfoCache]
-      mockedUserCache.infoForAddress(any, any) returns Some(mock[UserInfo])
+      mockedUserCache.infoForAddress(any, any) returns Some(mock[UserInfoBuilder])
 
       val existingEntry = ObjectMatrixEntry("dda069ae-8e2f-4e12-a494-81970c7555ae")
 
@@ -158,7 +158,7 @@ class ObjectCacheSpec extends Specification with Mockito {
 
         override protected def setupTimer(): Cancellable = Cancellable.alreadyCancelled
 
-        override def findByFilename(userInfo: UserInfo, fileName: String): Future[Option[ObjectMatrixEntry]] = Future(None)
+        override def findByFilename(userInfo: UserInfoBuilder, fileName: String): Future[Option[ObjectMatrixEntry]] = Future(None)
         content = Map(
           (fakeVaultId,"path/to/some/file")->CacheEntry(existingEntry, 3600L)
         )
