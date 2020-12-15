@@ -28,7 +28,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class VaultController @Inject() (cc:ControllerComponents,
                                  override implicit val config:Configuration,
                                  override val bearerTokenAuth:BearerTokenAuth,
-                                 @Named("object-cache") objectCache:ActorRef,
                                  @Named("audit-actor") auditActor:ActorRef,
                                  userInfoCache:UserInfoCache,
                                  serverTokenDAO: ServerTokenDAO,

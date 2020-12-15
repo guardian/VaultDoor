@@ -152,7 +152,7 @@ class FileListController @Inject() (cc:ControllerComponents,
           HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
         )
       case None =>
-        NotFound(GenericErrorResponse("not_found", "").asJson)
+        NotFound(GenericErrorResponse("not_found", s"no info for vault id $vaultId").asJson)
     }
   }
 

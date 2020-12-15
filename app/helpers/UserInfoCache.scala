@@ -115,14 +115,21 @@ class UserInfoCache @Inject() (config:Configuration,system:ActorSystem){
     */
   protected def mapForVaultId = {
     def addToMap(entry:(String, UserInfoBuilder), remaining:Seq[(String, UserInfoBuilder)], existingEntries:Map[String, Seq[UserInfoBuilder]]): Map[String, Seq[UserInfoBuilder]] = {
-      val updated = existingEntries.get(entry._1) match {
-        case Some(existingValues)=>
-          val newValues = existingValues :+ entry._2
-          existingEntries + (entry._1 -> newValues)
+      val updated = entry._2.vault match {
+        case Some(newVaultId)=>
+          existingEntries.get (newVaultId) match {
+            case Some (existingValues) =>
+              val newValues = existingValues :+ entry._2
+              existingEntries + (newVaultId -> newValues)
+            case None =>
+              val newValues = Seq (entry._2)
+              existingEntries + (newVaultId-> newValues)
+          }
         case None=>
-          val newValues = Seq(entry._2)
-          existingEntries + (entry._1 -> newValues)
+          logger.warn(s"Vault informaiton ${entry._2} does not have a vault id??")
+          existingEntries
       }
+
       if(remaining.isEmpty) {
         updated
       } else {
