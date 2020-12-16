@@ -11,7 +11,6 @@ import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/f
 import ByProjectComponent from "./ByProjectComponent.jsx";
 import LoadingIndicator from "./LoadingIndicator.jsx";
 import {authenticatedFetch} from "./auth";
-import LoginButton from "./LoginButton.jsx";
 
 library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog, faTrashAlt);
 
