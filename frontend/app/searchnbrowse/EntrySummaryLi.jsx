@@ -15,7 +15,7 @@ class EntrySummaryLi extends React.Component {
         const entry = this.props.entry;
         const pathParts = entry.attributes.name.split("/");
         const fileName = pathParts.length>0 ? pathParts[pathParts.length - 1] : "(no name)";
-        const isInTrash = entry.metadata.includes("MXFS_INTRASH=true")
+        const isInTrash = (entry.hasOwnProperty("metadata") && entry.metadata) ? entry.metadata.includes("MXFS_INTRASH=true") : false;
 
         return <li key={entry.oid} className="clickable" onClick={()=>this.props.entryClickedCb(entry)}>
             <p className="filename">{fileName}</p>
