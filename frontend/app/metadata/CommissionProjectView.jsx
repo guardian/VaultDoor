@@ -16,6 +16,7 @@ class CommissionProjectView extends React.Component {
         super(props);
         this.clickedProject = this.clickedProject.bind(this);
     }
+
     shouldDisplay(){
         if(!this.props.entry) return false;
         if(!this.props.entry.gnmMetadata) return false;
