@@ -6,7 +6,8 @@ import Raven from 'raven-js';
 import SearchComponent from './SearchComponent.jsx';
 import { library } from '@fortawesome/fontawesome-svg-core'
 import OAuthCallbackComponent from "./OAuthCallbackComponent.jsx";
-import { faFolder, faFolderOpen, faTimes, faSearch, faCog, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
+import { faTrashAlt } from '@fortawesome/free-regular-svg-icons';
+import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/free-solid-svg-icons'
 import ByProjectComponent from "./ByProjectComponent.jsx";
 import LoadingIndicator from "./LoadingIndicator.jsx";
 import {authenticatedFetch} from "./auth";
