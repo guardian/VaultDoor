@@ -75,6 +75,7 @@ class FileListController @Inject() (cc:ControllerComponents,
 
       val outlet = lookup.out
         .map(PresentableFile.fromObjectMatrixEntry)
+        .collect({case Some(presentableFile)=>presentableFile})
         .map(_.asJson.noSpaces)
         .map(jsonString => ByteString(jsonString + "\n"))
         .outlet
