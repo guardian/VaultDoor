@@ -6,13 +6,13 @@ import Raven from 'raven-js';
 import SearchComponent from './SearchComponent.jsx';
 import { library } from '@fortawesome/fontawesome-svg-core'
 import OAuthCallbackComponent from "./OAuthCallbackComponent.jsx";
-import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/free-solid-svg-icons'
+import { faFolder, faFolderOpen, faTimes, faSearch, faCog, faTrashAlt } from '@fortawesome/free-solid-svg-icons'
 import ByProjectComponent from "./ByProjectComponent.jsx";
 import LoadingIndicator from "./LoadingIndicator.jsx";
 import {authenticatedFetch} from "./auth";
 import LoginButton from "./LoginButton.jsx";
 
-library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog);
+library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog, faTrashAlt);
 
 class App extends React.Component {
     constructor(props){
