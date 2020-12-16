@@ -89,7 +89,16 @@ class FileListController @Inject() (cc:ControllerComponents,
           logger.debug(s"Collected presentable file $elem")
           elem
         })
-        .map(_.asJson.noSpaces)
+        .map(elem=>{
+          try {
+            logger.debug(s"converting to json")
+            elem.asJson.noSpaces
+          } catch {
+            case err:Throwable=>
+              logger.error(s"json conversion for ${elem.oid} failed: ${err.getMessage}", err)
+              throw err
+          }
+        })
         .map(elem=>{
           logger.debug(s"Got JSON string $elem")
           elem
