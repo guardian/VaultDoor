@@ -74,9 +74,26 @@ class FileListController @Inject() (cc:ControllerComponents,
       src ~> lookup
 
       val outlet = lookup.out
+        .log("FileListController.searchGraph")
+        .map(elem=>{
+          logger.debug(s"Got stream element $elem")
+          elem
+        })
         .map(PresentableFile.fromObjectMatrixEntry)
+        .map(elem=>{
+          logger.debug(s"Got presentable file $elem")
+          elem
+        })
         .collect({case Some(presentableFile)=>presentableFile})
+        .map(elem=>{
+          logger.debug(s"Collected presentable file $elem")
+          elem
+        })
         .map(_.asJson.noSpaces)
+        .map(elem=>{
+          logger.debug(s"Got JSON string $elem")
+          elem
+        })
         .map(jsonString => ByteString(jsonString + "\n"))
         .outlet
       SourceShape(outlet)
