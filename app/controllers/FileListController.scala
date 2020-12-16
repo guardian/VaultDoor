@@ -74,8 +74,18 @@ class FileListController @Inject() (cc:ControllerComponents,
       src ~> lookup
 
       val outlet = lookup.out
+        .log("FileListController.searchGraph")
         .map(PresentableFile.fromObjectMatrixEntry)
-        .map(_.asJson.noSpaces)
+        .collect({case Some(presentableFile)=>presentableFile})
+        .map(elem=>{
+          try {
+            elem.asJson.noSpaces
+          } catch {
+            case err:Throwable=>
+              logger.error(s"json conversion for ${elem.oid} failed: ${err.getMessage}", err)
+              throw err
+          }
+        })
         .map(jsonString => ByteString(jsonString + "\n"))
         .outlet
       SourceShape(outlet)

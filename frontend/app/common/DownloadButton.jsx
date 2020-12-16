@@ -32,6 +32,7 @@ class DownloadButton extends React.Component {
                 console.log("token download uri is ", serverData.uri);
                 a.href = serverData.uri;
                 a.download = this.props.fileName;
+                a.target = "_blank";
                 a.click();
                 this.setState({downloading: false, succeeded: true, lastError: null});
                 break;

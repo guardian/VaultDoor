@@ -3,13 +3,13 @@ import java.time.{Instant, ZoneId, ZonedDateTime}
 
 import com.om.mxs.client.japi.MXFSFileAttributes
 
-case class FileAttributes(fileKey:String, name:String, parent:String, isDir:Boolean, isOther:Boolean, isRegular:Boolean, isSymlink:Boolean, ctime:ZonedDateTime, mtime:ZonedDateTime, atime:ZonedDateTime, size:Long)
+case class FileAttributes(fileKey:String, name:String, parent:Option[String], isDir:Boolean, isOther:Boolean, isRegular:Boolean, isSymlink:Boolean, ctime:ZonedDateTime, mtime:ZonedDateTime, atime:ZonedDateTime, size:Long)
 
 object FileAttributes {
   def apply(from:MXFSFileAttributes) = new FileAttributes(
     from.fileKey().toString,
     from.getName,
-    from.getParent,
+    Option(from.getParent),
     from.isDirectory,
     from.isOther,
     from.isRegularFile,

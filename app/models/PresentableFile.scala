@@ -8,7 +8,7 @@ case class PresentableFile(oid:String, attributes: FileAttributes, gnmMetadata: 
 
 object PresentableFile extends ((String, FileAttributes,Option[GnmMetadata], Option[String])=>PresentableFile) {
   def fromObjectMatrixEntry(src:ObjectMatrixEntry):Option[PresentableFile] =
-    src.fileAttribues.map(attribs=>PresentableFile(src.oid, attribs, GnmMetadata.fromObjectMatrixEntry(src) ,src.attributes.map(_.dumpString(None))))
+    src.fileAttribues.map(attribs=> PresentableFile(src.oid, attribs, GnmMetadata.fromObjectMatrixEntry(src) ,src.attributes.map(_.dumpString(None))))
 
 }
 
