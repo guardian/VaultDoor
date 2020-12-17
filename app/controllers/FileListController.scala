@@ -6,7 +6,7 @@ import akka.stream.scaladsl.{GraphDSL, Keep, RunnableGraph, Source}
 import akka.util.ByteString
 import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
-import helpers.SearchTermHelper.getSearchTerm
+import helpers.SearchTermHelper.projectIdSearchTerm
 import helpers.{UserInfoCache, ZonedDateTimeEncoder}
 
 import javax.inject.{Inject, Singleton}
@@ -20,14 +20,11 @@ import org.slf4j.LoggerFactory
 import play.api.cache.SyncCacheApi
 import play.api.http.HttpEntity
 import requests.SearchRequest
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
-
-import scala.util.matching.Regex
 
 @Singleton
 class FileListController @Inject() (cc:ControllerComponents,
@@ -72,8 +69,7 @@ class FileListController @Inject() (cc:ControllerComponents,
     GraphDSL.create() { implicit builder =>
       import akka.stream.scaladsl.GraphDSL.Implicits._
 
-      //val src = builder.add(new OMSearchSource(userInfo, Some(searchTerm), None))
-      val src = builder.add(new OMFastSearchSource(userInfo, Array(searchTerm),Array()))
+      val src = builder.add(new OMSearchSource(userInfo, Some(searchTerm), None))
       val lookup = builder.add(new OMLookupMetadata(userInfo).async)
 
       src ~> lookup
@@ -120,7 +116,7 @@ class FileListController @Inject() (cc:ControllerComponents,
   def projectsummary(vaultId:String, forProject:String) = IsAuthenticatedAsync { uid => request =>
     withVaultAsync(vaultId) { userInfo=>
       logger.info(s"projectsummary: looking up '$forProject' on $vaultId (${userInfo.getVault}")
-      getSearchTerm(forProject) match {
+      projectIdSearchTerm(forProject) match {
         case Some(t) =>
           summaryFor(userInfo, t).map(summary => {
             Ok(summary.asJson)
@@ -139,7 +135,7 @@ class FileListController @Inject() (cc:ControllerComponents,
     */
   def projectSearchStreaming(vaultId:String, forProject:String) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo=>
-      getSearchTerm(forProject) match {
+      projectIdSearchTerm(forProject) match {
         case Some(t)=>
           val graph = searchGraph(userInfo, t)
           Result(
@@ -161,7 +157,6 @@ class FileListController @Inject() (cc:ControllerComponents,
   def pathSearchStreaming(vaultId:String, forPath:Option[String]) = IsAuthenticated { uid=> request=>
     userInfoCache.infoForVaultId(vaultId) match {
       case Some(userInfo) =>
-        //implicit val ec: ExecutionContext = system.dispatcher
         val searchAttrib = forPath match {
           case Some(searchPath)=>new Attribute(Constants.CONTENT, s"""MXFS_FILENAME:"$searchPath"""" )
           case None=>new Attribute(Constants.CONTENT, s"*")
@@ -197,13 +192,17 @@ class FileListController @Inject() (cc:ControllerComponents,
     }
   }
 
-  def testFastSearch(vaultId:String, field:String, value:String) = IsAuthenticated { uid=> request=>
+  def testFastSearch(vaultId:String, field:String, value:String, quoted:Boolean) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo =>
       val graph = GraphDSL.create() { implicit builder =>
         import akka.stream.scaladsl.GraphDSL.Implicits._
 
         val terms = Array(
-          SearchTerm.createSimpleTerm(field, value)
+          if(quoted) {
+            SearchTerm.createSimpleTerm(Constants.CONTENT, s"$field:\"$value\"")
+          } else {
+            SearchTerm.createSimpleTerm(Constants.CONTENT, s"$field:$value")
+          }
         )
         val src = builder.add(new OMFastSearchSource(userInfo, terms, Array("GNM_PROJECT_ID","MXFS_ACCESS_TIME","MXFS_PATH","DPSP_SIZE")))
         val outlet = src.out

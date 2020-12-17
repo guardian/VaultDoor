@@ -10,7 +10,7 @@ object SearchTermHelper {
     "^\\w{2}-\\d+".r
   )
 
-  def getSearchTerm(forProject:String) = {
+  def projectIdSearchTerm(forProject:String) = {
     def testValidator(validator:Regex, remaining:Array[Regex]):Option[SearchTerm] = {
       forProject match {
         case validator()=>
