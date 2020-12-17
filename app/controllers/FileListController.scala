@@ -6,7 +6,9 @@ import akka.stream.scaladsl.{GraphDSL, Keep, RunnableGraph, Source}
 import akka.util.ByteString
 import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
+import helpers.SearchTermHelper.getSearchTerm
 import helpers.{UserInfoCache, ZonedDateTimeEncoder}
+
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import play.api.libs.circe.Circe
@@ -24,6 +26,8 @@ import scala.concurrent.Future
 import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
+
+import scala.util.matching.Regex
 
 @Singleton
 class FileListController @Inject() (cc:ControllerComponents,
@@ -116,11 +120,14 @@ class FileListController @Inject() (cc:ControllerComponents,
   def projectsummary(vaultId:String, forProject:String) = IsAuthenticatedAsync { uid => request =>
     withVaultAsync(vaultId) { userInfo=>
       logger.info(s"projectsummary: looking up '$forProject' on $vaultId (${userInfo.getVault}")
-      //val t = SearchTerm.createSimpleTerm("GNM_PROJECT_ID", forProject)
-      val t = SearchTerm.createSimpleTerm(Constants.CONTENT, s"""GNM_PROJECT_ID:"$forProject""")
-      summaryFor(userInfo, t).map(summary=>{
-        Ok(summary.asJson)
-      })
+      getSearchTerm(forProject) match {
+        case Some(t) =>
+          summaryFor(userInfo, t).map(summary => {
+            Ok(summary.asJson)
+          })
+        case None =>
+          Future(BadRequest(GenericErrorResponse("bad_request", "project id is malformed").asJson))
+      }
     }
   }
 
@@ -132,14 +139,16 @@ class FileListController @Inject() (cc:ControllerComponents,
     */
   def projectSearchStreaming(vaultId:String, forProject:String) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo=>
-      //val searchAttrib = new Attribute("GNM_PROJECT_ID", forProject)//s"""GNM_PROJECT_ID:"$forProject"""")
-      val t = SearchTerm.createSimpleTerm(Constants.CONTENT, s"""GNM_PROJECT_ID:"$forProject""")
-      val graph = searchGraph(userInfo, t)
-
-      Result(
-        ResponseHeader(200, Map()),
-        HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
-      )
+      getSearchTerm(forProject) match {
+        case Some(t)=>
+          val graph = searchGraph(userInfo, t)
+          Result(
+            ResponseHeader(200, Map()),
+            HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
+          )
+        case None=>
+          BadRequest(GenericErrorResponse("bad_request", "project id is malformed").asJson)
+      }
     }
   }
 
