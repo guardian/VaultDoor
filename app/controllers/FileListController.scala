@@ -199,7 +199,7 @@ class FileListController @Inject() (cc:ControllerComponents,
 
         val terms = Array(
           if(quoted) {
-            SearchTerm.createSimpleTerm(Constants.CONTENT, s"$field:\"$value\"")
+            SearchTerm.createSimpleTerm(Constants.CONTENT, s"""$field:"$value"""")
           } else {
             SearchTerm.createSimpleTerm(Constants.CONTENT, s"$field:$value")
           }
