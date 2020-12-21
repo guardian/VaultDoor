@@ -42,7 +42,7 @@ case class ContentSearchBuilder(queryTerms:String, keywords:Seq[String]) {
       s" ${combiner.toString} $invertedField:$quotedValue"
     }
 
-    this.copy(queryTerms=newQueryTerm)
+    this.copy(queryTerms=queryTerms + newQueryTerm)
   }
 
   def withKeywords(moreKeywords:Seq[String]) =

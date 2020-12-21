@@ -20,6 +20,21 @@ case class GnmMetadata(`type`: String,projectId:Option[String],commissionId:Opti
 
 object GnmMetadata {
   private val logger = LoggerFactory.getLogger(getClass)
+
+  val Fields = Array(
+    "GNM_TYPE",
+    "GNM_PROJECT_ID",
+    "GNM_COMMISSION_ID",
+    "GNM_PROJECT_NAME",
+    "GNM_COMMISSION_NAME",
+    "GNM_WORKING_GROUP_NAME",
+    "GNM_MASTER_ID",
+    "GNM_MASTER_NAME",
+    "GNM_MASTER_USER",
+    "GNM_DELIVERABLE_BUNDLE_ID",
+    "GNM_DELIVERABLE_VERSION",
+    "GNM_DELIVERABLE_TYPE"
+  )
   def fromObjectMatrixEntry(src:ObjectMatrixEntry):Option[GnmMetadata] = Try {
     src.attributes.map(attribs => GnmMetadata(
       attribs.stringValues("GNM_TYPE"),

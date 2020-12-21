@@ -15,7 +15,7 @@ import play.api.libs.circe.Circe
 import play.api.mvc.{AbstractController, ControllerComponents, EssentialAction, ResponseHeader, Result}
 import responses.GenericErrorResponse
 import streamcomponents.{OMFastContentSearchSource, OMFastSearchSource, OMLookupMetadata, OMSearchSource, ProjectSummarySink}
-import models.{MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
+import models.{GnmMetadata, MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
 import org.slf4j.LoggerFactory
 import play.api.cache.SyncCacheApi
 import play.api.http.HttpEntity
@@ -208,10 +208,14 @@ class FileListController @Inject() (cc:ControllerComponents,
 //        val terms = Array(SearchTerm.createSimpleTerm(Constants.CONTENT, searchStr))
         val interestingFields = Array("GNM_PROJECT_ID","MXFS_ACCESS_TIME","MXFS_PATH","DPSP_SIZE")
 
-        val searchString = ContentSearchBuilder(s"$field:$value").withKeywords(interestingFields).build
+        val searchString = ContentSearchBuilder(s"$field:$value").withKeywords(GnmMetadata.Fields).build
         logger.debug(s"vault is $vaultId, field '$field', value '$value', quoted '$quoted'.  Search term is $searchString")
         val src = builder.add(new OMFastContentSearchSource(userInfo, searchString))
         val outlet = src.out
+          .map(entry=>{
+            logger.info(s"Got entry ${entry.oid} with filepath ${entry.attributes.flatMap(_.stringValues.get("MXFS_PATH"))}")
+            entry
+          })
           .map(PresentableFile.fromObjectMatrixEntry)
           .map(_.asJson.noSpaces)
           .map(jsonString => ByteString(jsonString + "\n"))
