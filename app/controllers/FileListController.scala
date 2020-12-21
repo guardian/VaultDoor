@@ -7,19 +7,20 @@ import akka.util.ByteString
 import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
 import helpers.SearchTermHelper.projectIdSearchTerm
-import helpers.{UserInfoCache, ZonedDateTimeEncoder}
+import helpers.{ContentSearchBuilder, UserInfoCache, ZonedDateTimeEncoder}
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import play.api.libs.circe.Circe
 import play.api.mvc.{AbstractController, ControllerComponents, EssentialAction, ResponseHeader, Result}
 import responses.GenericErrorResponse
-import streamcomponents.{OMFastSearchSource, OMLookupMetadata, OMSearchSource, ProjectSummarySink}
+import streamcomponents.{OMFastContentSearchSource, OMFastSearchSource, OMLookupMetadata, OMSearchSource, ProjectSummarySink}
 import models.{MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
 import org.slf4j.LoggerFactory
 import play.api.cache.SyncCacheApi
 import play.api.http.HttpEntity
 import requests.SearchRequest
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import io.circe.syntax._
@@ -197,16 +198,19 @@ class FileListController @Inject() (cc:ControllerComponents,
       val graph = GraphDSL.create() { implicit builder =>
         import akka.stream.scaladsl.GraphDSL.Implicits._
 
-        val searchStr = if(quoted) {
-            s"""$field:"$value""""
-          } else {
-            s"$field:$value"
-          }
+//        val searchStr = if(quoted) {
+//            s"""$field:"$value""""
+//          } else {
+//            s"$field:$value"
+//          }
+//
+//        logger.info(s"vault is $vaultId, field '$field', value '$value', quoted '$quoted'.  Search term is $searchStr")
+//        val terms = Array(SearchTerm.createSimpleTerm(Constants.CONTENT, searchStr))
+        val interestingFields = Array("GNM_PROJECT_ID","MXFS_ACCESS_TIME","MXFS_PATH","DPSP_SIZE")
 
-        logger.info(s"vault is $vaultId, field '$field', value '$value', quoted '$quoted'.  Search term is $searchStr")
-        val terms = Array(SearchTerm.createSimpleTerm(Constants.CONTENT, searchStr))
-
-        val src = builder.add(new OMFastSearchSource(userInfo, terms, Array("GNM_PROJECT_ID","MXFS_ACCESS_TIME","MXFS_PATH","DPSP_SIZE")))
+        val searchString = ContentSearchBuilder(s"$field:$value").withKeywords(interestingFields).build
+        logger.debug(s"vault is $vaultId, field '$field', value '$value', quoted '$quoted'.  Search term is $searchString")
+        val src = builder.add(new OMFastContentSearchSource(userInfo, searchString))
         val outlet = src.out
           .map(PresentableFile.fromObjectMatrixEntry)
           .map(_.asJson.noSpaces)
