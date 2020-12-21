@@ -12,7 +12,7 @@ case class ContentSearchBuilder(queryTerms:String, keywords:Seq[String]) {
     if(keywords.isEmpty) {
       base
     } else {
-      base ++ "\n" ++ s"keywords: ${keywords.mkString(",")}"
+      base ++ "\n" ++ s"keywords: ,${keywords.mkString(",")}"
     }
   }
 

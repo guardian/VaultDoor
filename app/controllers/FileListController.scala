@@ -78,7 +78,6 @@ class FileListController @Inject() (cc:ControllerComponents,
       val outlet = lookup.out
         .log("FileListController.searchGraph")
         .map(PresentableFile.fromObjectMatrixEntry)
-        .collect({case Some(presentableFile)=>presentableFile})
         .map(elem=>{
           try {
             elem.asJson.noSpaces

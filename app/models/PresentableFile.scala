@@ -4,11 +4,11 @@ import org.slf4j.LoggerFactory
 
 import scala.util.{Failure, Success, Try}
 
-case class PresentableFile(oid:String, attributes: FileAttributes, gnmMetadata: Option[GnmMetadata], customMeta:Option[String])
+case class PresentableFile(oid:String, attributes: Option[FileAttributes], gnmMetadata: Option[GnmMetadata], customMeta:Option[String])
 
-object PresentableFile extends ((String, FileAttributes,Option[GnmMetadata], Option[String])=>PresentableFile) {
-  def fromObjectMatrixEntry(src:ObjectMatrixEntry):Option[PresentableFile] =
-    src.fileAttribues.map(attribs=> PresentableFile(src.oid, attribs, GnmMetadata.fromObjectMatrixEntry(src) ,src.attributes.map(_.dumpString(None))))
+object PresentableFile extends ((String, Option[FileAttributes],Option[GnmMetadata], Option[String])=>PresentableFile) {
+  def fromObjectMatrixEntry(src:ObjectMatrixEntry):PresentableFile =
+    PresentableFile(src.oid, src.fileAttribues, GnmMetadata.fromObjectMatrixEntry(src) ,src.attributes.map(_.dumpString(None)))
 
   val MXFSFields = Array(
     "MXFS_FILENAME",
