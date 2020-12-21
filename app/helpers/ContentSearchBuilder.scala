@@ -5,6 +5,7 @@ import scala.util.matching.Regex
 object SearchCombiner extends Enumeration {
   val AND,OR = Value
 }
+
 case class ContentSearchBuilder(queryTerms:String, keywords:Seq[String]) {
   def build = {
     val base = queryTerms
@@ -24,7 +25,7 @@ case class ContentSearchBuilder(queryTerms:String, keywords:Seq[String]) {
     */
   def withTerm(field:String, value:String, combiner:SearchCombiner.Value, invert:Boolean=false) = {
     val quotedValue = if(containsSpaces.findFirstIn(value).isDefined) {
-      s"\"$value\""
+      "\"" + value + "\""
     } else {
       value
     }

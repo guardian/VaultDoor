@@ -17,6 +17,8 @@ class Module extends AbstractModule with AkkaGuiceSupport {
         bind(classOf[AuditRecordDAO]).to(classOf[AuditRecordDAOMongo])
       case Some("none") =>
         bind(classOf[AuditRecordDAO]).to(classOf[AuditRecordDAONull])
+      case _=>
+        throw new RuntimeException("the `audit` system property must be set to elasticsearch, mongo or none")
     }
 
     bind(classOf[ServerTokenDAO]).to(classOf[ServerTokenDAORedis])
