@@ -35,7 +35,7 @@ class ContentSearchBuilderSpec extends Specification {
         .withKeywords(Seq("field3"))
         .build
 
-      result mustEqual "field:value\nkeywords: field1,field2,field3"
+      result mustEqual "field:value\nkeywords: ,field1,field2,field3"
     }
   }
 }

@@ -4,15 +4,43 @@ import org.slf4j.LoggerFactory
 
 import scala.util.{Failure, Success, Try}
 
-case class PresentableFile(oid:String, attributes: Option[FileAttributes], gnmMetadata: Option[GnmMetadata], customMeta:Option[String])
+case class PresentableFile(oid:String,
+                           filepath: Option[String],
+                           size:Option[Long],
+                           mimeType: Option[String],
+                           attributes: Option[FileAttributes],
+                           gnmMetadata: Option[GnmMetadata],
+                           customMeta:Option[String]
+                          )
 
-object PresentableFile extends ((String, Option[FileAttributes],Option[GnmMetadata], Option[String])=>PresentableFile) {
+object PresentableFile extends ((String, Option[String], Option[Long], Option[String], Option[FileAttributes],Option[GnmMetadata], Option[String])=>PresentableFile) {
   def fromObjectMatrixEntry(src:ObjectMatrixEntry):PresentableFile =
-    PresentableFile(src.oid, src.fileAttribues, GnmMetadata.fromObjectMatrixEntry(src) ,src.attributes.map(_.dumpString(None)))
+    PresentableFile(src.oid,
+      src.stringAttribute("MXFS_PATH"),
+      maybeSize(src),
+      src.stringAttribute("MXFS_MIMETYPE"),
+      src.fileAttribues,
+      GnmMetadata.fromObjectMatrixEntry(src),
+      src.attributes.map(_.dumpString(None))
+    )
+
+  /**
+    * internal helper method to check if the DPSP_SIZE data is present as a string field instead of a Long
+    * @param src ObjectMatrixEntry to query
+    * @return an Option with a Long of the DPSP_SIZE value, if it's present
+    */
+  private def maybeSize(src:ObjectMatrixEntry):Option[Long] = {
+    src.longAttribute("DPSP_SIZE") match {
+      case longValue@Some(_)=>longValue
+      case None=>
+        src.stringAttribute("DPSP_SIZE").flatMap(stringValue=>Try {
+          stringValue.toLong
+        }.toOption)
+    }
+  }
 
   val MXFSFields = Array(
     "MXFS_FILENAME",
-    "MXFS_FILENAME_UPPER",
     "MXFS_PATH",
     "DPSP_SIZE",
     "MXFS_FILEEXT",
