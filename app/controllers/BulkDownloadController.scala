@@ -1,13 +1,13 @@
 package controllers
 
 import java.time.{Instant, ZonedDateTime}
-
 import akka.actor.ActorSystem
 import akka.stream.{ClosedShape, Materializer, SourceShape}
 import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source}
 import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{MatrixStore, SearchTerm, UserInfo, Vault}
-import helpers.{MetadataHelper, UserInfoCache}
+import helpers.{MetadataHelper, SearchTermHelper, UserInfoCache}
+
 import javax.inject.{Inject, Singleton}
 import models.{ArchiveEntryDownloadSynopsis, LightboxBulkEntry, ObjectMatrixEntry, ServerTokenDAO, ServerTokenEntry}
 import play.api.Configuration
@@ -18,7 +18,7 @@ import io.circe.syntax._
 import io.circe.generic.auto._
 import play.api.cache.SyncCacheApi
 import play.api.http.HttpEntity
-import streamcomponents.{MakeDownloadSynopsis, MatrixStoreFileSourceWithRanges, OMFastSearchSource}
+import streamcomponents.{MakeDownloadSynopsis, MatrixStoreFileSourceWithRanges, OMFastContentSearchSource, OMFastSearchSource}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -80,19 +80,26 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
     * @return an ArchiveEntryDownloadSynopsis object for each file of the project, returned in a Future
     */
   def getContent(userInfo:UserInfo, projectId:String) = {
-    val searchTerms = Array(SearchTerm.createSimpleTerm("GNM_PROJECT_ID", projectId))
+//    val searchTerms = Array(SearchTerm.createSimpleTerm("GNM_PROJECT_ID", projectId))
     val usefulFields = Array("MXFS_PATH","MXFS_FILENAME","DPSP_SIZE")
-    val sinkFact = Sink.seq[ArchiveEntryDownloadSynopsis]
-    val graph = GraphDSL.create(sinkFact) { implicit builder=> sink=>
-      import akka.stream.scaladsl.GraphDSL.Implicits._
 
-      val src = builder.add(new OMFastSearchSource(userInfo, searchTerms, usefulFields))
-      val converter = builder.add(new MakeDownloadSynopsis(config.getOptional[Seq[String]]("bulkDownload.stripPrefixes")))
-      src ~> converter ~> sink
-      ClosedShape
+    SearchTermHelper.projectIdQuery(projectId) match {
+      case Some(projectQuery) =>
+        val sinkFact = Sink.seq[ArchiveEntryDownloadSynopsis]
+        val graph = GraphDSL.create(sinkFact) { implicit builder =>
+          sink =>
+            import akka.stream.scaladsl.GraphDSL.Implicits._
+
+            val src = builder.add(new OMFastContentSearchSource(userInfo, projectQuery.withKeywords(usefulFields).build))
+            val converter = builder.add(new MakeDownloadSynopsis(config.getOptional[Seq[String]]("bulkDownload.stripPrefixes")))
+            src ~> converter ~> sink
+            ClosedShape
+        }
+
+        RunnableGraph.fromGraph(graph).run().map(Right.apply)
+      case None =>
+        Future(Left("project ID is invalid"))
     }
-
-    RunnableGraph.fromGraph(graph).run()
   }
 
   /**
@@ -132,9 +139,13 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
 
             withVaultAsync(vaultId) { userInfo =>
               createRetrievalToken(token.createdForUser.getOrElse(""), combinedId).flatMap(retrievalToken=> {
-                getContent(userInfo, projectId).map(synopses => {
-                  val meta = LightboxBulkEntry(projectId, s"Vaultdoor download for project $projectId", token.createdForUser.getOrElse(""), ZonedDateTime.now(), 0, synopses.length, 0)
-                  Ok(BulkDownloadInitiateResponse("ok", meta, retrievalToken.value, synopses).asJson)
+                getContent(userInfo, projectId).map({
+                  case Right(synopses)=>
+                    val meta = LightboxBulkEntry(projectId, s"Vaultdoor download for project $projectId", token.createdForUser.getOrElse(""), ZonedDateTime.now(), 0, synopses.length, 0)
+                    Ok(BulkDownloadInitiateResponse("ok", meta, retrievalToken.value, synopses).asJson)
+                  case Left(problem)=>
+                    logger.warn(s"Could not complete bulk download for token $tokenId: $problem")
+                    BadRequest(GenericErrorResponse("invalid", problem).asJson)
                 })
               })
             }
