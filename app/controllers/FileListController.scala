@@ -6,7 +6,7 @@ import akka.stream.scaladsl.{GraphDSL, Keep, RunnableGraph, Source}
 import akka.util.ByteString
 import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
-import helpers.SearchTermHelper.projectIdSearchTerm
+import helpers.SearchTermHelper.projectIdQuery
 import helpers.{ContentSearchBuilder, UserInfoCache, ZonedDateTimeEncoder}
 
 import javax.inject.{Inject, Singleton}
@@ -98,16 +98,16 @@ class FileListController @Inject() (cc:ControllerComponents,
     * @param searchTerm
     * @return
     */
-  def summaryFor(userInfo:UserInfo, searchTerm:SearchTerm) = {
+  def summaryFor(userInfo:UserInfo, query:ContentSearchBuilder) = {
     val sinkFact = new ProjectSummarySink
 
-    ProjectSummarySink.suitableFastSource(userInfo,Array(searchTerm)).toMat(sinkFact)(Keep.right).run()
+    ProjectSummarySink.suitableFastSource(userInfo,query).toMat(sinkFact)(Keep.right).run()
   }
 
   def vaultSummary(vaultId:String) = IsAuthenticatedAsync { uid=> request=>
     withVaultAsync(vaultId) { userInfo=>
-      val t = SearchTerm.createSimpleTerm(new Attribute(Constants.CONTENT, s"*"))
-      summaryFor(userInfo,t).map(summary=>{
+      val q = ContentSearchBuilder("*")
+      summaryFor(userInfo,q).map(summary=>{
         Ok(summary.asJson)
       })
     }
@@ -116,9 +116,9 @@ class FileListController @Inject() (cc:ControllerComponents,
   def projectsummary(vaultId:String, forProject:String) = IsAuthenticatedAsync { uid => request =>
     withVaultAsync(vaultId) { userInfo=>
       logger.info(s"projectsummary: looking up '$forProject' on $vaultId (${userInfo.getVault}")
-      projectIdSearchTerm(forProject) match {
-        case Some(t) =>
-          summaryFor(userInfo, t).map(summary => {
+      projectIdQuery(forProject) match {
+        case Some(query) =>
+          summaryFor(userInfo, query).map(summary => {
             Ok(summary.asJson)
           })
         case None =>
@@ -135,9 +135,9 @@ class FileListController @Inject() (cc:ControllerComponents,
     */
   def projectSearchStreaming(vaultId:String, forProject:String) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo=>
-      projectIdSearchTerm(forProject) match {
-        case Some(t)=>
-          val graph = searchGraph(userInfo, t)
+      projectIdQuery(forProject) match {
+        case Some(q)=>
+          val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(Constants.CONTENT, q.build))
           Result(
             ResponseHeader(200, Map()),
             HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))

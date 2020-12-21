@@ -4,6 +4,8 @@ import akka.stream.scaladsl.{GraphDSL, Source}
 import akka.stream.{Attributes, Inlet, SinkShape, SourceShape}
 import akka.stream.stage.{AbstractInHandler, GraphStage, GraphStageLogic, GraphStageWithMaterializedValue}
 import com.om.mxs.client.japi.{SearchTerm, UserInfo}
+import helpers.ContentSearchBuilder
+
 import javax.activation.MimeType
 import models.{CustomMXSMetadata, ObjectMatrixEntry, ProjectSummary}
 import org.slf4j.LoggerFactory
@@ -79,13 +81,17 @@ object ProjectSummarySink {
   )
 
   /**
-    * return an initialised OMFastSearchSource initialised to return the correct fields for building a summary
+    * return an initialised OMFastcontentSearch for the query in the given builder. The relevant fields for ProjectSummarySink
+    * are automatically added to the query before it's stringified and passed to the Source
     * @param userInfo UserInfo object pointing to the appliance and vault to use
-    * @param searchTerms an Array of MXS SearchTerm. These are ANDed together and used as the final search term
     * @return an Akka Source that yields partialilly initialised ObjectMatrixEntry instances. It is guaranteed to give good results with ProjectSummarySink
     */
-  def suitableFastSource(userInfo:UserInfo, searchTerms: Array[SearchTerm]) = Source.fromGraph(GraphDSL.create() { implicit builder =>
-    val src = builder.add(new OMFastSearchSource(userInfo, searchTerms, includeFields = usefulFields))
-    SourceShape(src.out)
-  })
+  def suitableFastSource(userInfo:UserInfo, queryBuilder:ContentSearchBuilder) = {
+    val queryString = queryBuilder.withKeywords(usefulFields).build
+
+    Source.fromGraph(GraphDSL.create() { implicit builder =>
+      val src = builder.add(new OMFastContentSearchSource(userInfo, queryString))
+      SourceShape(src.out)
+    })
+  }
 }
