@@ -198,22 +198,16 @@ class FileListController @Inject() (cc:ControllerComponents,
       val graph = GraphDSL.create() { implicit builder =>
         import akka.stream.scaladsl.GraphDSL.Implicits._
 
-//        val searchStr = if(quoted) {
-//            s"""$field:"$value""""
-//          } else {
-//            s"$field:$value"
-//          }
-//
-//        logger.info(s"vault is $vaultId, field '$field', value '$value', quoted '$quoted'.  Search term is $searchStr")
-//        val terms = Array(SearchTerm.createSimpleTerm(Constants.CONTENT, searchStr))
-        val interestingFields = Array("GNM_PROJECT_ID","MXFS_ACCESS_TIME","MXFS_PATH","DPSP_SIZE")
+        val searchString = ContentSearchBuilder(s"$field:$value")
+          .withKeywords(GnmMetadata.Fields)
+          .withKeywords(PresentableFile.MXFSFields)
+          .build
 
-        val searchString = ContentSearchBuilder(s"$field:$value").withKeywords(GnmMetadata.Fields).build
         logger.debug(s"vault is $vaultId, field '$field', value '$value', quoted '$quoted'.  Search term is $searchString")
         val src = builder.add(new OMFastContentSearchSource(userInfo, searchString))
         val outlet = src.out
           .map(entry=>{
-            logger.info(s"Got entry ${entry.oid} with filepath ${entry.attributes.flatMap(_.stringValues.get("MXFS_PATH"))}")
+            logger.info(s"Got entry ${entry.oid} with attributes ${entry.attributes.map(_.stringValues)}")
             entry
           })
           .map(PresentableFile.fromObjectMatrixEntry)

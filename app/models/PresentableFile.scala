@@ -10,6 +10,14 @@ object PresentableFile extends ((String, FileAttributes,Option[GnmMetadata], Opt
   def fromObjectMatrixEntry(src:ObjectMatrixEntry):Option[PresentableFile] =
     src.fileAttribues.map(attribs=> PresentableFile(src.oid, attribs, GnmMetadata.fromObjectMatrixEntry(src) ,src.attributes.map(_.dumpString(None))))
 
+  val MXFSFields = Array(
+    "MXFS_FILENAME",
+    "MXFS_FILENAME_UPPER",
+    "MXFS_PATH",
+    "DPSP_SIZE",
+    "MXFS_FILEEXT",
+    "MXFS_MIMETYPE",
+  )
 }
 
 case class GnmMetadata(`type`: String,projectId:Option[String],commissionId:Option[String],
@@ -22,6 +30,7 @@ object GnmMetadata {
   private val logger = LoggerFactory.getLogger(getClass)
 
   val Fields = Array(
+    "GNM_TYPE",
     "GNM_TYPE",
     "GNM_PROJECT_ID",
     "GNM_COMMISSION_ID",

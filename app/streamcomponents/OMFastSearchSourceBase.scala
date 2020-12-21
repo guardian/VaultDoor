@@ -26,8 +26,8 @@ abstract class OMFastSearchSourceBase(userInfo:UserInfo, atOnce:Int=10) extends 
     private val logger:org.slf4j.Logger = LoggerFactory.getLogger(getClass)
 
     def parseOutResults(resultString:String) = {
-      logger.debug(s"parseOutResults: got $resultString")
       val parts = resultString.split("\n")
+      logger.debug(s"parseOutResults: got $parts")
 
       val kvs = parts.tail
         .map(_.split("="))
