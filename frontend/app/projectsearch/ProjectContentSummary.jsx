@@ -159,7 +159,7 @@ class ProjectContentSummary extends React.Component {
         if(this.state.loading){
             return <div id="project-content-summary" className="results-panel">
                 <p className="centered information">Project {this.props.projectId}<br/>Loading summary information...</p>
-                <a href={this.props.plutoBaseUrl + "/project/" + this.props.projectId} target="_blank" style={{fontSize: "1.4em", paddingTop: "0.8em", display: this.props.plutoBaseUrl ? "inherit" : "none"}}>View in Pluto ></a>
+                <a href={this.props.plutoBaseUrl + "/project/" + this.props.projectId} target="_blank" style={{fontSize: "1.4em", paddingTop: "0.8em", display: this.props.plutoBaseUrl ? "inherit" : "none"}}>View in Pluto &gt;</a>
                 <div className="centered" style={{marginTop: "1em"}}>
                 <FontAwesomeIcon icon="cog" className="spinner" size="5x"/>
                 </div>
@@ -185,8 +185,8 @@ class ProjectContentSummary extends React.Component {
                     </tr>
                     </tbody>
                 </table>
-                <a href={this.props.plutoBaseUrl + "/project/" + this.props.projectId} target="_blank" style={{fontSize: "1.4em", paddingTop: "0.8em", display: this.props.plutoBaseUrl ? "inherit" : "none"}}>View in Pluto ></a>
-                <a onClick={this.initiateDownload} style={{fontSize: "1.4em", display: this.state.summaryData.total.count>0 ? "block" : "none"}} className="clickable">Open in Download Manager ></a>
+                <a href={this.props.plutoBaseUrl + "/project/" + this.props.projectId} target="_blank" style={{fontSize: "1.4em", paddingTop: "0.8em", display: this.props.plutoBaseUrl ? "inherit" : "none"}}>View in Pluto &gt;</a>
+                <a onClick={this.initiateDownload} style={{fontSize: "1.4em", display: this.state.summaryData.total.count>0 ? "block" : "none"}} className="clickable">Open in Download Manager &gt;</a>
                 <p className="error">{this.state.lastError}</p>
             </div>
             <div className="chart-holder" style={{display: this.state.showType ? "inline-block" : "none"}}>
