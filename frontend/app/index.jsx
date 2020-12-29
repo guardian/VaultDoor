@@ -46,6 +46,32 @@ class App extends React.Component {
             typography: {
                 fontFamily: `'DejaVu Sans Mono', monospace`,
                 fontSize: 14
+            },
+            overrides: {
+                MuiMenuItem: {
+                    root: {
+                        backgroundColor: "#000000",
+                        color: "#f5f5f5"
+                    },
+                    selected: {
+                        color: "#000000",
+                        backgroundColor: "#f5f5f5ff"
+                    },
+                },
+                MuiListItem: {
+                    root: {
+                        backgroundColor: "#000000",
+                        color: "#f5f5f5"
+                    },
+                    selected: {
+                        color: "#000000",
+                        backgroundColor: "#f5f5f5ff"
+                    },
+                    "selected:hover": {
+                        color: "#000000",
+                        backgroundColor: "#f5f5f5ff"
+                    }
+                }
             }
         });
 

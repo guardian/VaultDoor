@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import EntrySummaryLi from './EntrySummaryLi.jsx';
+import EntrySummaryLi from './EntrySummaryLi';
 import DetailsPanel from "./DetailsPanel.jsx";
 
 class ResultsPanel extends React.Component {
@@ -32,7 +32,6 @@ class ResultsPanel extends React.Component {
         console.error("The following error occurred in ResultsPanel:")
         console.error(error, errorInfo);
     }
-
 
     entrySummary(){
         return "Found " + this.props.entries.length + " files";

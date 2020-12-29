@@ -1,22 +1,24 @@
 import React, {useState, useEffect} from "react";
 import {authenticatedFetch} from "../auth";
-import {InputLabel, MenuItem, Select} from "@material-ui/core";
+import {makeStyles, MenuItem, Select} from "@material-ui/core";
 
 interface VaultSelectorProps {
     currentvault: string;
     vaultWasChanged: (newVault:string)=>void;
 }
 
-interface VaultSelectorState {
-    loading: boolean;
-    lastError: string;
-    knownVaults: Array<VaultDescription>;
-}
+const useStyles = makeStyles({
+    vaultSelectorDropdown: {
+        width: "70%"
+    }
+})
 
 const VaultSelector:React.FC<VaultSelectorProps> = (props) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [lastError, setLastError] = useState<string|undefined>(undefined);
     const [knownVaults, setKnownVaults] = useState<Array<VaultDescription>>([]);
+
+    const styles = useStyles();
 
     const refresh = async ()=> {
         const response = await authenticatedFetch("/api/vault", {});
@@ -51,7 +53,9 @@ const VaultSelector:React.FC<VaultSelectorProps> = (props) => {
 
     return lastError ? <p className="error">{lastError}</p> : <>
                 <label htmlFor="vaultsDropdown">Select vault: </label>
-                <Select labelId="vaults-dropdown-label" id="vaultsDropdown" value={props.currentvault}
+                <Select labelId="vaults-dropdown-label" id="vaultsDropdown"
+                        className={styles.vaultSelectorDropdown}
+                        value={props.currentvault}
                         onChange={evt => props.vaultWasChanged(evt.target.value as string)}>
                     {knownVaults.map((entry,idx) => <MenuItem value={entry.vaultId} key={idx}>{entry.name}</MenuItem>)}
                 </Select>
