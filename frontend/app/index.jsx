@@ -11,6 +11,8 @@ import { faFolder, faFolderOpen, faTimes, faSearch, faCog } from '@fortawesome/f
 import ByProjectComponent from "./ByProjectComponent.jsx";
 import LoadingIndicator from "./LoadingIndicator.jsx";
 import {authenticatedFetch} from "./auth";
+import { ThemeProvider } from '@material-ui/core/styles';
+import {createMuiTheme} from "@material-ui/core";
 
 library.add(faFolderOpen, faFolder, faTimes, faSearch, faCog, faTrashAlt);
 
@@ -33,6 +35,19 @@ class App extends React.Component {
         };
 
         this.returnToRoot = this.returnToRoot.bind(this);
+
+        this.theme = createMuiTheme({
+            palette: {
+                type: "dark",
+                primary: {
+                    main: "#f5f5f5" //same as "whitesmoke"
+                }
+            },
+            typography: {
+                fontFamily: `'DejaVu Sans Mono', monospace`,
+                fontSize: 14
+            }
+        });
 
         const currentUri = new URL(window.location.href);
         this.redirectUri =
@@ -158,41 +173,39 @@ class App extends React.Component {
     }
 
     render(){
-        if(this.state.loading || this.state.startup) {
-            return <LoadingIndicator/>;
-        }
-
-        return <div>
-            <h1 style={{marginTop: 0}} onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
-            <Switch>
-                <Route path="/byproject" component={ByProjectComponent}/>
-                <Route path="/search" component={SearchComponent}/>
-                <Route
-                    exact
-                    path="/oauth2/callback"
-                    render={(props) => (
-                        <OAuthCallbackComponent
-                            {...props}
-                            oAuthUri={this.state.oAuthUri}
-                            tokenUri={this.state.tokenUri}
-                            clientId={this.state.clientId}
-                            redirectUri={this.redirectUri}
-                            resource={this.state.resource}
-                        />
-                    )}
-                />
-                <Route exact path="/" component={()=><RootComponent
-                    currentUsername={this.state.currentUsername}
-                    isLoggedIn={this.state.isLoggedIn}
-                    loginErrorDetail={this.state.loginDetail}
-                    isAdmin={this.state.isAdmin}
-                    oAuthUri={this.state.oAuthUri}
-                    tokenUri={this.state.tokenUri}
-                    clientId={this.state.clientId}
-                    resource={this.state.resource}
-                />}/>
-            </Switch>
-        </div>
+        return <ThemeProvider theme={this.theme}>{
+            this.state.loading || this.state.startup ? <LoadingIndicator/> : <div>
+                <h1 style={{marginTop: 0}} onClick={this.returnToRoot} className="clickable">VaultDoor</h1>
+                <Switch>
+                    <Route path="/byproject" component={ByProjectComponent}/>
+                    <Route path="/search" component={SearchComponent}/>
+                    <Route
+                        exact
+                        path="/oauth2/callback"
+                        render={(props) => (
+                            <OAuthCallbackComponent
+                                {...props}
+                                oAuthUri={this.state.oAuthUri}
+                                tokenUri={this.state.tokenUri}
+                                clientId={this.state.clientId}
+                                redirectUri={this.redirectUri}
+                                resource={this.state.resource}
+                            />
+                        )}
+                    />
+                    <Route exact path="/" component={() => <RootComponent
+                        currentUsername={this.state.currentUsername}
+                        isLoggedIn={this.state.isLoggedIn}
+                        loginErrorDetail={this.state.loginDetail}
+                        isAdmin={this.state.isAdmin}
+                        oAuthUri={this.state.oAuthUri}
+                        tokenUri={this.state.tokenUri}
+                        clientId={this.state.clientId}
+                        resource={this.state.resource}
+                    />}/>
+                </Switch>
+            </div>
+        }</ThemeProvider>
     }
 }
 

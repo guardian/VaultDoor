@@ -12,16 +12,16 @@ h3 {
     padding-top: 0;
 }
 
-input[type="text"], input[type="password"] {
-    border: none;
-    display: inline-block;
-    background: #FFF8;
-    font-family: 'DejaVu Sans Mono', monospace;
-    font-size: 1em;
-    color: whitesmoke;
-    padding: 0.2em;
-    margin-right: 1em;
-}
+/*input[type="text"], input[type="password"] {*/
+/*    border: none;*/
+/*    display: inline-block;*/
+/*    background: #FFF8;*/
+/*    font-family: 'DejaVu Sans Mono', monospace;*/
+/*    font-size: 1em;*/
+/*    color: whitesmoke;*/
+/*    padding: 0.2em;*/
+/*    margin-right: 1em;*/
+/*}*/
 
 label {
     margin-right: 0.4em;

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import VaultSelector from './VaultSelector.jsx';
+import VaultSelector from './NewVaultSelector';
+import {Grid, Input} from "@material-ui/core";
 
 class SearchBarFile extends React.Component {
     static propTypes = {
@@ -36,11 +37,15 @@ class SearchBarFile extends React.Component {
                 <p className="error">Please reload the page</p>
             </div>
         }
-        return <div className="searchbar">
-            <VaultSelector currentvault={this.props.selectedVault} vaultWasChanged={this.props.vaultSelectionChanged}/>
-            <label htmlFor="filePathSearch">File path: </label>
-            <input className="form-spacing" type="text" id="filePathSearch" onChange={evt=>this.props.filePathUpdated(evt.target.value)} value={this.props.filePath}/>
-        </div>
+        return <Grid direction="row" container>
+            <Grid item xs="3">
+                <VaultSelector currentvault={this.props.selectedVault} vaultWasChanged={this.props.vaultSelectionChanged}/>
+            </Grid>
+            <Grid item xs="3">
+                <label htmlFor="filePathSearch">File path: </label>
+                <Input type="text" id="filePathSearch" onChange={evt=>this.props.filePathUpdated(evt.target.value)} value={this.props.filePath}/>
+            </Grid>
+        </Grid>
     }
 }
 
