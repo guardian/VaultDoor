@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import PathView from "./PathView.jsx";
+import PathView, {TRUNC_END, TRUNC_MIDDLE, TRUNC_START} from "./PathView";
 import CommissionProjectView from "../metadata/CommissionProjectView.jsx";
 import MetadataTabView from "../metadata/MetadataTabView.jsx";
 import DownloadButton from "../common/DownloadButton.jsx";
@@ -62,7 +62,7 @@ class DetailsPanel extends React.Component {
             */}
             <a style={{display:"none"}} className="centered clickable" onClick={()=>this.props.previewRequestedCb(entry.oid)}>&gt;&gt; Preview &lt;&lt;</a>
             <CommissionProjectView entry={this.props.entry} clickable={true} onProjectClicked={this.projectClicked}/>
-            <PathView pathParts={pathParts.slice(0,-1)} truncateMode={PathView.TRUNC_MIDDLE} limit={5} stripStart={5}/>
+            <PathView pathParts={pathParts.slice(0,-1)} truncateMode={TRUNC_MIDDLE} limit={5} stripStart={5}/>
             <MetadataTabView tabNames={DetailsPanel.mdTabNames} tabPrefixes={DetailsPanel.mdTabPrefixes} metaDataString={entry.customMeta} />
         </div>
     }
