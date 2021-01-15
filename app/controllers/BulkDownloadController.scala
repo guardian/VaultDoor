@@ -80,7 +80,6 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
     * @return an ArchiveEntryDownloadSynopsis object for each file of the project, returned in a Future
     */
   def getContent(userInfo:UserInfo, projectId:String) = {
-//    val searchTerms = Array(SearchTerm.createSimpleTerm("GNM_PROJECT_ID", projectId))
     val usefulFields = Array("MXFS_PATH","MXFS_FILENAME","DPSP_SIZE")
 
     SearchTermHelper.projectIdQuery(projectId) match {
