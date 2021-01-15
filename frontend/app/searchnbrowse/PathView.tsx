@@ -1,5 +1,5 @@
 import React from 'react';
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {FolderOpen} from "@material-ui/icons";
 
 const TRUNC_START=1;       //truncate by removing the start
 const TRUNC_MIDDLE=2;      //truncate by removing the middle
@@ -38,7 +38,7 @@ const PathView:React.FC<PathViewProps> = (props) => {
     return <ul className="pathview">{
         visibleParts.map((part,idx)=>{
             const indent = (idx * 0.25) + 1;
-            return <li className="pathview" style={{paddingLeft: indent + "em"}}><FontAwesomeIcon icon="folder-open"/>{part}</li>
+            return <li className="pathview" style={{paddingLeft: indent + "em"}}><FolderOpen/>{part}</li>
         })
     }</ul>
 }

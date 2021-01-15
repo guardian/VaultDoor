@@ -45,10 +45,8 @@ describe("EntrySummaryLi", ()=>{
         expect(rendered.find("p.filename").text()).toEqual("file.mxf");
         const sups = rendered.find("p.supplementary");
         expect(sups.length).toEqual(2);
-        expect(sups.at(0).text()).toEqual("1234 <FontAwesomeIcon />");
         expect(sups.at(1).text()).toEqual("2020-01-02T03:04:05Z");
-        const icon = rendered.find("FontAwesomeIcon");
+        const icon = rendered.find("#delete-icon");
         expect(icon.length).toEqual(1);
-        expect(icon.prop("icon")).toEqual("trash-alt");
     });
 })

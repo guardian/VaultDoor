@@ -1,5 +1,5 @@
 import React from 'react';
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
+import {DeleteOutline} from "@material-ui/icons";
 
 interface EntrySummaryLiProps {
     entry:FileEntry;
@@ -16,7 +16,7 @@ const EntrySummaryLi:React.FC<EntrySummaryLiProps> = (props) => {
 
     return <li key={props.entry.oid} className="clickable" onClick={()=>props.entryClickedCb(props.entry)}>
         <p className="filename">{fileName}</p>
-        <p className="supplementary">{props.entry.attributes.size} { isInTrash ? <FontAwesomeIcon icon="trash-alt" style={{marginLeft: "1em", height: "1em"}}/> : null}</p>
+        <p className="supplementary">{props.entry.attributes.size} { isInTrash ? <DeleteOutline id="delete-icon" style={{marginLeft: "1em", height: "1em"}}/> : null}</p>
         <p className="supplementary">{props.entry.attributes.ctime}</p>
     </li>
 }

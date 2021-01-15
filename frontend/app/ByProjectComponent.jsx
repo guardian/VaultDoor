@@ -4,6 +4,7 @@ import { withRouter } from 'react-router-dom';
 import ProjectContentSummary from "./projectsearch/ProjectContentSummary.jsx";
 import VaultSelector from "./searchnbrowse/VaultSelector.jsx";
 import {authenticatedFetch} from "./auth";
+import NewVaultSelector from "./searchnbrowse/NewVaultSelector";
 
 class ByProjectComponent extends React.Component {
     constructor(props){
@@ -68,7 +69,7 @@ class ByProjectComponent extends React.Component {
     render() {
         return <div className="windowpanel">
                 <div className="search-bar-element">
-                    <VaultSelector currentvault={this.state.vaultId} vaultWasChanged={newVaultId=>this.setState({vaultId: newVaultId})}/>
+                    <NewVaultSelector currentvault={this.state.vaultId} vaultWasChanged={newVaultId=>this.setState({vaultId: newVaultId})}/>
                 </div>
                 <ProjectLockerSearchBar projectLockerBaseUrl={this.state.projectLockerBaseUrl}
                                         projectSelectionChanged={newProject=>this.setState({currentProjectSearch: newProject})}

@@ -2,9 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import CommissionProjectView from "../metadata/CommissionProjectView.jsx";
 import {Doughnut, Pie} from "react-chartjs-2";
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import BytesFormatter from "../common/BytesFormatter.jsx";
 import {authenticatedFetch} from "../auth";
+import {Loop} from "@material-ui/icons";
 
 class ProjectContentSummary extends React.Component {
     static propTypes = {
@@ -161,7 +161,7 @@ class ProjectContentSummary extends React.Component {
                 <p className="centered information">Project {this.props.projectId}<br/>Loading summary information...</p>
                 <a href={this.props.plutoBaseUrl + "/project/" + this.props.projectId} target="_blank" style={{fontSize: "1.4em", paddingTop: "0.8em", display: this.props.plutoBaseUrl ? "inherit" : "none"}}>View in Pluto &gt;</a>
                 <div className="centered" style={{marginTop: "1em"}}>
-                <FontAwesomeIcon icon="cog" className="spinner" size="5x"/>
+                <Loop className="spinner" size="5x"/>
                 </div>
             </div>
         }

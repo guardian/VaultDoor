@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {authenticatedFetch} from "../auth";
+import {Search} from "@material-ui/icons";
+import {Tooltip} from "@material-ui/core";
 
 /**
  * presents a listbox with a filter control above it to the user.
@@ -139,8 +140,10 @@ class FilterableList extends React.Component {
         return <div className="filterable-list-holder">
             <ul className="no-decorations">
                 <li className="filterable-list-entry">
-                    <FontAwesomeIcon icon="search" className="inline-icon"/>
+                    <Tooltip title="Search here">
+                    <Search className="inline-icon"/>
                     <input type="text" onChange={evt=>this.setState({currentSearch: evt.target.value})} value={this.state.currentSearch}/>
+                    </Tooltip>
                 </li>
                 <li className="filterable-list-entry">
                     <select className="filterable-list-selector" size={this.props.size}

@@ -1,9 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import ContentHolder from "./searchnbrowse/ContentHolder.jsx";
 import {authenticatedFetch} from "./auth";
 import DownloadButton from "./common/DownloadButton.jsx";
+import {IconButton} from "@material-ui/core";
+import {Close} from "@material-ui/icons";
 
 class PopupPreview extends React.Component {
     static PREVIEW_IMAGE=1;
@@ -88,8 +89,10 @@ class PopupPreview extends React.Component {
     render() {
         return <div className="popup">
             <div className="popup_inner">
-                <span style={{float: "right"}} className="clickable" onClick={this.props.dialogClose}>
-                    <FontAwesomeIcon icon="times" size="2x" style={{padding: "5px"}}/></span>
+                {/*<span style={{float: "right"}} className="clickable" onClick={this.props.dialogClose}>*/}
+                {/*    <FontAwesomeIcon icon="times" size="2x" style={{padding: "5px"}}/>*/}
+                {/*</span>*/}
+                <IconButton onClick={this.props.dialogClose}><Close/></IconButton>
                 {this.renderDialogContent()}
             </div>
         </div>
