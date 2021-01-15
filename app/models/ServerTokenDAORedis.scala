@@ -45,6 +45,5 @@ class ServerTokenDAORedis @Inject() (config:Configuration) (override protected i
 
   override def finalize(): Unit = {
     redisClient.quit()
-    super.finalize()
   }
 }

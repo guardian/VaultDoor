@@ -18,7 +18,7 @@ GET     /audit/scan                                 @controllers.AuditController
 
 GET     /api/vault                                  @controllers.VaultController.knownVaults()
 
-GET     /api/vault/:vaultId/testFastSearch          @controllers.FileListController.testFastSearch(vaultId, field:String,value:String)
+GET     /api/vault/:vaultId/testFastSearch          @controllers.FileListController.testFastSearch(vaultId, field:String,value:String, quoted:Boolean?=false)
 GET     /api/vault/:vaultId/list                    @controllers.FileListController.pathSearchStreaming(vaultId, forFile:Option[String])
 GET     /api/vault/:vaultId/byProject/:projectId    @controllers.FileListController.projectSearchStreaming(vaultId, projectId)
 PUT     /api/vault/:vaultId/list                    @controllers.FileListController.customSearchStreaming(vaultId)

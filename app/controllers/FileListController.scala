@@ -6,14 +6,16 @@ import akka.stream.scaladsl.{GraphDSL, Keep, RunnableGraph, Source}
 import akka.util.ByteString
 import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
-import helpers.{UserInfoCache, ZonedDateTimeEncoder}
+import helpers.SearchTermHelper.projectIdQuery
+import helpers.{ContentSearchBuilder, UserInfoCache, ZonedDateTimeEncoder}
+
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import play.api.libs.circe.Circe
 import play.api.mvc.{AbstractController, ControllerComponents, EssentialAction, ResponseHeader, Result}
 import responses.GenericErrorResponse
-import streamcomponents.{OMFastSearchSource, OMLookupMetadata, OMSearchSource, ProjectSummarySink}
-import models.{MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
+import streamcomponents.{OMFastContentSearchSource, OMFastSearchSource, OMLookupMetadata, OMSearchSource, ProjectSummarySink}
+import models.{GnmMetadata, MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
 import org.slf4j.LoggerFactory
 import play.api.cache.SyncCacheApi
 import play.api.http.HttpEntity
@@ -76,7 +78,6 @@ class FileListController @Inject() (cc:ControllerComponents,
       val outlet = lookup.out
         .log("FileListController.searchGraph")
         .map(PresentableFile.fromObjectMatrixEntry)
-        .collect({case Some(presentableFile)=>presentableFile})
         .map(elem=>{
           try {
             elem.asJson.noSpaces
@@ -97,16 +98,16 @@ class FileListController @Inject() (cc:ControllerComponents,
     * @param searchTerm
     * @return
     */
-  def summaryFor(userInfo:UserInfo, searchTerm:SearchTerm) = {
+  def summaryFor(userInfo:UserInfo, query:ContentSearchBuilder) = {
     val sinkFact = new ProjectSummarySink
 
-    ProjectSummarySink.suitableFastSource(userInfo,Array(searchTerm)).toMat(sinkFact)(Keep.right).run()
+    ProjectSummarySink.suitableFastSource(userInfo,query).toMat(sinkFact)(Keep.right).run()
   }
 
   def vaultSummary(vaultId:String) = IsAuthenticatedAsync { uid=> request=>
     withVaultAsync(vaultId) { userInfo=>
-      val t = SearchTerm.createSimpleTerm(new Attribute(Constants.CONTENT, s"*"))
-      summaryFor(userInfo,t).map(summary=>{
+      val q = ContentSearchBuilder("*")
+      summaryFor(userInfo,q).map(summary=>{
         Ok(summary.asJson)
       })
     }
@@ -115,10 +116,14 @@ class FileListController @Inject() (cc:ControllerComponents,
   def projectsummary(vaultId:String, forProject:String) = IsAuthenticatedAsync { uid => request =>
     withVaultAsync(vaultId) { userInfo=>
       logger.info(s"projectsummary: looking up '$forProject' on $vaultId (${userInfo.getVault}")
-      val t = SearchTerm.createSimpleTerm("GNM_PROJECT_ID", forProject)
-      summaryFor(userInfo, t).map(summary=>{
-        Ok(summary.asJson)
-      })
+      projectIdQuery(forProject) match {
+        case Some(query) =>
+          summaryFor(userInfo, query).map(summary => {
+            Ok(summary.asJson)
+          })
+        case None =>
+          Future(BadRequest(GenericErrorResponse("bad_request", "project id is malformed").asJson))
+      }
     }
   }
 
@@ -130,13 +135,16 @@ class FileListController @Inject() (cc:ControllerComponents,
     */
   def projectSearchStreaming(vaultId:String, forProject:String) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo=>
-      val searchAttrib = new Attribute("GNM_PROJECT_ID", forProject)//s"""GNM_PROJECT_ID:"$forProject"""")
-      val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
-
-      Result(
-        ResponseHeader(200, Map()),
-        HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
-      )
+      projectIdQuery(forProject) match {
+        case Some(q)=>
+          val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(Constants.CONTENT, q.build))
+          Result(
+            ResponseHeader(200, Map()),
+            HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
+          )
+        case None=>
+          BadRequest(GenericErrorResponse("bad_request", "project id is malformed").asJson)
+      }
     }
   }
 
@@ -149,7 +157,6 @@ class FileListController @Inject() (cc:ControllerComponents,
   def pathSearchStreaming(vaultId:String, forPath:Option[String]) = IsAuthenticated { uid=> request=>
     userInfoCache.infoForVaultId(vaultId) match {
       case Some(userInfo) =>
-        //implicit val ec: ExecutionContext = system.dispatcher
         val searchAttrib = forPath match {
           case Some(searchPath)=>new Attribute(Constants.CONTENT, s"""MXFS_FILENAME:"$searchPath"""" )
           case None=>new Attribute(Constants.CONTENT, s"*")
@@ -185,16 +192,23 @@ class FileListController @Inject() (cc:ControllerComponents,
     }
   }
 
-  def testFastSearch(vaultId:String, field:String, value:String) = IsAuthenticated { uid=> request=>
+  def testFastSearch(vaultId:String, field:String, value:String, quoted:Boolean) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo =>
       val graph = GraphDSL.create() { implicit builder =>
         import akka.stream.scaladsl.GraphDSL.Implicits._
 
-        val terms = Array(
-          SearchTerm.createSimpleTerm(field, value)
-        )
-        val src = builder.add(new OMFastSearchSource(userInfo, terms, Array("GNM_PROJECT_ID","MXFS_ACCESS_TIME","MXFS_PATH","DPSP_SIZE")))
+        val searchString = ContentSearchBuilder(s"$field:$value")
+          .withKeywords(GnmMetadata.Fields)
+          .withKeywords(PresentableFile.MXFSFields)
+          .build
+
+        logger.debug(s"vault is $vaultId, field '$field', value '$value', quoted '$quoted'.  Search term is $searchString")
+        val src = builder.add(new OMFastContentSearchSource(userInfo, searchString))
         val outlet = src.out
+          .map(entry=>{
+            logger.info(s"Got entry ${entry.oid} with attributes ${entry.attributes.map(_.stringValues)}")
+            entry
+          })
           .map(PresentableFile.fromObjectMatrixEntry)
           .map(_.asJson.noSpaces)
           .map(jsonString => ByteString(jsonString + "\n"))
