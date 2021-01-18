@@ -1,8 +1,8 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import {authenticatedFetch} from "../auth";
-import {Search} from "@material-ui/icons";
-import {Tooltip} from "@material-ui/core";
+import React from "react";
+import PropTypes from "prop-types";
+import { authenticatedFetch } from "../auth";
+import { Search } from "@material-ui/icons";
+import { Tooltip } from "@material-ui/core";
 
 /**
  * presents a listbox with a filter control above it to the user.
@@ -37,128 +37,189 @@ import {Tooltip} from "@material-ui/core";
  * omitted
  */
 class FilterableList extends React.Component {
-    static propTypes = {
-        unfilteredContent: PropTypes.array,
-        unfilteredContentFetchUrl: PropTypes.string,
-        makeSearchDoc: PropTypes.func,
-        fetchUrlFilterQuery: PropTypes.string,
-        unfilteredContentConverter: PropTypes.func,
-        initialLoad: PropTypes.bool,
-        onChange: PropTypes.func.isRequired,
-        value: PropTypes.string.isRequired,
-        onFiltered: PropTypes.func,
-        size: PropTypes.number.isRequired,
-        allowCredentials: PropTypes.bool,
-        triggerRefresh: PropTypes.number  //change this to any number to trigger a refresh
+  static propTypes = {
+    unfilteredContent: PropTypes.array,
+    unfilteredContentFetchUrl: PropTypes.string,
+    makeSearchDoc: PropTypes.func,
+    fetchUrlFilterQuery: PropTypes.string,
+    unfilteredContentConverter: PropTypes.func,
+    initialLoad: PropTypes.bool,
+    onChange: PropTypes.func.isRequired,
+    value: PropTypes.string.isRequired,
+    onFiltered: PropTypes.func,
+    size: PropTypes.number.isRequired,
+    allowCredentials: PropTypes.bool,
+    triggerRefresh: PropTypes.number, //change this to any number to trigger a refresh
+  };
+
+  constructor(props) {
+    super(props);
+    this.state = {
+      currentSearch: "",
+      contentFromServer: [],
+      filteredStaticContent: [],
     };
+  }
 
-    constructor(props){
-        super(props);
-        this.state = {
-            currentSearch: "",
-            contentFromServer: [],
-            filteredStaticContent: []
-        };
-    }
+  static defaultContentConverter(incomingLines) {
+    return incomingLines;
+  }
 
-    static defaultContentConverter(incomingLines) {
-        return incomingLines;
-    }
+  setStatePromise(newState) {
+    return new Promise((resolve, reject) => {
+      this.setState(newState, () => resolve()).catch((err) => reject(err));
+    });
+  }
 
-    setStatePromise(newState){
-        return new Promise((resolve, reject)=>{
-            this.setState(newState,()=>resolve()).catch(err=>reject(err));
+  componentDidMount() {
+    if (this.props.initialLoad) this.fetchFromServer("");
+    if (this.props.unfilteredContent) this.filterStatic("");
+  }
+
+  async fetchFromServer(searchParam) {
+    const getUrl =
+      this.props.unfilteredContentFetchUrl +
+      "?" +
+      this.props.fetchUrlFilterQuery +
+      "=" +
+      searchParam;
+    const credentialsValue = this.props.allowCredentials ? "include" : "omit";
+
+    const result = await (this.props.makeSearchDoc
+      ? authenticatedFetch(this.props.unfilteredContentFetchUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(this.props.makeSearchDoc(searchParam)),
+          credentials: credentialsValue,
         })
+      : authenticatedFetch(getUrl));
+    const content = await result.json();
+
+    try {
+      if (!result.ok) return this.setStatePromise({ contentFromServer: [] });
+
+      const convertedContent = this.props.unfilteredContentConverter
+        ? this.props.unfilteredContentConverter(content)
+        : FilterableList.defaultContentConverter(content);
+      return this.setStatePromise({
+        contentFromServer: convertedContent,
+        loading: false,
+      });
+    } catch (err) {
+      console.error("Could not convert content: ", err);
+    }
+  }
+
+  async filterStatic(searchParam) {
+    if (searchParam === "") {
+      return new Promise((resolve, reject) =>
+        this.setState(
+          { filteredStaticContent: this.props.unfilteredContent },
+          () => resolve()
+        )
+      );
     }
 
-    componentDidMount() {
-        if(this.props.initialLoad) this.fetchFromServer("");
-        if(this.props.unfilteredContent) this.filterStatic("");
-    }
+    return new Promise((resolve, reject) => {
+      this.setState(
+        {
+          filteredStaticContent: this.props.unfilteredContent.filter((entry) =>
+            entry.name.toLowerCase().includes(searchParamLwr)
+          ),
+        },
+        () => resolve()
+      );
+    });
+  }
 
-    async fetchFromServer(searchParam){
-        const getUrl = this.props.unfilteredContentFetchUrl + "?" + this.props.fetchUrlFilterQuery + "=" + searchParam;
-        const credentialsValue = this.props.allowCredentials ? "include" : "omit";
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    if (prevState.currentSearch !== this.state.currentSearch) {
+      const completionPromise = this.props.unfilteredContentFetchUrl
+        ? this.fetchFromServer(this.state.currentSearch)
+        : this.filterStatic(this.state.currentSearch);
 
-        const result = await (this.props.makeSearchDoc ? authenticatedFetch(this.props.unfilteredContentFetchUrl ,{method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(this.props.makeSearchDoc(searchParam)), credentials: credentialsValue}) : authenticatedFetch(getUrl));
-        const content = await result.json();
-
-        try {
-            if(!result.ok) return this.setStatePromise({contentFromServer: []});
-
-            const convertedContent = this.props.unfilteredContentConverter ? this.props.unfilteredContentConverter(content) : FilterableList.defaultContentConverter(content);
-            return this.setStatePromise({contentFromServer: convertedContent, loading: false});
-        } catch (err) {
-            console.error("Could not convert content: ", err);
-        }
-    }
-
-    async filterStatic(searchParam){
-        if(searchParam===""){
-            return new Promise((resolve,reject)=>this.setState({filteredStaticContent: this.props.unfilteredContent}, ()=>resolve()));
-        }
-
-        return new Promise((resolve,reject)=>{
-            this.setState({filteredStaticContent: this.props.unfilteredContent.filter(entry=>entry.name.toLowerCase().includes(searchParamLwr))}, ()=>resolve());
+      completionPromise
+        .then(() => {
+          if (this.props.onFiltered)
+            this.props.onFiltered(this.state.currentSearch);
+        })
+        .catch((err) => {
+          this.setState({ loading: false, lastError: err });
         });
     }
+    if (prevProps.triggerRefresh !== this.props.triggerRefresh) {
+      const completionPromise = this.props.unfilteredContentFetchUrl
+        ? this.fetchFromServer(this.state.currentSearch)
+        : this.filterStatic(this.state.currentSearch);
 
-    componentDidUpdate(prevProps, prevState, snapshot) {
-        if(prevState.currentSearch!==this.state.currentSearch){
-            const completionPromise = this.props.unfilteredContentFetchUrl ? this.fetchFromServer(this.state.currentSearch) : this.filterStatic(this.state.currentSearch);
-
-            completionPromise.then(()=> {
-                if (this.props.onFiltered) this.props.onFiltered(this.state.currentSearch);
-            }).catch(err=>{
-                this.setState({loading: false, lastError: err})
-            })
-        }
-        if(prevProps.triggerRefresh !== this.props.triggerRefresh){
-            const completionPromise = this.props.unfilteredContentFetchUrl ? this.fetchFromServer(this.state.currentSearch) : this.filterStatic(this.state.currentSearch);
-
-            completionPromise.then(()=> {
-                if (this.props.onFiltered) this.props.onFiltered(this.state.currentSearch);
-            }).catch(err=>{
-                this.setState({loading: false, lastError: err})
-            })
-        }
-        if(prevProps.unfilteredContent !== this.props.unfilteredContent){
-            const completionPromise = this.props.unfilteredContentFetchUrl ? this.fetchFromServer(this.state.currentSearch) : this.filterStatic(this.state.currentSearch);
-
-            completionPromise.then(()=> {
-                if (this.props.onFiltered) this.props.onFiltered(this.state.currentSearch);
-            }).catch(err=>{
-                this.setState({loading: false, lastError: err})
-            })
-        }
+      completionPromise
+        .then(() => {
+          if (this.props.onFiltered)
+            this.props.onFiltered(this.state.currentSearch);
+        })
+        .catch((err) => {
+          this.setState({ loading: false, lastError: err });
+        });
     }
+    if (prevProps.unfilteredContent !== this.props.unfilteredContent) {
+      const completionPromise = this.props.unfilteredContentFetchUrl
+        ? this.fetchFromServer(this.state.currentSearch)
+        : this.filterStatic(this.state.currentSearch);
 
-    render(){
-        const listContent = this.props.unfilteredContent ? this.state.filteredStaticContent : this.state.contentFromServer;
-        const sortedContent = listContent.sort((a,b)=>a.name.localeCompare(b.name));
-
-        return <div className="filterable-list-holder">
-            <ul className="no-decorations">
-                <li className="filterable-list-entry">
-                    <Tooltip title="Search here">
-                    <Search className="inline-icon"/>
-                    <input type="text" onChange={evt=>this.setState({currentSearch: evt.target.value})} value={this.state.currentSearch}/>
-                    </Tooltip>
-                </li>
-                <li className="filterable-list-entry">
-                    <select className="filterable-list-selector" size={this.props.size}
-                            value={this.props.value}
-                            onClick={evt=>this.props.onChange(evt.target.value)}>
-                        {
-                            sortedContent.map((entry,ix)=>{
-                                return <option key={ix} value={entry.value}>{entry.name}</option>
-                            })
-                        }
-                    </select>
-                </li>
-            </ul>
-        </div>
+      completionPromise
+        .then(() => {
+          if (this.props.onFiltered)
+            this.props.onFiltered(this.state.currentSearch);
+        })
+        .catch((err) => {
+          this.setState({ loading: false, lastError: err });
+        });
     }
+  }
+
+  render() {
+    const listContent = this.props.unfilteredContent
+      ? this.state.filteredStaticContent
+      : this.state.contentFromServer;
+    const sortedContent = listContent.sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+
+    return (
+      <div className="filterable-list-holder">
+        <ul className="no-decorations">
+          <li className="filterable-list-entry">
+            <Tooltip title="Search here">
+              <Search className="inline-icon" />
+              <input
+                type="text"
+                onChange={(evt) =>
+                  this.setState({ currentSearch: evt.target.value })
+                }
+                value={this.state.currentSearch}
+              />
+            </Tooltip>
+          </li>
+          <li className="filterable-list-entry">
+            <select
+              className="filterable-list-selector"
+              size={this.props.size}
+              value={this.props.value}
+              onClick={(evt) => this.props.onChange(evt.target.value)}
+            >
+              {sortedContent.map((entry, ix) => {
+                return (
+                  <option key={ix} value={entry.value}>
+                    {entry.name}
+                  </option>
+                );
+              })}
+            </select>
+          </li>
+        </ul>
+      </div>
+    );
+  }
 }
 
 export default FilterableList;
