@@ -11,20 +11,33 @@ var config = {
         path: BUILD_DIR,
         filename: 'bundle.js'
     },
+    resolve: {
+        extensions: [".ts", ".tsx", ".js", ".jsx"],
+    },
     optimization: {
         minimizer: [new TerserPlugin()]
     },
     module : {
         rules : [
             {
-                test : /\.jsx?/,
+                test : /\.[tj]sx?/,
                 include : APP_DIR,
-                loader : 'babel-loader'
+                loader : 'ts-loader'
             },
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader']
-            }
+            },
+            {
+                enforce: "pre",
+                test: /\.js$/,
+                exclude: /node_modules/,
+                loader: "source-map-loader",
+            },
+            {
+                test: /\.(css|s[ac]ss)$/,
+                use: ["style-loader", "css-loader", "sass-loader"],
+            },
         ]
     }
 };
