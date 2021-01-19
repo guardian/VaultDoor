@@ -11,6 +11,7 @@ class DetailsPanel extends React.Component {
     previewRequestedCb: PropTypes.func.isRequired,
     projectClicked: PropTypes.func,
     vaultId: PropTypes.string,
+      className: PropTypes.string,
   };
 
   static mdTabNames = ["GNM metadata", "Media Info", "MXFS metadata", "All"];
@@ -38,7 +39,7 @@ class DetailsPanel extends React.Component {
     const entry = this.props.entry;
     if (!entry) {
       return (
-        <div className="results-subpanel">
+        <div className={this.props.className}>
           <span className="centered filename semilarge">Nothing selected</span>
         </div>
       );
@@ -50,7 +51,7 @@ class DetailsPanel extends React.Component {
       pathParts.length > 0 ? pathParts[pathParts.length - 1] : "(no name)";
 
     return (
-      <div className="results-subpanel">
+      <div className={this.props.className}>
         <span className="centered filename semilarge">{fileName}</span>
         <span className="centered">
           {this.props.entry.gnmMetadata

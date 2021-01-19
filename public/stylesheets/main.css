@@ -70,47 +70,6 @@ button:active {
     margin-right: 0.2em;
 }
 
-div.results-panel {
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
-    overflow: hidden;
-    width: 90vw;
-    margin-top: 2em;
-    min-height: 230px;
-    max-height: 80vh;
-    border-style: dashed;
-    padding-bottom: 1em;
-}
-
-.results-subpanel-wide {
-    width: 100%;
-    padding: 0.5em;
-    border-bottom-style: dashed;
-    border-bottom-width: thin;
-}
-
-.results-subpanel {
-    width: 49.9%;
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    border-right-style: dashed;
-    border-right-width: thin;
-    display: inline-block;
-}
-
-/*.results-panel:before {*/
-/*    content: " ";*/
-/*    position: absolute;*/
-/*    z-index: -1;*/
-/*    top: 5px;*/
-/*    bottom: 5px;*/
-/*    left: 5px;*/
-/*    right: 5px;*/
-/*    border-style: dashed;*/
-/*}*/
-
 .inline-icon {
     margin-right: 0.4em;
 }
@@ -240,7 +199,7 @@ div.chart-holder {
         transform: rotate(0deg);
     }
     100% {
-        transform: rotate(360deg);
+        transform: rotate(-360deg);
     }
 }
 
