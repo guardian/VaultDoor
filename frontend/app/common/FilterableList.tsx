@@ -39,16 +39,16 @@ const FilterableList: React.FC<FilterableListProps<any>> = (props) => {
     NameValuePair[]
   >([]);
 
-  useEffect(() => {
-    if (props.unfilteredContentFetchUrl) {
-      fetchFromServer("");
-    } else {
-      filterStatic("");
-    }
-  }, []);
+  //this is taken care of in the effect for [currentSearch, props.triggerRefresh, props.unfilteredContent] below
+  // useEffect(() => {
+  //   if (props.unfilteredContentFetchUrl) {
+  //     fetchFromServer("");
+  //   } else {
+  //     filterStatic("");
+  //   }
+  // }, []);
 
   async function fetchFromServer(searchParam: string) {
-    console.log("fetchFromServer");
     const getUrl =
       props.unfilteredContentFetchUrl +
       "?" +
@@ -57,25 +57,14 @@ const FilterableList: React.FC<FilterableListProps<any>> = (props) => {
       searchParam;
     const credentialsValue = props.allowCredentials ? "include" : "omit";
 
-    console.log(`fetchFromServer: url is ${props.unfilteredContentFetchUrl}`);
-    console.log("makeSearchDoc is ", props.makeSearchDoc);
-
-    if (!props.makeSearchDoc) throw "need makeSearchDoc to be specified";
-
-    // const result = await (props.makeSearchDoc
-    //     ? authenticatedFetch(props.unfilteredContentFetchUrl, {
-    //         method: "PUT",
-    //         headers: { "Content-Type": "application/json" },
-    //         body: JSON.stringify(props.makeSearchDoc(searchParam)),
-    //         credentials: credentialsValue,
-    //     })
-    //     : authenticatedFetch(getUrl, {method: "GET", credentials: credentialsValue}));
-    const result = await authenticatedFetch(props.unfilteredContentFetchUrl, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(props.makeSearchDoc(searchParam)),
-      credentials: credentialsValue,
-    });
+    const result = await (props.makeSearchDoc
+        ? authenticatedFetch(props.unfilteredContentFetchUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(props.makeSearchDoc(searchParam)),
+            credentials: credentialsValue,
+        })
+        : authenticatedFetch(getUrl, {method: "GET", credentials: credentialsValue}));
 
     const content = await result.json();
 
@@ -121,8 +110,6 @@ const FilterableList: React.FC<FilterableListProps<any>> = (props) => {
   }
 
   useEffect(() => {
-    console.log(`currentSearch updated: ${props.triggerRefresh}`);
-
     const completionPromise = props.unfilteredContentFetchUrl
       ? fetchFromServer(currentSearch)
       : filterStatic(currentSearch);
@@ -167,6 +154,7 @@ const FilterableList: React.FC<FilterableListProps<any>> = (props) => {
             className="filterable-list-selector"
             size={props.size}
             onChange={(evt) => props.onChange(evt.target.value)}
+            value={props.value}
           >
             {sortedContent.map((elem, idx) => (
               <option key={idx} value={elem.value}>
