@@ -1,8 +1,9 @@
 import React from "react";
 import PropTypes from "prop-types";
-import FilterableList from "../common/FilterableList.jsx";
+import FilterableListOld from "../common/FilterableList.jsx";
 import ProjectLockerLoginComponent from "./ProjectLockerLoginComponent.jsx";
 import { authenticatedFetch } from "../auth";
+import { Typography } from "@material-ui/core";
 
 class ProjectLockerSearchBar extends React.Component {
   static propTypes = {
@@ -34,6 +35,17 @@ class ProjectLockerSearchBar extends React.Component {
     this.makeCommissionSearch = this.makeCommissionSearch.bind(this);
     this.makeProjectSearch = this.makeProjectSearch.bind(this);
     this.newPLLogin = this.newPLLogin.bind(this);
+  }
+
+  static getDerivedStateFromError(error) {
+    return {
+      lastError: `An internal error occurred: ${error.toString()}`,
+    };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Internal error occurred in ProjectLockerSearchBar: ", error);
+    console.log(errorInfo);
   }
 
   newPLLogin(username) {
@@ -113,7 +125,7 @@ class ProjectLockerSearchBar extends React.Component {
   componentDidMount() {
     this.checkPLLogin().catch((err) => {
       this.setState({
-        lasatError:
+        lastError:
           "Could not communicate with Projectlocker. Verify that the server is up and correctly configured for CORS usage.",
       });
     });
@@ -199,11 +211,13 @@ class ProjectLockerSearchBar extends React.Component {
       );
     }
 
-    return (
+    return this.state.lastError ? (
+      <Typography variant="error">{this.state.lastError}</Typography>
+    ) : (
       <div className="search-bar">
         <div className="search-bar-element">
           <h3>Working Group</h3>
-          <FilterableList
+          <FilterableListOld
             onChange={this.workingGroupChanged}
             value={this.state.currentWorkingGroup}
             size={this.props.size}
@@ -212,7 +226,7 @@ class ProjectLockerSearchBar extends React.Component {
         </div>
         <div className="search-bar-element">
           <h3>Commission</h3>
-          <FilterableList
+          <FilterableListOld
             onChange={(updatedComm) =>
               this.setState({
                 currentCommissionVsid: updatedComm,
@@ -234,7 +248,7 @@ class ProjectLockerSearchBar extends React.Component {
         </div>
         <div className="search-bar-element">
           <h3>Project</h3>
-          <FilterableList
+          <FilterableListOld
             onChange={(updatedProj) =>
               this.props.projectSelectionChanged(updatedProj)
             }

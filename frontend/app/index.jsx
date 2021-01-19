@@ -12,7 +12,7 @@ import RootComponent from "./RootComponent.jsx";
 import Raven from "raven-js";
 import SearchComponent from "./SearchComponent.jsx";
 import OAuthCallbackComponent from "./OAuthCallbackComponent.jsx";
-import ByProjectComponent from "./ByProjectComponent.jsx";
+import ByProjectComponent from "./ByProjectComponent";
 import LoadingIndicator from "./LoadingIndicator.jsx";
 import { authenticatedFetch } from "./auth";
 import { ThemeProvider } from "@material-ui/core/styles";
@@ -54,25 +54,26 @@ class App extends React.Component {
           root: {
             backgroundColor: "#000000",
             color: "#f5f5f5",
-          },
-          selected: {
-            color: "#000000",
-            backgroundColor: "#f5f5f5ff",
+            "&$selected": {
+              color: "#000000",
+              backgroundColor: "#f5f5f5ff",
+            },
           },
         },
         MuiListItem: {
           root: {
             backgroundColor: "#000000",
             color: "#f5f5f5",
+            "&$selected": {
+              color: "#000000",
+              backgroundColor: "#f5f5f5ff",
+            },
           },
-          selected: {
-            color: "#000000",
-            backgroundColor: "#f5f5f5ff",
-          },
-          "selected:hover": {
-            color: "#000000",
-            backgroundColor: "#f5f5f5ff",
-          },
+          //
+          // "selected:hover": {
+          //   color: "#000000",
+          //   backgroundColor: "#f5f5f5ff",
+          // },
         },
       },
     });

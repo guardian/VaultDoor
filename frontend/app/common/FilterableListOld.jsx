@@ -36,7 +36,7 @@ import { Tooltip } from "@material-ui/core";
  * an array of {name: "displayname",value: "somevalue"}. If the data is already in this format then `unfilteredContentConverter` can be
  * omitted
  */
-class FilterableList extends React.Component {
+class FilterableListOld extends React.Component {
   static propTypes = {
     unfilteredContent: PropTypes.array,
     unfilteredContentFetchUrl: PropTypes.string,
@@ -100,7 +100,7 @@ class FilterableList extends React.Component {
 
       const convertedContent = this.props.unfilteredContentConverter
         ? this.props.unfilteredContentConverter(content)
-        : FilterableList.defaultContentConverter(content);
+        : FilterableListOld.defaultContentConverter(content);
       return this.setStatePromise({
         contentFromServer: convertedContent,
         loading: false,
@@ -222,4 +222,4 @@ class FilterableList extends React.Component {
   }
 }
 
-export default FilterableList;
+export default FilterableListOld;

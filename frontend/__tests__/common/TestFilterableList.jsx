@@ -1,6 +1,6 @@
 import React from "react";
 import { shallow, mount } from "enzyme";
-import FilterableList from "../../app/common/FilterableList.jsx";
+import FilterableListOld from "../../app/common/FilterableList.jsx";
 import sinon from "sinon";
 import expect from "expect";
 
@@ -26,7 +26,7 @@ describe("FilterableList", () => {
     fetch.mockResponse(JSON.stringify(mockData));
 
     const rendered = shallow(
-      <FilterableList
+      <FilterableListOld
         onChange={onChangeMock}
         value=""
         size={5}
@@ -71,7 +71,7 @@ describe("FilterableList", () => {
     fetch.mockResponse(JSON.stringify(mockData));
 
     const rendered = shallow(
-      <FilterableList
+      <FilterableListOld
         onChange={onChangeMock}
         value=""
         size={5}
@@ -120,7 +120,7 @@ describe("FilterableList", () => {
     fetch.mockResponse(JSON.stringify(mockData));
 
     const rendered = shallow(
-      <FilterableList
+      <FilterableListOld
         onChange={onChangeMock}
         value=""
         size={5}
@@ -193,7 +193,7 @@ describe("FilterableList", () => {
     let valueHolder = "";
 
     const rendered = shallow(
-      <FilterableList
+      <FilterableListOld
         onChange={onChangeMock}
         value={valueHolder}
         size={5}
@@ -223,7 +223,7 @@ describe("FilterableList", () => {
     fetch.mockResponse(JSON.stringify(["row1", "row2", "row3"]));
 
     const rendered = shallow(
-      <FilterableList
+      <FilterableListOld
         onChange={onChangeMock}
         value="something"
         size={5}
@@ -241,7 +241,7 @@ describe("FilterableList", () => {
     fetch.mockResponse(JSON.stringify(["row1", "row2", "row3"]));
 
     const rendered = shallow(
-      <FilterableList
+      <FilterableListOld
         onChange={onChangeMock}
         value="something"
         size={5}
@@ -263,7 +263,7 @@ describe("FilterableList", () => {
     ];
 
     const rendered = shallow(
-      <FilterableList
+      <FilterableListOld
         onChange={onChangeMock}
         value="something"
         size={5}

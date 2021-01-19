@@ -41,3 +41,50 @@ interface FileEntry {
   attributes: FileAttributes;
   gnmMetadata: GnmMetadata | null | undefined;
 }
+
+interface NameValuePair {
+  name: string;
+  value: string;
+}
+
+interface PlutoWorkingGroupEntry {
+  name: string;
+  id: string;
+}
+
+interface PlutoWorkingGroupResponse {
+  status: string;
+  result: PlutoWorkingGroupEntry[];
+}
+
+interface PlutoCommissionEntry {
+  title: string;
+  id: number;
+  owner: string;
+  productionOffice: string;
+  projectCount: number;
+  scheduledCompletion: string;
+  status: string;
+  updated: string;
+  workingGroupId: number;
+  siteId?: string;
+  collectionId?: number;
+}
+
+interface PlutoCommissionResponse {
+  status: string;
+  result: PlutoCommissionEntry[];
+}
+
+interface PlutoProjectEntry {
+  id: number;
+  title: string;
+  vidispineId?: string;
+}
+
+interface PlutoProjectResponse {
+  status: string;
+  result: PlutoProjectEntry[];
+}
+
+type ValueConverterFunc<T> = (initialData: T) => NameValuePair[];
