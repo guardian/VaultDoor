@@ -51,7 +51,6 @@ const useStyles = makeStyles({});
 const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps> = (
   props
 ) => {
-  const [loading, setLoading] = useState(false);
   const [currentWorkingGroupId, setCurrentWorkingGroupId] = useState<
     string | undefined
   >(undefined);
@@ -100,6 +99,7 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
         setProjectLockerLoggedIn(false);
       }
     } catch (err) {
+      setLastError("Could not contact pluto-core, please see browser console");
       return new Promise((resolve, reject) => reject(err));
     }
   }
@@ -207,15 +207,6 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
    * @param enteredText content of the filterable list search box
    */
   const makeProjectSearch = (enteredText: string) => {
-    // return {
-    //     query: {
-    //         title: enteredText,
-    //         match: "W_CONTAINS",
-    //     },
-    //     filter: {
-    //         commissionId: currentCommissionVsid,
-    //     },
-    // };
     return {
       title: enteredText,
       match: "W_CONTAINS",
@@ -226,7 +217,7 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
   };
 
   return lastError ? (
-    <Typography>{lastError}</Typography>
+    <Typography className={props.className}>{lastError}</Typography>
   ) : (
     <Grid container spacing={3} className={props.className}>
       <Grid item xs={4}>
