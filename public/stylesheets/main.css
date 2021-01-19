@@ -77,8 +77,9 @@ div.results-panel {
     overflow: hidden;
     width: 90vw;
     margin-top: 2em;
-    height: 80vh;
+    min-height: 230px;
     border-style: dashed;
+    padding-bottom: 1em;
 }
 
 .results-subpanel-wide {
