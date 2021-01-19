@@ -78,6 +78,7 @@ div.results-panel {
     width: 90vw;
     margin-top: 2em;
     min-height: 230px;
+    max-height: 80vh;
     border-style: dashed;
     padding-bottom: 1em;
 }

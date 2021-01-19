@@ -116,7 +116,6 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
   const commissionContentConverter: ValueConverterFunc<PlutoCommissionResponse> = (
     incomingData
   ) => {
-    console.log("commissionContentConverter: ", incomingData);
     return incomingData.result.map((entry) => {
       return {
         name: entry.title,
@@ -128,14 +127,17 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
   const projectContentConverter: ValueConverterFunc<PlutoProjectResponse> = (
     incomingData
   ) => {
-    console.log("projectContentConverter: ", incomingData);
     return incomingData.result.map((entry) => {
       return { name: entry.title, value: entry.id.toString() };
     });
   };
 
   async function initialWorkingGroupLoad() {
-    if (props.projectLockerBaseUrl === "") return;
+    if (props.projectLockerBaseUrl === "") {
+      console.log("ProjectLockerSearchBar can't load initial working group because projectLockerBaseUrl is not set");
+      return;
+    }
+
     try {
       const response = await authenticatedFetch(
         props.projectLockerBaseUrl + workingGroupFetchUrl,
@@ -182,7 +184,6 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
 
   //tell the parent if the project selection changes
   useEffect(() => {
-    console.log(`project selection changed: ${currentProjectVsid}`);
     props.projectSelectionChanged(currentProjectVsid);
   }, [currentProjectVsid]);
 

@@ -69,11 +69,6 @@ class App extends React.Component {
               backgroundColor: "#f5f5f5ff",
             },
           },
-          //
-          // "selected:hover": {
-          //   color: "#000000",
-          //   backgroundColor: "#f5f5f5ff",
-          // },
         },
       },
     });
