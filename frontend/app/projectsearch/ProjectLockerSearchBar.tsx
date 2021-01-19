@@ -137,7 +137,7 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
   async function initialWorkingGroupLoad() {
     if (props.projectLockerBaseUrl === "") return;
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         props.projectLockerBaseUrl + workingGroupFetchUrl,
         { credentials: "include" }
       );
