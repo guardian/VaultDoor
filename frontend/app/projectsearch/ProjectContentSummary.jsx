@@ -231,9 +231,11 @@ class ProjectContentSummary extends React.Component {
         ) : (
           <p className="centered information">Select a project above</p>
         )}
-        {this.state.summaryData.total.count === 0 && !this.state.loading ? (
+        {this.state.summaryData.total.count === 0 &&
+        !this.state.loading &&
+        this.props.projectId ? (
           <p className="information centered" style={{ fontSize: "1.2em" }}>
-            No media found for this project
+            No media found for this project in the selected vault.
           </p>
         ) : (
           <span />

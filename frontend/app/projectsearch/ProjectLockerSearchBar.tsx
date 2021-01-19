@@ -170,13 +170,14 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
   //update the commission search box if the working group id changes
   useEffect(() => {
     setCommSearchCounter((prevValue) => prevValue + 1);
-    setCurrentProjectVsid(undefined);
+    setCurrentCommissionVsid(undefined);
+    setProjSearchCounter((prevValue) => prevValue + 1);
   }, [currentWorkingGroupId]);
 
   //update the project search box if the commission id changes
   useEffect(() => {
-    setProjSearchCounter((prevValue) => prevValue + 1);
     setCurrentProjectVsid(undefined);
+    setProjSearchCounter((prevValue) => prevValue + 1);
   }, [currentCommissionVsid]);
 
   //tell the parent if the project selection changes
@@ -191,14 +192,13 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
    * @param enteredText content of filterable list search box
    */
   const makeCommissionSearch = (enteredText: string) => {
-    console.log("makeCommissionSearch: ", enteredText);
-    return {
-      title: enteredText,
-      match: "W_STARTSWITH",
-      workingGroupId: currentWorkingGroupId
-        ? parseInt(currentWorkingGroupId)
-        : undefined,
-    };
+    return currentWorkingGroupId
+      ? {
+          title: enteredText,
+          match: "W_CONTAINS",
+          workingGroupId: parseInt(currentWorkingGroupId),
+        }
+      : null;
   };
 
   /**
@@ -207,13 +207,13 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
    * @param enteredText content of the filterable list search box
    */
   const makeProjectSearch = (enteredText: string) => {
-    return {
-      title: enteredText,
-      match: "W_CONTAINS",
-      commissionId: currentCommissionVsid
-        ? parseInt(currentCommissionVsid)
-        : undefined,
-    };
+    return currentCommissionVsid
+      ? {
+          title: enteredText,
+          match: "W_CONTAINS",
+          commissionId: parseInt(currentCommissionVsid),
+        }
+      : null;
   };
 
   return lastError ? (

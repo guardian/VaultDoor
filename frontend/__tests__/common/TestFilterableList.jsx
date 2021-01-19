@@ -1,6 +1,6 @@
 import React from "react";
 import { shallow, mount } from "enzyme";
-import { act } from 'react-dom/test-utils';
+import { act } from "react-dom/test-utils";
 import FilterableList from "../../app/common/FilterableList";
 import sinon from "sinon";
 import expect from "expect";
@@ -28,34 +28,35 @@ describe("FilterableList", () => {
 
     let rendered;
 
-    act(()=> {
+    act(() => {
       rendered = mount(
-          <FilterableList
-              onChange={onChangeMock}
-              value=""
-              size={5}
-              unfilteredContentFetchUrl="http://mock-server/endpoint"
-              fetchUrlFilterQuery="oid"
-              unfilteredContentConverter={contentConverterMock}
-              initialLoad={true}
-          />);
+        <FilterableList
+          onChange={onChangeMock}
+          value=""
+          size={5}
+          unfilteredContentFetchUrl="http://mock-server/endpoint"
+          fetchUrlFilterQuery="oid"
+          unfilteredContentConverter={contentConverterMock}
+          initialLoad={true}
+        />
+      );
     });
 
-    act(()=>{
+    act(() => {
       rendered.setProps({}, () => {
         timeoutWaiter(() => shouldContinue)
-            .then(() => {
-              rendered.update();
-              const select = rendered.find("select");
-              const elements = select.children();
-              expect(fetch.mock.calls.length).toBe(1);
-              expect(fetch.mock.calls[0][0]).toEqual(
-                  "http://mock-server/endpoint?oid="
-              ); //there is no search value for initial load
-              expect(elements.length).toBe(3);
-              done();
-            })
-            .catch((err) => done.fail(err));
+          .then(() => {
+            rendered.update();
+            const select = rendered.find("select");
+            const elements = select.children();
+            expect(fetch.mock.calls.length).toBe(1);
+            expect(fetch.mock.calls[0][0]).toEqual(
+              "http://mock-server/endpoint?oid="
+            ); //there is no search value for initial load
+            expect(elements.length).toBe(3);
+            done();
+          })
+          .catch((err) => done.fail(err));
       }); //force a re-render - see https://airbnb.io/enzyme/docs/api/ShallowWrapper/update.html
     });
   });
@@ -77,40 +78,39 @@ describe("FilterableList", () => {
     fetch.mockResponse(JSON.stringify(mockData));
 
     let rendered;
-    act(()=>{
+    act(() => {
       rendered = mount(
-          <FilterableList
-              onChange={onChangeMock}
-              value=""
-              size={5}
-              unfilteredContentFetchUrl="http://mock-server/endpoint"
-              fetchUrlFilterQuery="oid"
-              unfilteredContentConverter={contentConverterMock}
-          />
+        <FilterableList
+          onChange={onChangeMock}
+          value=""
+          size={5}
+          unfilteredContentFetchUrl="http://mock-server/endpoint"
+          fetchUrlFilterQuery="oid"
+          unfilteredContentConverter={contentConverterMock}
+        />
       );
     });
 
-
-    act(()=> {
+    act(() => {
       const searchbox = rendered.find("input").first();
-      searchbox.simulate("change", {target: {value: "test"}});
+      searchbox.simulate("change", { target: { value: "test" } });
     });
 
-    act(()=> {
+    act(() => {
       rendered.setProps({}, () => {
         timeoutWaiter(() => shouldContinue)
-            .then(() => {
-              rendered.update();
-              const select = rendered.find("select");
-              const elements = select.children();
-              expect(fetch.mock.calls.length).toBe(2);  //one for initial load, one for the update
-              expect(fetch.mock.calls[1][0]).toEqual(
-                  "http://mock-server/endpoint?oid=test"
-              );
-              expect(elements.length).toBe(3);
-              done();
-            })
-            .catch((err) => done.fail(err));
+          .then(() => {
+            rendered.update();
+            const select = rendered.find("select");
+            const elements = select.children();
+            expect(fetch.mock.calls.length).toBe(2); //one for initial load, one for the update
+            expect(fetch.mock.calls[1][0]).toEqual(
+              "http://mock-server/endpoint?oid=test"
+            );
+            expect(elements.length).toBe(3);
+            done();
+          })
+          .catch((err) => done.fail(err));
       }); //force a re-render - see https://airbnb.io/enzyme/docs/api/ShallowWrapper/update.html
     });
   });
@@ -136,44 +136,46 @@ describe("FilterableList", () => {
 
     let rendered;
 
-    act(()=>{
+    act(() => {
       rendered = mount(
-          <FilterableList
-              onChange={onChangeMock}
-              value=""
-              size={5}
-              unfilteredContentFetchUrl="http://mock-server/endpoint"
-              unfilteredContentConverter={contentConverterMock}
-              makeSearchDoc={makeSearchDocMock}
-          />
+        <FilterableList
+          onChange={onChangeMock}
+          value=""
+          size={5}
+          unfilteredContentFetchUrl="http://mock-server/endpoint"
+          unfilteredContentConverter={contentConverterMock}
+          makeSearchDoc={makeSearchDocMock}
+        />
       );
     });
 
-    act(()=> {
+    act(() => {
       const searchbox = rendered.find("input").first();
-      searchbox.simulate("change", {target: {value: "test"}});
+      searchbox.simulate("change", { target: { value: "test" } });
     });
 
-    act(()=> {
+    act(() => {
       rendered.setProps({}, () => {
         timeoutWaiter(() => shouldContinue)
-            .then(() => {
-              rendered.update();
-              const select = rendered.find("select");
-              const elements = select.children();
-              expect(fetch.mock.calls.length).toBe(2);
-              expect(fetch.mock.calls[0][0]).toEqual("http://mock-server/endpoint");
-              expect(fetch.mock.calls[0][1]).toEqual({
-                method: "PUT",
-                credentials: "omit",
-                body: '{"some":"key"}',
-                headers: {"Content-Type": "application/json"},
-              });
-              expect(elements.length).toBe(3);
-              expect(makeSearchDocMock.calledTwice).toBeTruthy();
-              done();
-            })
-            .catch((err) => done.fail(err));
+          .then(() => {
+            rendered.update();
+            const select = rendered.find("select");
+            const elements = select.children();
+            expect(fetch.mock.calls.length).toBe(2);
+            expect(fetch.mock.calls[0][0]).toEqual(
+              "http://mock-server/endpoint"
+            );
+            expect(fetch.mock.calls[0][1]).toEqual({
+              method: "PUT",
+              credentials: "omit",
+              body: '{"some":"key"}',
+              headers: { "Content-Type": "application/json" },
+            });
+            expect(elements.length).toBe(3);
+            expect(makeSearchDocMock.calledTwice).toBeTruthy();
+            done();
+          })
+          .catch((err) => done.fail(err));
       }); //force a re-render - see https://airbnb.io/enzyme/docs/api/ShallowWrapper/update.html
     });
   });
@@ -217,33 +219,33 @@ describe("FilterableList", () => {
     let valueHolder = "";
 
     let rendered;
-    act(()=>{
+    act(() => {
       rendered = mount(
-          <FilterableList
-              onChange={onChangeMock}
-              value={valueHolder}
-              size={5}
-              unfilteredContentFetchUrl="http://mock-server/endpoint"
-              fetchUrlFilterQuery="oid"
-              unfilteredContentConverter={contentConverterMock}
-          />
+        <FilterableList
+          onChange={onChangeMock}
+          value={valueHolder}
+          size={5}
+          unfilteredContentFetchUrl="http://mock-server/endpoint"
+          fetchUrlFilterQuery="oid"
+          unfilteredContentConverter={contentConverterMock}
+        />
       );
     });
 
-    act(()=> {
+    act(() => {
       const searchbox = rendered.find("input").first();
-      searchbox.simulate("change", {target: {value: "test"}});
+      searchbox.simulate("change", { target: { value: "test" } });
 
       rendered.setProps({}, () => {
         timeoutWaiter(() => shouldContinue)
-            .then(() => {
-              const select = rendered.find("select");
-              const elements = select.children();
-              expect(fetch.mock.calls.length).toBe(2);
-              expect(contentConverterMock.calledWith(mockData)).toBe(true);
-              done();
-            })
-            .catch((err) => done.fail(err));
+          .then(() => {
+            const select = rendered.find("select");
+            const elements = select.children();
+            expect(fetch.mock.calls.length).toBe(2);
+            expect(contentConverterMock.calledWith(mockData)).toBe(true);
+            done();
+          })
+          .catch((err) => done.fail(err));
       }); //force a re-render - see https://airbnb.io/enzyme/docs/api/ShallowWrapper/update.html
     });
   });
@@ -253,20 +255,20 @@ describe("FilterableList", () => {
     fetch.mockResponse(JSON.stringify(["row1", "row2", "row3"]));
 
     let rendered;
-    act(()=>{
-        rendered = shallow(
-      <FilterableList
-        onChange={onChangeMock}
-        value="something"
-        size={5}
-        unfilteredContentFetchUrl="http://mock-server/endpoint"
-      />
-    );
-  });
+    act(() => {
+      rendered = shallow(
+        <FilterableList
+          onChange={onChangeMock}
+          value="something"
+          size={5}
+          unfilteredContentFetchUrl="http://mock-server/endpoint"
+        />
+      );
+    });
 
-    act(()=> {
+    act(() => {
       const listbox = rendered.find("select").first();
-      listbox.simulate("change", {target: {value: "test"}});
+      listbox.simulate("change", { target: { value: "test" } });
       expect(onChangeMock.getCall(0).calledWith("test")).toBe(true);
     });
   });
@@ -276,18 +278,18 @@ describe("FilterableList", () => {
     fetch.mockResponse(JSON.stringify(["row1", "row2", "row3"]));
 
     let rendered;
-    act(()=>{
+    act(() => {
       rendered = mount(
-          <FilterableList
-              onChange={onChangeMock}
-              value="something"
-              size={5}
-              unfilteredContentFetchUrl="http://mock-server/endpoint"
-          />
+        <FilterableList
+          onChange={onChangeMock}
+          value="something"
+          size={5}
+          unfilteredContentFetchUrl="http://mock-server/endpoint"
+        />
       );
     });
 
-    act(()=> {
+    act(() => {
       const listbox = rendered.find("select").first();
       expect(listbox.props().value).toEqual("something");
       expect(listbox.props().size).toEqual(5);
@@ -303,18 +305,18 @@ describe("FilterableList", () => {
     ];
 
     let rendered;
-    act(()=>{
+    act(() => {
       rendered = mount(
-          <FilterableList
-              onChange={onChangeMock}
-              value="something"
-              size={5}
-              unfilteredContent={mockData}
-          />
+        <FilterableList
+          onChange={onChangeMock}
+          value="something"
+          size={5}
+          unfilteredContent={mockData}
+        />
       );
     });
 
-    act(()=> {
+    act(() => {
       rendered.update();
       const listbox = rendered.find("select").first();
       const options = listbox.find("option");

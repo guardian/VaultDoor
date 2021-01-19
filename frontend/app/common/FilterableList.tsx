@@ -1,12 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { authenticatedFetch } from "../auth";
-import {
-  Input,
-  List,
-  ListItem,
-  ListItemText,
-  Tooltip,
-} from "@material-ui/core";
+import { Input, Tooltip } from "@material-ui/core";
 import { Search } from "@material-ui/icons";
 
 const defaultContentConverter: ValueConverterFunc<NameValuePair[]> = (
@@ -21,7 +15,6 @@ interface FilterableListProps<T> {
   makeSearchDoc?: SearchDocCallback; //pass in the currently selected value and get back a JSON document to PUT to the server
   fetchUrlFilterQuery?: string;
   unfilteredContentConverter?: ValueConverterFunc<T>;
-  //initialLoad: boolean;
   onChange: (newValue: string) => void;
   value?: string;
   onFiltered?: (filterValue: string) => void;
@@ -39,15 +32,6 @@ const FilterableList: React.FC<FilterableListProps<any>> = (props) => {
     NameValuePair[]
   >([]);
 
-  //this is taken care of in the effect for [currentSearch, props.triggerRefresh, props.unfilteredContent] below
-  // useEffect(() => {
-  //   if (props.unfilteredContentFetchUrl) {
-  //     fetchFromServer("");
-  //   } else {
-  //     filterStatic("");
-  //   }
-  // }, []);
-
   async function fetchFromServer(searchParam: string) {
     const getUrl =
       props.unfilteredContentFetchUrl +
@@ -57,14 +41,32 @@ const FilterableList: React.FC<FilterableListProps<any>> = (props) => {
       searchParam;
     const credentialsValue = props.allowCredentials ? "include" : "omit";
 
-    const result = await (props.makeSearchDoc
-        ? authenticatedFetch(props.unfilteredContentFetchUrl, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(props.makeSearchDoc(searchParam)),
-            credentials: credentialsValue,
+    let searchDoc = null;
+    try {
+      if (props.makeSearchDoc) {
+        searchDoc = props.makeSearchDoc(searchParam);
+        if (searchDoc == null) {
+          setContentFromServer([]);
+          return;
+        }
+      }
+    } catch (e) {
+      console.log("Could not build search doc: ", e);
+      setContentFromServer([]);
+      return;
+    }
+
+    const result = await (searchDoc
+      ? authenticatedFetch(props.unfilteredContentFetchUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(searchDoc),
+          credentials: credentialsValue,
         })
-        : authenticatedFetch(getUrl, {method: "GET", credentials: credentialsValue}));
+      : authenticatedFetch(getUrl, {
+          method: "GET",
+          credentials: credentialsValue,
+        }));
 
     const content = await result.json();
 
@@ -145,11 +147,6 @@ const FilterableList: React.FC<FilterableListProps<any>> = (props) => {
           </Tooltip>
         </li>
         <li className="filterable-list-entry">
-          {/*<List>*/}
-          {/*    {sortedContent.map((elem, idx)=><ListItem button key={idx}>*/}
-          {/*        <ListItemText primary={elem.name} onClick={()=>props.onChange(elem.value)}/>*/}
-          {/*    </ListItem>)}*/}
-          {/*</List>*/}
           <select
             className="filterable-list-selector"
             size={props.size}
