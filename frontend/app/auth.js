@@ -11,12 +11,16 @@ async function authenticatedFetch(input, init) {
     return fetch(input, init);
   }
 
-  const toAddTo = init && init.isPrototypeOf(Object) ? init : {};
+  const toAddTo = init ?? {};
+
+  const existingHeaders = toAddTo.hasOwnProperty("headers")
+    ? toAddTo.headers
+    : {};
 
   const newInit = Object.assign({}, toAddTo, {
-    headers: {
+    headers: Object.assign({}, existingHeaders, {
       Authorization: `Bearer ${token}`,
-    },
+    }),
   });
 
   return fetch(input, newInit);

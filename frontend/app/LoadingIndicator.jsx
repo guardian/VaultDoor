@@ -7,7 +7,7 @@ import PropTypes from "prop-types";
 class LoadingIndicator extends React.Component {
   static propTypes = {
     messageText: PropTypes.string,
-    blank: PropTypes.boolean,
+    blank: PropTypes.bool,
   };
 
   constructor(props) {

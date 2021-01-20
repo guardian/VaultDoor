@@ -1,10 +1,26 @@
 import React from "react";
 import PropTypes from "prop-types";
-import CommissionProjectView from "../metadata/CommissionProjectView.jsx";
 import { Doughnut, Pie } from "react-chartjs-2";
 import BytesFormatter from "../common/BytesFormatter.jsx";
 import { authenticatedFetch } from "../auth";
 import { Loop } from "@material-ui/icons";
+import { withStyles } from '@material-ui/core/styles';
+
+const styles = {
+  summaryContainer: {
+    marginLeft: "auto",
+    marginRight: "auto",
+    display: "block",
+    overflow: "hidden",
+    width: "90vw",
+    marginTop: "2em",
+    maxHeight: "80vh",
+    minHeight: "230px",
+    borderStyle: "dashed",
+    padding: "0.4em",
+    paddingBottom: "1em"
+  }
+}
 
 class ProjectContentSummary extends React.Component {
   static propTypes = {
@@ -199,7 +215,7 @@ class ProjectContentSummary extends React.Component {
   render() {
     if (this.state.loading) {
       return (
-        <div id="project-content-summary" className="results-panel">
+        <div id="project-content-summary" className={this.props.classes.summaryContainer}>
           <p className="centered information">
             Project {this.props.projectId}
             <br />
@@ -222,8 +238,9 @@ class ProjectContentSummary extends React.Component {
         </div>
       );
     }
+
     return (
-      <div id="project-content-summary" className="results-panel">
+      <div id="project-content-summary" className={this.props.classes.summaryContainer}>
         {this.props.projectId && this.props.projectId !== "" ? (
           <p className="centered information" style={{ marginBottom: "0.6em" }}>
             Project {this.props.projectId}
@@ -231,9 +248,11 @@ class ProjectContentSummary extends React.Component {
         ) : (
           <p className="centered information">Select a project above</p>
         )}
-        {this.state.summaryData.total.count === 0 && !this.state.loading ? (
+        {this.state.summaryData.total.count === 0 &&
+        !this.state.loading &&
+        this.props.projectId ? (
           <p className="information centered" style={{ fontSize: "1.2em" }}>
-            No media found for this project
+            No media found for this project in the selected vault.
           </p>
         ) : (
           <span />
@@ -304,4 +323,4 @@ class ProjectContentSummary extends React.Component {
   }
 }
 
-export default ProjectContentSummary;
+export default withStyles(styles)(ProjectContentSummary);
