@@ -104,6 +104,11 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
     }
   }
 
+  /**
+   * callback function for FilterableList that takes content from a PlutoWorkingGroupResponse and converts it into
+   * name/value pairs for the list
+   * @param incomingData the PlutoWorkingGroupResponse
+   */
   const workingGroupContentConverter: ValueConverterFunc<PlutoWorkingGroupResponse> = (
     incomingData
   ) => {
@@ -113,6 +118,11 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
     });
   };
 
+  /**
+   * callback function for FilterableList that takes content from a PlutoCommissionResponse and converts it into
+   * name/value pairs for the list
+   * @param incomingData the PlutoCommissionResponse
+   */
   const commissionContentConverter: ValueConverterFunc<PlutoCommissionResponse> = (
     incomingData
   ) => {
@@ -124,6 +134,11 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
     });
   };
 
+  /**
+   * callback function for FilterableList that takes content from a PlutoProjectResponse and converts it into
+   * name/value pairs for the list
+   * @param incomingData the PlutoProjectResponse
+   */
   const projectContentConverter: ValueConverterFunc<PlutoProjectResponse> = (
     incomingData
   ) => {
@@ -132,6 +147,10 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
     });
   };
 
+  /**
+   * function that is called at startup to load in the working groups from pluto-core and store them in the component
+   * state
+   */
   async function initialWorkingGroupLoad() {
     if (props.projectLockerBaseUrl === "") {
       console.log("ProjectLockerSearchBar can't load initial working group because projectLockerBaseUrl is not set");
@@ -159,30 +178,44 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
     }
   }
 
+  /**
+   * once we have a base URL set, then verify that we can connect.
+   * checkPLLogin sets projectLockerLoggedIn to true/false and sets lastError
+   * if it can't connect
+   */
   useEffect(() => {
     checkPLLogin();
   }, [props.projectLockerBaseUrl]);
 
+  /**
+   * once we have a valid connection, load in the working groups
+   */
   useEffect(() => {
     if (projectLockerLoggedIn) {
       initialWorkingGroupLoad();
     }
   }, [projectLockerLoggedIn]);
 
-  //update the commission search box if the working group id changes
+  /**
+   * update the commission search box if the working group id changes
+   */
   useEffect(() => {
     setCommSearchCounter((prevValue) => prevValue + 1);
     setCurrentCommissionVsid(undefined);
     setProjSearchCounter((prevValue) => prevValue + 1);
   }, [currentWorkingGroupId]);
 
-  //update the project search box if the commission id changes
+  /**
+  update the project search box if the commission id changes
+   */
   useEffect(() => {
     setCurrentProjectVsid(undefined);
     setProjSearchCounter((prevValue) => prevValue + 1);
   }, [currentCommissionVsid]);
 
-  //tell the parent if the project selection changes
+  /**
+   * tell the parent if the project selection changes
+   */
   useEffect(() => {
     props.projectSelectionChanged(currentProjectVsid);
   }, [currentProjectVsid]);
@@ -217,6 +250,9 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
       : null;
   };
 
+  /**
+   * render the search bar
+   */
   return lastError ? (
     <Typography className={props.className}>{lastError}</Typography>
   ) : (

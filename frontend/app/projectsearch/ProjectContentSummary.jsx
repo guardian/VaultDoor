@@ -1,22 +1,11 @@
 import React from "react";
 import PropTypes from "prop-types";
-import CommissionProjectView from "../metadata/CommissionProjectView.jsx";
 import { Doughnut, Pie } from "react-chartjs-2";
 import BytesFormatter from "../common/BytesFormatter.jsx";
 import { authenticatedFetch } from "../auth";
 import { Loop } from "@material-ui/icons";
 import { withStyles } from '@material-ui/core/styles';
 
-/*    margin-left: auto;*/
-/*    margin-right: auto;*/
-/*    display: block;*/
-/*    overflow: hidden;*/
-/*    width: 90vw;*/
-/*    margin-top: 2em;*/
-/*    min-height: 230px;*/
-/*    max-height: 80vh;*/
-/*    border-style: dashed;*/
-/*    padding-bottom: 1em;*/
 const styles = {
   summaryContainer: {
     marginLeft: "auto",
