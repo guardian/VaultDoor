@@ -1,0 +1,12 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.14.1
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  SNYK-JS-GLOBPARENT-1016905:
+    - webpack > watchpack > chokidar > glob-parent:
+        reason: no patch available yet
+        expires: '2021-02-20T09:56:22.232Z'
+    - webpack > watchpack > watchpack-chokidar2 > chokidar > glob-parent:
+        reason: no patch available yet
+        expires: '2021-02-20T09:56:22.232Z'
+patch: {}
