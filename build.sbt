@@ -10,7 +10,7 @@ lazy val `vaultdoor` = (project in file(".")).enablePlugins(PlayScala)
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
       
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.13"
 scalacOptions +="-target:jvm-1.8"
 javacOptions ++= Seq("-source", "1.8","-target","1.8")
 
@@ -21,7 +21,7 @@ unmanagedResourceDirectories in Test +=  { baseDirectory ( _ /"target/web/public
 unmanagedBase := baseDirectory.value / "lib"
 
 val akkaVersion = "2.5.26"
-val circeVersion = "0.9.3"
+val circeVersion = "0.13.0"
 val slf4jVersion = "1.7.25"
 val elastic4sVersion = "6.5.1"
 
@@ -29,14 +29,13 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
   "io.circe" %% "circe-parser" % circeVersion,
-  "io.circe" %% "circe-java8" % circeVersion,
   "com.dripower" %% "play-circe" % "2711.0",
   "org.slf4j" % "slf4j-api" % slf4jVersion,
-  "commons-codec" % "commons-codec" % "1.12",
+  "commons-codec" % "commons-codec" % "1.13",
   "commons-io" % "commons-io" % "2.6",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "com.github.scopt" %% "scopt" % "3.7.1",
-  "io.circe" %% "circe-yaml" % "0.10.0",
+  "io.circe" %% "circe-yaml" % "0.13.0",
   "org.mongodb.scala" %% "mongo-scala-driver" % "2.6.0",
   "ai.snips" %% "play-mongo-bson" % "0.5.1",
   "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
@@ -59,8 +58,15 @@ libraryDependencies += "io.sentry" % "sentry-logback" % "1.7.2"
 
 //authentication
 libraryDependencies ++= Seq(
-  "com.unboundid" % "unboundid-ldapsdk" % "4.0.5",
+  "com.unboundid" % "unboundid-ldapsdk" % "5.0.0",
   "com.nimbusds" % "nimbus-jose-jwt" % "8.17",
+)
+
+//snyk updates
+libraryDependencies ++= Seq(
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.10.8",
+  "com.google.guava" % "guava" % "30.0-jre",
+  "org.apache.httpcomponents" % "httpclient" % "4.5.13"
 )
 
 enablePlugins(RpmPlugin, SystemdPlugin)

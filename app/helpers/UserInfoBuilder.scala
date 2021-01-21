@@ -58,6 +58,7 @@ object UserInfoBuilder {
               case "vaultName" => builder = builder.withVaultName(value)
               case "protocol" => builder = builder.withProtocol(value)
               case "cluster password" => builder = builder.withClusterPassword(value)
+              case _ => builder
             }
           case _=>
             logger.warn(s"Couldn't interpret line $line")
