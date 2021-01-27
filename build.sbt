@@ -47,6 +47,7 @@ libraryDependencies ++= Seq(
   "org.specs2" %% "specs2-core" % "4.5.1" % Test,
   "org.specs2" %% "specs2-mock" % "4.5.1" % Test,
   "org.mockito" % "mockito-core" % "2.28.2" % Test,
+  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-protobuf" % akkaVersion,
