@@ -74,10 +74,13 @@ There is a working example of how to do this in Python in `scripts/test_hmac_aut
 8. Then hit Save.
 9. Go to 'Realm Settings' in the left-hand menu, then the 'Keys' tab. Download the Certificate for the RS256 key and save it to
 `keycloak-local.pem` in the root of your checked-out vaultdoor repo (this path is already gitignored)
-10. Check the application configuration under `conf/application.conf`, specifically the `auth` section, to make sure it is
+10. Go to 'Clients' in the left-hand menu, select 'vaultdoor', then the 'Mappers' tab.
+11. Click 'Create' in the top-right. Set Name to 'multimedia_admin', Mapper Type to 'Hardcoded claim', Token Claim Name to
+'multimedia_admin', Claim value to 'true', and Claim JSON Type to 'String'. Click 'Save'.
+12. Check the application configuration under `conf/application.conf`, specifically the `auth` section, to make sure it is
 all valid.
-11. Go to the `frontend/` directory and run `npm i; npm run dev` to start the frontend transpiler
-12. Now you should be good to run the app, either via `sbt run` or through your IDE
+13. Go to the `frontend/` directory and run `npm i; npm run dev` to start the frontend transpiler
+14. Now you should be good to run the app, either via `sbt run` or through your IDE
 
 ----
 
