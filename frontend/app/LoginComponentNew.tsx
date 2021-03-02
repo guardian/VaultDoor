@@ -13,15 +13,10 @@ interface LoginButtonNewProps {
 
 const LoginComponentNew: React.FC<LoginButtonNewProps> = (props) => {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-    const [isAdmin, setIsAdmin] = useState<boolean>(false);
     const [loginData, setLoginData] = useState<JwtDataShape | null>(null);
     const [expired, setExpired] = useState<boolean>(false);
 
     // config
-    const [clientId, setClientId] = useState<string>("");
-    const [resource, setResource] = useState<string>("");
-    const [oAuthUri, setOAuthUri] = useState<string>("");
-    const [adminClaimName, setAdminClaimName] = useState<string>("");
     const [tokenUri, setTokenUri] = useState<string>("");
 
 
@@ -30,11 +25,7 @@ const LoginComponentNew: React.FC<LoginButtonNewProps> = (props) => {
         if (response.status === 200) {
             const data = await response.json();
             const config = new OAuthConfiguration(data); //validates the configuration and throws a VError if it fails
-            setClientId(config.clientId);
-            setResource(config.resource);
-            setOAuthUri(config.oAuthUri);
             setTokenUri(config.tokenUri);
-            setAdminClaimName(config.adminClaimName);
             return config;
         } else {
             throw `Server returned ${response.status}`;
@@ -60,8 +51,6 @@ const LoginComponentNew: React.FC<LoginButtonNewProps> = (props) => {
             }
 
             setIsLoggedIn(true);
-
-            setIsAdmin(config.isAdmin(loginData));
         } catch (error) {
             // Login valid callback if provided
             if (props.onLoginValid) {
@@ -69,7 +58,6 @@ const LoginComponentNew: React.FC<LoginButtonNewProps> = (props) => {
             }
 
             setIsLoggedIn(false);
-            setIsAdmin(false);
 
             if (error.name === "TokenExpiredError") {
                 console.error("Token has already expired");
