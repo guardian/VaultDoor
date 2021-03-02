@@ -17,6 +17,7 @@ import LoadingIndicator from "./LoadingIndicator.jsx";
 import { authenticatedFetch } from "./auth";
 import { ThemeProvider } from "@material-ui/core/styles";
 import { createMuiTheme } from "@material-ui/core";
+import LoginComponentNew from "./LoginComponentNew";
 
 class App extends React.Component {
   constructor(props) {
@@ -254,6 +255,7 @@ class App extends React.Component {
                 )}
               />
             </Switch>
+            <LoginComponentNew />
           </div>
         )}
       </ThemeProvider>
