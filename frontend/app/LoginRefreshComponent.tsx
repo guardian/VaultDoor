@@ -47,7 +47,7 @@ const LoginRefreshComponent:React.FC<LoginComponentProps> = (props) => {
     }, [props.loginData]);
 
     /**
-     * Called periodically every second once a refresh has failed to alert the user how long they have left
+     * Called periodically every second once a refresh has failed
      */
     const updateCountdownHandler = () => {
         const nowTime = new Date().getTime() / 1000; //assume time is in seconds
