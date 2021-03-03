@@ -54,11 +54,7 @@ const LoginRefreshComponent:React.FC<LoginComponentProps> = (props) => {
         const expiry = loginDataRef.current.exp;
         const timeToGo = expiry - nowTime;
 
-        if(timeToGo>1) {
-
-        } else {
-            if(props.onLoginExpired) props.onLoginExpired();
-        }
+        if(timeToGo<=1 && props.onLoginExpired) props.onLoginExpired();
     }
 
     /**
