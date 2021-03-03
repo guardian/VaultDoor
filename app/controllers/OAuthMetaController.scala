@@ -45,7 +45,8 @@ class OAuthMetaController @Inject() (config:Configuration, cc:ControllerComponen
         config.get[String]("auth.resource"),
         config.get[String]("auth.oAuthUri"),
         config.get[String]("auth.tokenUri"),
-        config.get[Seq[String]]("auth.validAudiences")
+        config.get[Seq[String]]("auth.validAudiences"),
+        config.get[String]("auth.adminClaimName"),
       )
 
       Ok(response.asJson)
