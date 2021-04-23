@@ -158,8 +158,8 @@ class FileListController @Inject() (cc:ControllerComponents,
     userInfoCache.infoForVaultId(vaultId) match {
       case Some(userInfo) =>
         val searchAttrib = forPath match {
-          case Some(searchPath)=>new Attribute(Constants.CONTENT, s"""MXFS_FILENAME:"$searchPath\nsort:>\u241DMXFS_CREATION_TIME\u241Dlong"""" )
-          case None=>new Attribute(Constants.CONTENT, "*\nsort:>\u241DMXFS_CREATION_TIME\u241Dlong")
+          case Some(searchPath)=>new Attribute(Constants.CONTENT, s"""MXFS_FILENAME:"$searchPath\nsort:>\u241DMXFS_ARCHIVE_TIME\u241Dlong"""" )
+          case None=>new Attribute(Constants.CONTENT, "*\nsort:>\u241DMXFS_ARCHIVE_TIME\u241Dlong")
         }
 
         val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
