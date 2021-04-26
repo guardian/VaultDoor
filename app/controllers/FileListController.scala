@@ -27,6 +27,66 @@ import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.generic.semiauto._
 
+import scala.util.{Failure, Success, Try}
+
+object FileListController {
+  object SortOrder extends Enumeration {
+    val Descending, Ascending = Value
+  }
+
+  object SortField extends Enumeration {
+    import scala.language.implicitConversions
+    protected case class SortFieldVal(fieldName:String, fieldType:String) extends super.Val
+
+    implicit def valueToSortFieldVal(x:Value):SortFieldVal = x.asInstanceOf[SortFieldVal]
+    val MXFS_ARCHIVE_TIME = SortFieldVal("MXFS_ARCHIVE_TIME", "long")
+    val MXFS_CREATION_TIME = SortFieldVal("MXFS_CREATION_TIME", "long")
+    val MXFS_MODIFICATION_TIME = SortFieldVal("MXFS_MODIFICATION_TIME", "long")
+    val MXFS_FILEEXT = SortFieldVal("MXFS_FILEEXT", "string")
+    val MXFS_FILENAME = SortFieldVal("MXFS_FILENAME", "string")
+    val DPSP_SIZE = SortFieldVal("DPSP_SIZE", "long")
+  }
+
+
+  case class SortRequest(sortField:SortField.Value, direction:SortOrder.Value) {
+    def searchString = {
+      val directionString = if(direction==SortOrder.Descending) "<" else ">"
+      s"sort:$directionString\u241D${sortField.fieldName}\u241D${sortField.fieldType}"
+    }
+  }
+
+  object SortRequest {
+    def sortFieldFor(fieldName:String) = Try { SortField.withName(fieldName) }
+    def sortOrderFor(direction:String) = Try { SortOrder.withName(direction) }
+
+    /**
+      * makes a SortRequest value based on the optional string parameters to a request
+      * @param sortField optional string parameter specifying the field
+      * @param direction
+      * @return
+      */
+    def fromParams(sortField:Option[String], direction:Option[String]) = {
+      SortRequest(
+        sortField.flatMap(sortFieldFor(_).toOption).getOrElse(SortField.MXFS_ARCHIVE_TIME),
+        direction.flatMap(sortOrderFor(_).toOption).getOrElse(SortOrder.Descending)
+      )
+    }
+
+    def fromParamsWithError(sortField:Option[String], direction:Option[String]):Either[String, SortRequest] = {
+      import cats.implicits._
+
+      (sortField.map(sortFieldFor).sequence, direction.map(sortOrderFor).sequence) match {
+        case (Success(maybeSortField),Success(maybeSortOrder))=>
+          Right(SortRequest(maybeSortField.getOrElse(SortField.MXFS_ARCHIVE_TIME), maybeSortOrder.getOrElse(SortOrder.Descending)))
+        case (Failure(_), _)=>
+          Left("Sort field was not valid")
+        case (_, Failure(_))=>
+          Left("Sort order was not valid")
+      }
+    }
+  }
+}
+
 @Singleton
 class FileListController @Inject() (cc:ControllerComponents,
                                     override implicit val config:Configuration,
@@ -148,26 +208,41 @@ class FileListController @Inject() (cc:ControllerComponents,
     }
   }
 
+  import FileListController._
+  def buildSearchRequest(forPath:Option[String], sortReq:FileListController.SortRequest) = {
+    val filterTerm = forPath.map(path=>s"""MXFS_FILENAME:"$path"""").getOrElse("*")
+    val sortTerm = sortReq.searchString
+    Seq(
+      filterTerm,
+      sortTerm
+    ).mkString("\n")
+  }
+
   /**
     * endpoint to perform a search against the filename
     * @param vaultId
     * @param forPath
     * @return
     */
-  def pathSearchStreaming(vaultId:String, forPath:Option[String]) = IsAuthenticated { uid=> request=>
+  def pathSearchStreaming(vaultId:String, forPath:Option[String], sortField:Option[String], sortDir:Option[String]) = IsAuthenticated { uid=> request=>
     userInfoCache.infoForVaultId(vaultId) match {
       case Some(userInfo) =>
-        val searchAttrib = forPath match {
-          case Some(searchPath)=>new Attribute(Constants.CONTENT, s"""MXFS_FILENAME:"$searchPath\nsort:<\u241DMXFS_ARCHIVE_TIME\u241Dlong"""" )
-          case None=>new Attribute(Constants.CONTENT, "*\nsort:<\u241DMXFS_ARCHIVE_TIME\u241Dlong")
+        SortRequest.fromParamsWithError(sortField, sortDir) match {
+          case Right(sortRequest) =>
+            //        val searchAttrib = forPath match {
+            //          case Some(searchPath)=>new Attribute(Constants.CONTENT, s"""MXFS_FILENAME:"$searchPath\nsort:<\u241DMXFS_ARCHIVE_TIME\u241Dlong"""" )
+            //          case None=>new Attribute(Constants.CONTENT, "*\nsort:<\u241DMXFS_ARCHIVE_TIME\u241Dlong")
+            //        }
+            val searchAttrib = new Attribute(Constants.CONTENT, buildSearchRequest(forPath, sortRequest))
+            val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
+
+            Result(
+              ResponseHeader(200, Map()),
+              HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
+            )
+          case Left(problem) =>
+            BadRequest(GenericErrorResponse("bad_request", problem).asJson)
         }
-
-        val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
-
-        Result(
-          ResponseHeader(200, Map()),
-          HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
-        )
       case None =>
         NotFound(GenericErrorResponse("not_found", s"no info for vault id $vaultId").asJson)
     }

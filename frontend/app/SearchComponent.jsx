@@ -1,5 +1,5 @@
 import React from "react";
-import SearchBarFile from "./searchnbrowse/SearchBarFile.jsx";
+import SearchBarFile from "./searchnbrowse/SearchBarFile";
 import ndjsonStream from "can-ndjson-stream";
 import ResultsPanel from "./searchnbrowse/ResultsPanel.jsx";
 import PopupPreview from "./PopupPreview.jsx";
@@ -13,31 +13,19 @@ class SearchComponent extends React.Component {
     super(props);
 
     this.state = {
-      filePathSearch: "",
       searching: false,
-      vaultId: "",
       fileEntries: [],
       requestedPreview: null,
       currentReader: null,
       currentAbort: null,
     };
 
-    this.updateFilePath = this.updateFilePath.bind(this);
-    this.updateVaultId = this.updateVaultId.bind(this);
     this.asyncDownload = this.asyncDownload.bind(this);
 
     this.previewRequested = this.previewRequested.bind(this);
     this.previewClosed = this.previewClosed.bind(this);
 
     this.projectClicked = this.projectClicked.bind(this);
-  }
-
-  updateFilePath(newSearchPath) {
-    this.setState({ filePathSearch: newSearchPath }, () => this.newSearch());
-  }
-
-  updateVaultId(newId) {
-    this.setState({ vaultId: newId }, () => this.newSearch());
   }
 
   setStatePromise(newState) {
@@ -53,9 +41,19 @@ class SearchComponent extends React.Component {
   async asyncDownload(url) {
     const abortController = new AbortController();
 
+    console.log("async download for ", url);
+
     const response = await authenticatedFetch(url, {
       signal: abortController.signal,
     });
+    if(response.status!==200){
+      console.error(`Could not load data: server error ${response.status}`)
+      const rawData = await response.text();
+      console.error(`Server said ${rawData}`);
+
+      return;
+    }
+
     const stream = await ndjsonStream(response.body);
     const reader = stream.getReader();
 
@@ -69,6 +67,7 @@ class SearchComponent extends React.Component {
         if (value) {
           this.setState(
             (oldState) => {
+              console.log("got file data: ", value);
               return {
                 fileEntries: oldState.fileEntries.concat([value]),
                 searching: !done,
@@ -120,13 +119,7 @@ class SearchComponent extends React.Component {
     });
   }
 
-  newSearch() {
-    const urlBase = "/api/vault/" + this.state.vaultId + "/list";
-
-    const url = this.state.filePathSearch
-      ? urlBase + "?forFile=" + this.state.filePathSearch
-      : urlBase;
-
+  newSearch(url) {
     this.abortReadInProgress().then((_) =>
       this.setState({ searching: true, fileEntries: [] }, () =>
         this.asyncDownload(url).catch((err) => {
@@ -149,19 +142,21 @@ class SearchComponent extends React.Component {
   projectClicked(projectId) {
     this.props.history.push("/byproject?project=" + projectId);
   }
+
   render() {
     return (
       <div className="windowpanel">
         <SearchBarFile
-          filePath={this.state.filePathSearch}
-          filePathUpdated={this.updateFilePath}
-          selectedVault={this.state.vaultId}
-          vaultSelectionChanged={this.updateVaultId}
+          searchUrlChanged={(newUrl)=>{
+            if(!newUrl.includes("/undefined/")) {
+              this.newSearch(newUrl);
+            }
+          }}
         />
         <span
           style={{
             float: "right",
-            "margin-right": "2em",
+            marginRight: "2em",
             display: this.state.searching ? "inline-block" : "none",
           }}
         >
