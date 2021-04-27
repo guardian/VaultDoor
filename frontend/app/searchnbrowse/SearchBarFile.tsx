@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import {Grid, Input, MenuItem, Select} from "@material-ui/core";
 import VaultSelector from "./NewVaultSelector";
 import SortSelector from "../common/SortSelector";
+import GnmTypeSelector from "../common/GnmTypeSelector";
 
 interface SearchBarFileProps {
     searchUrlChanged: (newUrl:string)=>void;
@@ -13,6 +14,7 @@ const SearchBarFile:React.FC<SearchBarFileProps> = (props) => {
     const [selectedVault, setSelectedVault] = useState<string|undefined>(undefined);
     const [sortField, setSortField] = useState("MXFS_ARCHIVE_TIME");
     const [sortOrder, setSortOrder] = useState("Descending");
+    const [currentGnmType, setCurrentGnmType] = useState("any");
 
     /**
      * rebuild the target url whenever the paramers change
@@ -24,6 +26,7 @@ const SearchBarFile:React.FC<SearchBarFileProps> = (props) => {
             sortField: sortField,
             sortDir: sortOrder,
             forFile: filePath,
+            typeFilter: currentGnmType=="any" ? "" : currentGnmType
         };
 
         const queryTerms = Object.keys(params)
@@ -35,7 +38,7 @@ const SearchBarFile:React.FC<SearchBarFileProps> = (props) => {
             : urlBase;
         props.searchUrlChanged(url);
 
-    }, [filePath, selectedVault, sortField, sortOrder])
+    }, [filePath, selectedVault, sortField, sortOrder, currentGnmType])
 
     if (internalError) {
         return (
@@ -66,6 +69,10 @@ const SearchBarFile:React.FC<SearchBarFileProps> = (props) => {
                     onChange={(evt) => setFilePath(evt.target.value)}
                     value={filePath}
                 />
+            </Grid>
+            <Grid item>
+                <label htmlFor="gnmtype-selector">Media type: </label>
+                <GnmTypeSelector id="gnmtype-selector" selectedType={currentGnmType} onChange={(newValue => setCurrentGnmType(newValue))}/>
             </Grid>
             <Grid item>
                 <label htmlFor="sort-field-selector">Sort by:</label>

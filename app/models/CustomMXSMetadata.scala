@@ -1,6 +1,68 @@
 package models
 
-case class CustomMXSMetadata(itemType:Option[String],
+import io.circe.{Decoder, Encoder}
+import org.slf4j.LoggerFactory
+
+import scala.util.{Failure, Success, Try}
+object CustomMXSMetadata {
+  private val logger = LoggerFactory.getLogger(getClass)
+
+  object GnmType extends Enumeration {
+    type GnmType = Value
+    val master, rushes, deliverables, project, unsorted, poster, proxy, metadata = Value
+
+    /**
+      * does the same as `withName` - i.e. returns the enum value with the corresponding string value - but returns
+      * a Scala Failure() if there is no match instead of throwing an exception
+      * @param n name to look up
+      * @return Success with the enum Value if matching otherwise false
+      */
+    def withNameSafe(n:String) = Try { withName(n.toLowerCase) }
+  }
+
+  object Encoders {
+    implicit val GnmTypeEncoder:Encoder[GnmType.Value] = Encoder.encodeEnumeration(GnmType)
+    implicit val GnmTypeDecoder:Decoder[GnmType.Value] = Decoder.decodeEnumeration(GnmType)
+  }
+
+  /**
+    * initialise from an MxsMetadata object from the SDK.
+    * this assumes that GNM_TYPE is set to a string value, if so any supplementary values are
+    * added in.
+    * if GNM_TYPE is not set then None is returned
+    * if GNM_TYPE is not recognised then None is returned and a warning emitted
+    * @param incoming an MxsMetadata object from the OM SDK
+    * @return an initialised CustomMXSMetadata object or None
+    */
+  def fromMxsMetadata(incoming:MxsMetadata):Option[CustomMXSMetadata] = {
+    import cats.implicits._ //for .sequence; turns Option[Try[String]] into Try[Option[String]]
+
+    incoming.stringValues.get("GNM_TYPE").map(GnmType.withNameSafe).sequence match {
+      case Success(Some(itemType))=>
+        Some(new CustomMXSMetadata(Some(itemType),
+          incoming.stringValues.get("GNM_PROJECT_ID"),
+          incoming.stringValues.get("GNM_COMMISSION_ID"),
+          incoming.stringValues.get("GNM_MASTER_ID"),
+          incoming.stringValues.get("GNM_MASTER_NAME"),
+          incoming.stringValues.get("GNM_MASTER_USER"),
+          incoming.stringValues.get("GNM_PROJECT_NAME"),
+          incoming.stringValues.get("GNM_COMMISSION_NAME"),
+          incoming.stringValues.get("GNM_WORKING_GROUP_NAME"),
+          incoming.intValues.get("GNM_DELIVERABLE_ASSET_ID"),
+          incoming.intValues.get("GNM_DELIVERABLE_BUNDLE_ID"),
+          incoming.intValues.get("GNM_DELIVERABLE_VERSION"),
+          incoming.stringValues.get("GNM_DELIVERABLE_TYPE"),
+          incoming.boolValues.get("GNM_HIDDEN_FILE")
+        ))
+      case Success(None)=>None
+      case Failure(_)=>
+        logger.error(s"Did not recognise GNM_TYPE value ${incoming.stringValues.get("GNM_TYPE")}")
+        None
+    }
+  }
+}
+
+case class CustomMXSMetadata(itemType:Option[CustomMXSMetadata.GnmType.Value],
                              projectId:Option[String],
                              commissionId:Option[String],
                              masterId:Option[String],
@@ -46,37 +108,3 @@ case class CustomMXSMetadata(itemType:Option[String],
   }
 }
 
-object CustomMXSMetadata {
-  val TYPE_MASTER = "master"
-  val TYPE_RUSHES = "rushes"
-  val TYPE_DELIVERABLE = "deliverables"
-  val TYPE_PROJECT = "project"
-  val TYPE_UNSORTED = "unsorted"
-
-  /**
-    * initialise from an MxsMetadata object from the SDK.
-    * this assumes that GNM_TYPE is set to a string value, if so any supplementary values are
-    * added in.
-    * if GNM_TYPE is not set then None is returned
-    * @param incoming an MxsMetadata object from the OM SDK
-    * @return an initialised CustomMXSMetadata object or None
-    */
-  def fromMxsMetadata(incoming:MxsMetadata):Option[CustomMXSMetadata] =
-    incoming.stringValues.get("GNM_TYPE").map(itemType=>
-      new CustomMXSMetadata(Some(itemType),
-        incoming.stringValues.get("GNM_PROJECT_ID"),
-        incoming.stringValues.get("GNM_COMMISSION_ID"),
-        incoming.stringValues.get("GNM_MASTER_ID"),
-        incoming.stringValues.get("GNM_MASTER_NAME"),
-        incoming.stringValues.get("GNM_MASTER_USER"),
-        incoming.stringValues.get("GNM_PROJECT_NAME"),
-        incoming.stringValues.get("GNM_COMMISSION_NAME"),
-        incoming.stringValues.get("GNM_WORKING_GROUP_NAME"),
-        incoming.intValues.get("GNM_DELIVERABLE_ASSET_ID"),
-        incoming.intValues.get("GNM_DELIVERABLE_BUNDLE_ID"),
-        incoming.intValues.get("GNM_DELIVERABLE_VERSION"),
-        incoming.stringValues.get("GNM_DELIVERABLE_TYPE"),
-        incoming.boolValues.get("GNM_HIDDEN_FILE")
-      )
-    )
-}

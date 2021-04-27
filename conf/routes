@@ -17,9 +17,9 @@ GET     /api/isAdmin                                @controllers.Login.checkIsAd
 GET     /audit/scan                                 @controllers.AuditController.getAll(limit:Option[Int])
 
 GET     /api/vault                                  @controllers.VaultController.knownVaults()
-
+GET     /api/metadata/knownTypes                    @controllers.FileListController.getValidTypes
 GET     /api/vault/:vaultId/testFastSearch          @controllers.FileListController.testFastSearch(vaultId, field:String,value:String, quoted:Boolean?=false)
-GET     /api/vault/:vaultId/list                    @controllers.FileListController.pathSearchStreaming(vaultId, forFile:Option[String], sortField:Option[String], sortDir:Option[String])
+GET     /api/vault/:vaultId/list                    @controllers.FileListController.pathSearchStreaming(vaultId, forFile:Option[String], sortField:Option[String], sortDir:Option[String], typeFilter:Option[String])
 GET     /api/vault/:vaultId/byProject/:projectId    @controllers.FileListController.projectSearchStreaming(vaultId, projectId)
 PUT     /api/vault/:vaultId/list                    @controllers.FileListController.customSearchStreaming(vaultId)
 GET     /api/vault/:vaultId/summary                 @controllers.FileListController.vaultSummary(vaultId)

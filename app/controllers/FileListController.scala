@@ -8,14 +8,15 @@ import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{Attribute, Constants, SearchTerm, UserInfo, Vault}
 import helpers.SearchTermHelper.projectIdQuery
 import helpers.{ContentSearchBuilder, UserInfoCache, ZonedDateTimeEncoder}
+import io.circe.{Decoder, Encoder}
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import play.api.libs.circe.Circe
 import play.api.mvc.{AbstractController, ControllerComponents, EssentialAction, ResponseHeader, Result}
-import responses.GenericErrorResponse
+import responses.{GenericErrorResponse, ObjectListResponse}
 import streamcomponents.{OMFastContentSearchSource, OMFastSearchSource, OMLookupMetadata, OMSearchSource, ProjectSummarySink}
-import models.{GnmMetadata, MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
+import models.{CustomMXSMetadata, GnmMetadata, MxsMetadata, PresentableFile, ProjectSummary, ProjectSummaryEncoder, SummaryEntry}
 import org.slf4j.LoggerFactory
 import play.api.cache.SyncCacheApi
 import play.api.http.HttpEntity
@@ -47,6 +48,12 @@ object FileListController {
     val DPSP_SIZE = SortFieldVal("DPSP_SIZE", "long")
   }
 
+  object Encoders {
+    implicit val SortOrderEncoder:Encoder[SortOrder.Value] = Encoder.encodeEnumeration(SortOrder)
+    implicit val SortOrderDecoder:Decoder[SortOrder.Value] = Decoder.decodeEnumeration(SortOrder)
+    implicit val SortFieldEncoder:Encoder[SortField.Value] = Encoder.encodeEnumeration(SortField)
+    implicit val SortFieldDecoder:Decoder[SortField.Value] = Decoder.decodeEnumeration(SortField)
+  }
 
   case class SortRequest(sortField:SortField.Value, direction:SortOrder.Value) {
     def searchString = {
@@ -94,6 +101,8 @@ class FileListController @Inject() (cc:ControllerComponents,
                                     userInfoCache: UserInfoCache
                                    )(implicit mat:Materializer, system:ActorSystem, override implicit val cache:SyncCacheApi)
   extends AbstractController(cc) with Security with ObjectMatrixEntryMixin with Circe with ZonedDateTimeEncoder with ProjectSummaryEncoder {
+  import FileListController.Encoders._
+  import models.CustomMXSMetadata.Encoders._
 
   override protected val logger = LoggerFactory.getLogger(getClass)
 
@@ -208,9 +217,14 @@ class FileListController @Inject() (cc:ControllerComponents,
     }
   }
 
-  import FileListController._
-  def buildSearchRequest(forPath:Option[String], sortReq:FileListController.SortRequest) = {
-    val filterTerm = forPath.map(path=>s"""MXFS_FILENAME:"$path"""").getOrElse("*")
+  def buildSearchRequest(forPath:Option[String], typeFilter:Option[String], sortReq:FileListController.SortRequest) = {
+    val filterTerms = Seq(
+      forPath.map(path=>s"""MXFS_FILENAME:"$path""""),
+      typeFilter.map(gnmType=>s"""GNM_TYPE:"$gnmType"""")
+     ).collect({ case Some(term)=>term})
+
+    val filterTerm = if(filterTerms.nonEmpty) filterTerms.mkString(" AND ") else "*"
+
     val sortTerm = sortReq.searchString
     Seq(
       filterTerm,
@@ -224,16 +238,13 @@ class FileListController @Inject() (cc:ControllerComponents,
     * @param forPath
     * @return
     */
-  def pathSearchStreaming(vaultId:String, forPath:Option[String], sortField:Option[String], sortDir:Option[String]) = IsAuthenticated { uid=> request=>
+  def pathSearchStreaming(vaultId:String, forPath:Option[String], sortField:Option[String], sortDir:Option[String], typeFilter:Option[String]) = IsAuthenticated { uid=> request=>
     userInfoCache.infoForVaultId(vaultId) match {
       case Some(userInfo) =>
-        SortRequest.fromParamsWithError(sortField, sortDir) match {
+        FileListController.SortRequest.fromParamsWithError(sortField, sortDir) match {
           case Right(sortRequest) =>
-            //        val searchAttrib = forPath match {
-            //          case Some(searchPath)=>new Attribute(Constants.CONTENT, s"""MXFS_FILENAME:"$searchPath\nsort:<\u241DMXFS_ARCHIVE_TIME\u241Dlong"""" )
-            //          case None=>new Attribute(Constants.CONTENT, "*\nsort:<\u241DMXFS_ARCHIVE_TIME\u241Dlong")
-            //        }
-            val searchAttrib = new Attribute(Constants.CONTENT, buildSearchRequest(forPath, sortRequest))
+            val searchAttrib = new Attribute(Constants.CONTENT, buildSearchRequest(forPath, typeFilter, sortRequest))
+            logger.debug(s"search string is ${searchAttrib.getValue}")
             val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
 
             Result(
@@ -297,5 +308,10 @@ class FileListController @Inject() (cc:ControllerComponents,
         HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
       )
     }
+  }
+
+  def getValidTypes() = IsAuthenticated { request=> uid=>
+    val knownTypes = CustomMXSMetadata.GnmType.values.map(_.toString).toList
+    Ok(ObjectListResponse("ok",knownTypes,Some(knownTypes.length.toLong)).asJson)
   }
 }

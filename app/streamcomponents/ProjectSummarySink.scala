@@ -48,7 +48,7 @@ class ProjectSummarySink extends GraphStageWithMaterializedValue[SinkShape[Objec
 
           elem.attributes.flatMap(CustomMXSMetadata.fromMxsMetadata) match {
             case Some(customMeta)=>
-              ongoingSummary = customMeta.itemType.map(t=>ongoingSummary.addGnmType(t,itemSize)).getOrElse(ongoingSummary)
+              ongoingSummary = customMeta.itemType.map(t=>ongoingSummary.addGnmType(t.toString,itemSize)).getOrElse(ongoingSummary)
               ongoingSummary = customMeta.hidden.map(h=>ongoingSummary.addHiddenFile(h, itemSize)).getOrElse(ongoingSummary)
               ongoingSummary = customMeta.projectId.map(p=>ongoingSummary.addGnmProject(p, itemSize)).getOrElse(ongoingSummary)
               ongoingSummary = maybeXtn.map(x=>ongoingSummary.addFileType(x, itemSize)).getOrElse(ongoingSummary)
