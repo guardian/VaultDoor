@@ -41,8 +41,6 @@ class SearchComponent extends React.Component {
   async asyncDownload(url) {
     const abortController = new AbortController();
 
-    console.log("async download for ", url);
-
     const response = await authenticatedFetch(url, {
       signal: abortController.signal,
     });
@@ -67,7 +65,6 @@ class SearchComponent extends React.Component {
         if (value) {
           this.setState(
             (oldState) => {
-              console.log("got file data: ", value);
               return {
                 fileEntries: oldState.fileEntries.concat([value]),
                 searching: !done,

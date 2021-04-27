@@ -31,10 +31,16 @@ import io.circe.generic.semiauto._
 import scala.util.{Failure, Success, Try}
 
 object FileListController {
+  /**
+    * enumeration representing valid sort orders. Normally used via the SortRequest.fromParams() constructor.
+    */
   object SortOrder extends Enumeration {
     val Descending, Ascending = Value
   }
 
+  /**
+    * enumeration representing valid fields to sort on. Normally used via the SortRequest.fromParams() constructor.
+    */
   object SortField extends Enumeration {
     import scala.language.implicitConversions
     protected case class SortFieldVal(fieldName:String, fieldType:String) extends super.Val
@@ -48,6 +54,9 @@ object FileListController {
     val DPSP_SIZE = SortFieldVal("DPSP_SIZE", "long")
   }
 
+  /**
+    * import this so Circe can encode and decode the enum balues
+    */
   object Encoders {
     implicit val SortOrderEncoder:Encoder[SortOrder.Value] = Encoder.encodeEnumeration(SortOrder)
     implicit val SortOrderDecoder:Decoder[SortOrder.Value] = Decoder.decodeEnumeration(SortOrder)
@@ -55,6 +64,12 @@ object FileListController {
     implicit val SortFieldDecoder:Decoder[SortField.Value] = Decoder.decodeEnumeration(SortField)
   }
 
+  /**
+    * represents sort request, consisting of a valid field and a valid direction.
+    * Normally constructed via SortRequest.fromParams()
+    * @param sortField field to sort on (must be an enum value)
+    * @param direction sort order (must be an enum value)
+    */
   case class SortRequest(sortField:SortField.Value, direction:SortOrder.Value) {
     def searchString = {
       val directionString = if(direction==SortOrder.Descending) "<" else ">"
@@ -67,10 +82,11 @@ object FileListController {
     def sortOrderFor(direction:String) = Try { SortOrder.withName(direction) }
 
     /**
-      * makes a SortRequest value based on the optional string parameters to a request
+      * makes a SortRequest value based on the optional string parameters to a request.
+      * if a string value is not recognised by the enum, then it is ignored and a default used.
       * @param sortField optional string parameter specifying the field
-      * @param direction
-      * @return
+      * @param direction optional string parameter specifying sort order
+      * @return SortRequest instance
       */
     def fromParams(sortField:Option[String], direction:Option[String]) = {
       SortRequest(
@@ -79,6 +95,15 @@ object FileListController {
       )
     }
 
+    /**
+      * makes a SortRequest bassed on the optional string parameters to a request.
+      * if either string value is not recognised by the enum, then a Left is returned with a descriptive error string;
+      * if both match or are unset then a Right is returned with a SortRequest. If either parameter is not specified then
+      * a default is used.
+      * @param sortField optional string parameter specifying the field
+      * @param direction optional string parameter specifying sort order
+      * @return Either an error string (left) or a SortRequest instance (right)
+      */
     def fromParamsWithError(sortField:Option[String], direction:Option[String]):Either[String, SortRequest] = {
       import cats.implicits._
 
@@ -217,6 +242,14 @@ class FileListController @Inject() (cc:ControllerComponents,
     }
   }
 
+  /**
+    * makes a string in the MatrixStore ContentSearch syntax for scanning the storage.
+    * @param forPath Optional string path to filter for (keywords filter)
+    * @param typeFilter Optional gnmType value to filter for (exact-match filter)
+    * @param sortReq a SortRequest instance describing the sort to apply
+    * @return a query string suitable for MatrixStore Content Search. See the "Content Search" documentation in the
+    *         MatrixStore SDK for more information
+    */
   def buildSearchRequest(forPath:Option[String], typeFilter:Option[String], sortReq:FileListController.SortRequest) = {
     val filterTerms = Seq(
       forPath.map(path=>s"""MXFS_FILENAME:"$path""""),
@@ -233,28 +266,25 @@ class FileListController @Inject() (cc:ControllerComponents,
   }
 
   /**
-    * endpoint to perform a search against the filename
-    * @param vaultId
-    * @param forPath
-    * @return
+    * endpoint used to stream a list of files for the file view
     */
   def pathSearchStreaming(vaultId:String, forPath:Option[String], sortField:Option[String], sortDir:Option[String], typeFilter:Option[String]) = IsAuthenticated { uid=> request=>
-    userInfoCache.infoForVaultId(vaultId) match {
-      case Some(userInfo) =>
-        FileListController.SortRequest.fromParamsWithError(sortField, sortDir) match {
-          case Right(sortRequest) =>
-            val searchAttrib = new Attribute(Constants.CONTENT, buildSearchRequest(forPath, typeFilter, sortRequest))
-            logger.debug(s"search string is ${searchAttrib.getValue}")
-            val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
+    (
+      userInfoCache.infoForVaultId(vaultId),
+      FileListController.SortRequest.fromParamsWithError(sortField, sortDir)
+    ) match {
+      case (Some(userInfo), Right(sortRequest)) =>
+          val searchAttrib = new Attribute(Constants.CONTENT, buildSearchRequest(forPath, typeFilter, sortRequest))
+          logger.debug(s"search string is ${searchAttrib.getValue}")
+          val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(searchAttrib))
 
-            Result(
-              ResponseHeader(200, Map()),
-              HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
-            )
-          case Left(problem) =>
+          Result(
+            ResponseHeader(200, Map()),
+            HttpEntity.Streamed(Source.fromGraph(graph), None, Some("application/x-ndjson"))
+          )
+      case (_, Left(problem)) =>
             BadRequest(GenericErrorResponse("bad_request", problem).asJson)
-        }
-      case None =>
+      case (None,_) =>
         NotFound(GenericErrorResponse("not_found", s"no info for vault id $vaultId").asJson)
     }
   }
@@ -310,6 +340,9 @@ class FileListController @Inject() (cc:ControllerComponents,
     }
   }
 
+  /**
+    * endpoint to return a list of valid GnmType values for a frontend list selector
+    */
   def getValidTypes() = IsAuthenticated { request=> uid=>
     val knownTypes = CustomMXSMetadata.GnmType.values.map(_.toString).toList
     Ok(ObjectListResponse("ok",knownTypes,Some(knownTypes.length.toLong)).asJson)

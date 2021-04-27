@@ -29,7 +29,7 @@
 
     <logger name="controllers.VaultController" level="INFO"/>
     <logger name="controllers.BulkDownloadController" level="INFO"/>
-    <logger name="controllers.FileListController" level="DEBUG"/>
+    <logger name="controllers.FileListController" level="INFO"/>
     <logger name="helpers" level="INFO"/>
     <logger name="actors" level="INFO"/>
     <logger name="streamcomponents" level="INFO"/>
