@@ -90,7 +90,7 @@ object GnmMetadata {
   } match {
     case Success(meta)=>meta
     case Failure(err)=>
-      logger.warn(s"Could not get GNM custom metadata values for ${src.oid}: ", err)
+      logger.warn(s"Could not get GNM custom metadata values for ${src.oid}: ${err.getMessage}")
       None
   }
 }
