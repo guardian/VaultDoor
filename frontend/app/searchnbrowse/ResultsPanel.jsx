@@ -2,7 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import EntrySummaryLi from "./EntrySummaryLi";
 import DetailsPanel from "./DetailsPanel.jsx";
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from "@material-ui/core/styles";
 
 const styles = {
   container: {
@@ -16,7 +16,7 @@ const styles = {
     borderStyle: "dashed",
     paddingBottom: "1em",
     gridTemplateColumns: "50% 50%",
-    gridTemplateRows: "3.4em auto"
+    gridTemplateRows: "3.4em auto",
   },
   titleRow: {
     gridColumnStart: 1,
@@ -25,28 +25,27 @@ const styles = {
     gridRowEnd: 2,
     borderBottomStyle: "dashed",
     borderBottomWidth: "thin",
-    padding: "0.5em"
+    padding: "0.5em",
   },
   subPanel: {
     overflowX: "hidden",
     overflowY: "auto",
   },
-  "leftPanel": {
+  leftPanel: {
     borderRightStyle: "dashed",
     borderRightWidth: "thin",
     gridColumnStart: 1,
     gridColumnEnd: 2,
     gridRowStart: 2,
-    gridRowEnd: 3
+    gridRowEnd: 3,
   },
-  "rightPanel": {
+  rightPanel: {
     gridColumnStart: 2,
     gridColumnEnd: 3,
     gridRowStart: 2,
-    gridRowEnd: 3
-  }
-
-}
+    gridRowEnd: 3,
+  },
+};
 
 class ResultsPanel extends React.Component {
   static propTypes = {
@@ -105,7 +104,9 @@ class ResultsPanel extends React.Component {
         <div className={this.props.classes.titleRow}>
           <span className="centered large">{this.entrySummary()}</span>
         </div>
-        <div className={`${this.props.classes.subPanel} ${this.props.classes.leftPanel}`}>
+        <div
+          className={`${this.props.classes.subPanel} ${this.props.classes.leftPanel}`}
+        >
           <ul className="silent-list">
             {this.props.entries.map((entry) => (
               <EntrySummaryLi
@@ -116,7 +117,7 @@ class ResultsPanel extends React.Component {
           </ul>
         </div>
         <DetailsPanel
-            className={`${this.props.classes.subPanel} ${this.props.classes.rightPanel}`}
+          className={`${this.props.classes.subPanel} ${this.props.classes.rightPanel}`}
           entry={this.state.selectedEntry}
           previewRequestedCb={this.props.previewRequestedCb}
           projectClicked={this.props.projectClicked}

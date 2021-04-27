@@ -11,60 +11,69 @@
  * @param tokenUri server uri to make the refresh request to
  * @returns a Promise
  */
-export const refreshLogin:(tokenUri:string)=>Promise<void> = (tokenUri) => new Promise((resolve,reject)=>{
+export const refreshLogin: (tokenUri: string) => Promise<void> = (tokenUri) =>
+  new Promise((resolve, reject) => {
     const refreshToken = localStorage.getItem("vaultdoor:refresh-token");
-    if(!refreshToken) {
-        reject("No refresh token");
+    if (!refreshToken) {
+      reject("No refresh token");
     }
 
-    const postdata:{[index:string]:string } = {
-        grant_type: "refresh_token",
-        client_id: "vaultdoor",
-        refresh_token: refreshToken as string
+    const postdata: { [index: string]: string } = {
+      grant_type: "refresh_token",
+      client_id: "vaultdoor",
+      refresh_token: refreshToken as string,
     };
     const content_elements = Object.keys(postdata).map(
-        (k) => k + "=" + encodeURIComponent(postdata[k])
+      (k) => k + "=" + encodeURIComponent(postdata[k])
     );
     const body_content = content_elements.join("&");
 
-    const performRefresh = async ()=> {
-        const response = await fetch(tokenUri, {
-            method: "POST",
-            body: body_content,
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-        });
-        switch (response.status) {
-            case 200:
-                const content = await response.json();
-                console.log("Server response: ", content);
-                localStorage.setItem("vaultdoor:access-token", content.access_token);
-                if (content.refresh_token) localStorage.setItem("vaultdoor:refresh-token", content.refresh_token);
-                resolve();
-                break;
-            case 403:
-            case 401:
-                console.log("Refresh was rejected with a forbidden error");
-                reject("Request forbidden");
-                break;
-            case 500:
-                console.log("Refresh was rejected due to a server error");
-                window.setTimeout(() => performRefresh(), 2000);    //try again in two seconds
-                break;
-            case 503:
-            case 504:
-                console.log("Authentication server not available");
-                window.setTimeout(() => performRefresh(), 2000);    //try again in two seconds
-                break;
-            default:
-                const errorbody = await response.text();
-                console.log("Unexpected response from authentication server: ", response.status, errorbody);
-                reject("Unexpected response");
-                break;
-        }
-    }
+    const performRefresh = async () => {
+      const response = await fetch(tokenUri, {
+        method: "POST",
+        body: body_content,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
+      switch (response.status) {
+        case 200:
+          const content = await response.json();
+          console.log("Server response: ", content);
+          localStorage.setItem("vaultdoor:access-token", content.access_token);
+          if (content.refresh_token)
+            localStorage.setItem(
+              "vaultdoor:refresh-token",
+              content.refresh_token
+            );
+          resolve();
+          break;
+        case 403:
+        case 401:
+          console.log("Refresh was rejected with a forbidden error");
+          reject("Request forbidden");
+          break;
+        case 500:
+          console.log("Refresh was rejected due to a server error");
+          window.setTimeout(() => performRefresh(), 2000); //try again in two seconds
+          break;
+        case 503:
+        case 504:
+          console.log("Authentication server not available");
+          window.setTimeout(() => performRefresh(), 2000); //try again in two seconds
+          break;
+        default:
+          const errorbody = await response.text();
+          console.log(
+            "Unexpected response from authentication server: ",
+            response.status,
+            errorbody
+          );
+          reject("Unexpected response");
+          break;
+      }
+    };
 
-    performRefresh().catch(err=>reject(err.toString()));
-})
+    performRefresh().catch((err) => reject(err.toString()));
+  });

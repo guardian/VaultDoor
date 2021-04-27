@@ -90,7 +90,7 @@ interface PlutoProjectResponse {
 type ValueConverterFunc<T> = (initialData: T) => NameValuePair[];
 
 interface ObjectListResponse<T> {
-  status:string;
-  entries:T[];
-  totalCount?:number;
+  status: string;
+  entries: T[];
+  totalCount?: number;
 }

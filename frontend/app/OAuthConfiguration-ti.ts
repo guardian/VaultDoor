@@ -4,14 +4,14 @@
 import * as t from "ts-interface-checker";
 
 export const OAuthConfigurationIF = t.iface([], {
-    "clientId": "string",
-    "resource": "string",
-    "oAuthUri": "string",
-    "tokenUri": "string",
-    "adminClaimName": "string",
+  clientId: "string",
+  resource: "string",
+  oAuthUri: "string",
+  tokenUri: "string",
+  adminClaimName: "string",
 });
 
 const exportedTypeSuite: t.ITypeSuite = {
-    OAuthConfigurationIF,
+  OAuthConfigurationIF,
 };
 export default exportedTypeSuite;

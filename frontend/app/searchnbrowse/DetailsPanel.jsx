@@ -11,7 +11,7 @@ class DetailsPanel extends React.Component {
     previewRequestedCb: PropTypes.func.isRequired,
     projectClicked: PropTypes.func,
     vaultId: PropTypes.string,
-      className: PropTypes.string,
+    className: PropTypes.string,
   };
 
   static mdTabNames = ["GNM metadata", "Media Info", "MXFS metadata", "All"];

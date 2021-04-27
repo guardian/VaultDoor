@@ -153,7 +153,9 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
    */
   async function initialWorkingGroupLoad() {
     if (props.projectLockerBaseUrl === "") {
-      console.log("ProjectLockerSearchBar can't load initial working group because projectLockerBaseUrl is not set");
+      console.log(
+        "ProjectLockerSearchBar can't load initial working group because projectLockerBaseUrl is not set"
+      );
       return;
     }
 

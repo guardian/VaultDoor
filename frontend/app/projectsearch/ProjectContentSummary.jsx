@@ -4,7 +4,7 @@ import { Doughnut, Pie } from "react-chartjs-2";
 import BytesFormatter from "../common/BytesFormatter.jsx";
 import { authenticatedFetch } from "../auth";
 import { Loop } from "@material-ui/icons";
-import { withStyles } from '@material-ui/core/styles';
+import { withStyles } from "@material-ui/core/styles";
 
 const styles = {
   summaryContainer: {
@@ -18,9 +18,9 @@ const styles = {
     minHeight: "230px",
     borderStyle: "dashed",
     padding: "0.4em",
-    paddingBottom: "1em"
-  }
-}
+    paddingBottom: "1em",
+  },
+};
 
 class ProjectContentSummary extends React.Component {
   static propTypes = {
@@ -215,7 +215,10 @@ class ProjectContentSummary extends React.Component {
   render() {
     if (this.state.loading) {
       return (
-        <div id="project-content-summary" className={this.props.classes.summaryContainer}>
+        <div
+          id="project-content-summary"
+          className={this.props.classes.summaryContainer}
+        >
           <p className="centered information">
             Project {this.props.projectId}
             <br />
@@ -240,7 +243,10 @@ class ProjectContentSummary extends React.Component {
     }
 
     return (
-      <div id="project-content-summary" className={this.props.classes.summaryContainer}>
+      <div
+        id="project-content-summary"
+        className={this.props.classes.summaryContainer}
+      >
         {this.props.projectId && this.props.projectId !== "" ? (
           <p className="centered information" style={{ marginBottom: "0.6em" }}>
             Project {this.props.projectId}

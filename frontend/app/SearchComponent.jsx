@@ -44,8 +44,8 @@ class SearchComponent extends React.Component {
     const response = await authenticatedFetch(url, {
       signal: abortController.signal,
     });
-    if(response.status!==200){
-      console.error(`Could not load data: server error ${response.status}`)
+    if (response.status !== 200) {
+      console.error(`Could not load data: server error ${response.status}`);
       const rawData = await response.text();
       console.error(`Server said ${rawData}`);
 
@@ -144,8 +144,8 @@ class SearchComponent extends React.Component {
     return (
       <div className="windowpanel">
         <SearchBarFile
-          searchUrlChanged={(newUrl)=>{
-            if(!newUrl.includes("/undefined/")) {
+          searchUrlChanged={(newUrl) => {
+            if (!newUrl.includes("/undefined/")) {
               this.newSearch(newUrl);
             }
           }}
