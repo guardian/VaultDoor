@@ -2,10 +2,10 @@ import React from "react";
 import PropTypes from "prop-types";
 import { authenticatedFetch } from "../auth";
 import LoadingIndicator from "../LoadingIndicator.jsx";
+import SearchComponentContext from "../searchnbrowse/SearchComponentContext";
 
 class DownloadButton extends React.Component {
   static propTypes = {
-    vaultId: PropTypes.string.isRequired,
     oid: PropTypes.string.isRequired,
     fileName: PropTypes.string.isRequired,
   };
@@ -25,7 +25,7 @@ class DownloadButton extends React.Component {
   async performDownload() {
     this.setState({ downloading: true, lastError: null });
     const result = await authenticatedFetch(
-      `/api/vault/${this.props.vaultId}/${this.props.oid}/token`
+      `/api/vault/${this.context.vaultId}/${this.props.oid}/token`
     );
     switch (result.status) {
       case 200:
@@ -87,5 +87,7 @@ class DownloadButton extends React.Component {
     );
   }
 }
+
+DownloadButton.contextType = SearchComponentContext;
 
 export default DownloadButton;

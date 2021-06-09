@@ -1,23 +1,34 @@
 import React from "react";
 import SearchBarFile from "./searchnbrowse/SearchBarFile";
 import ndjsonStream from "can-ndjson-stream";
-import ResultsPanel from "./searchnbrowse/ResultsPanel.jsx";
+import ResultsPanel from "./searchnbrowse/ResultsPanel";
 import PopupPreview from "./PopupPreview.jsx";
-import { withRouter } from "react-router-dom";
+import {RouteComponentProps, withRouter} from "react-router-dom";
 import { authenticatedFetch } from "./auth";
+import SearchComponentContext from "./searchnbrowse/SearchComponentContext";
 
-class SearchComponent extends React.Component {
+interface SearchComponentState {
+  searching?: boolean;
+  fileEntries?: FileEntry[];
+  requestedPreview?: any;
+  currentReader?: ReadableStreamReader<FileEntry>;
+  currentAbort?: any;
+  vaultId?: string;
+}
+
+class SearchComponent extends React.Component<RouteComponentProps, SearchComponentState> {
   static resultsLimit = 100;
 
-  constructor(props) {
+  constructor(props:RouteComponentProps) {
     super(props);
 
     this.state = {
       searching: false,
       fileEntries: [],
-      requestedPreview: null,
-      currentReader: null,
-      currentAbort: null,
+      requestedPreview: undefined,
+      currentReader: undefined,
+      currentAbort: undefined,
+      vaultId: undefined
     };
 
     this.asyncDownload = this.asyncDownload.bind(this);
@@ -26,10 +37,12 @@ class SearchComponent extends React.Component {
     this.previewClosed = this.previewClosed.bind(this);
 
     this.projectClicked = this.projectClicked.bind(this);
+
+    this.vaultIdUpdated = this.vaultIdUpdated.bind(this);
   }
 
-  setStatePromise(newState) {
-    return new Promise((resolve, reject) => {
+  setStatePromise(newState:SearchComponentState) {
+    return new Promise<void>((resolve, reject) => {
       try {
         this.setState(newState, () => resolve());
       } catch (err) {
@@ -38,7 +51,7 @@ class SearchComponent extends React.Component {
     });
   }
 
-  async asyncDownload(url) {
+  async asyncDownload(url:string) {
     const abortController = new AbortController();
 
     const response = await authenticatedFetch(url, {
@@ -52,7 +65,7 @@ class SearchComponent extends React.Component {
       return;
     }
 
-    const stream = await ndjsonStream(response.body);
+    const stream = await ndjsonStream<Uint8Array,FileEntry>(response.body);
     const reader = stream.getReader();
 
     await this.setStatePromise({
@@ -60,19 +73,23 @@ class SearchComponent extends React.Component {
       currentAbort: abortController,
     });
 
-    function readNextChunk(reader) {
+    const parentComponent = this;
+
+    const readNextChunk = (reader:ReadableStreamReader<FileEntry>) => {
       reader.read().then(({ done, value }) => {
+
         if (value) {
-          this.setState(
+          parentComponent.setState(
             (oldState) => {
               return {
-                fileEntries: oldState.fileEntries.concat([value]),
+                fileEntries: oldState.fileEntries ? oldState.fileEntries.concat([value]) : [value],
                 searching: !done,
               };
             },
             () => {
               if (
-                this.state.fileEntries.length >= SearchComponent.resultsLimit
+                  parentComponent.state.fileEntries &&
+                  parentComponent.state.fileEntries.length >= SearchComponent.resultsLimit
               ) {
                 console.log("Reached limit, stopping");
                 reader.cancel();
@@ -83,25 +100,25 @@ class SearchComponent extends React.Component {
           console.warn("Got no data");
         }
         if (done) {
-          this.setState({ searching: false });
+          parentComponent.setState({ searching: false });
         } else {
           readNextChunk(reader);
         }
       });
     }
-    readNextChunk = readNextChunk.bind(this);
+    //readNextChunk = readNextChunk.bind(this);
     readNextChunk(reader);
   }
 
   abortReadInProgress() {
     const myRef = this;
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
       if (!myRef.state.currentReader) {
         resolve();
         return;
       }
       //if(myRef.state.currentAbort) myRef.state.currentAbort.abort();
-      myRef.state.currentReader.cancel().then((_) => {
+      myRef.state.currentReader.cancel().then((_:void) => {
         function waitForSearch() {
           if (myRef.state.searching) {
             console.log("Waiting for search to cancel...");
@@ -116,7 +133,7 @@ class SearchComponent extends React.Component {
     });
   }
 
-  newSearch(url) {
+  newSearch(url:string) {
     this.abortReadInProgress().then((_) =>
       this.setState({ searching: true, fileEntries: [] }, () =>
         this.asyncDownload(url).catch((err) => {
@@ -127,7 +144,7 @@ class SearchComponent extends React.Component {
     );
   }
 
-  previewRequested(oid) {
+  previewRequested(oid:string) {
     console.log("preview requested: ", oid);
     this.setState({ requestedPreview: oid });
   }
@@ -136,44 +153,48 @@ class SearchComponent extends React.Component {
     this.setState({ requestedPreview: null });
   }
 
-  projectClicked(projectId) {
+  projectClicked(projectId:string) {
     this.props.history.push("/byproject?project=" + projectId);
+  }
+
+  vaultIdUpdated(newValue:string) {
+    this.setState({vaultId: newValue});
   }
 
   render() {
     return (
       <div className="windowpanel">
-        <SearchBarFile
-          searchUrlChanged={(newUrl) => {
-            if (!newUrl.includes("/undefined/")) {
-              this.newSearch(newUrl);
-            }
-          }}
-        />
-        <span
-          style={{
-            float: "right",
-            marginRight: "2em",
-            display: this.state.searching ? "inline-block" : "none",
-          }}
-        >
-          Loaded {this.state.fileEntries.length}...
-        </span>
-        <ResultsPanel
-          entries={this.state.fileEntries}
-          previewRequestedCb={this.previewRequested}
-          projectClicked={this.projectClicked}
-          vaultId={this.state.vaultId}
-        />
-        {this.state.requestedPreview ? (
-          <PopupPreview
-            oid={this.state.requestedPreview}
-            vaultId={this.state.vaultId}
-            dialogClose={this.previewClosed}
+        <SearchComponentContext.Provider value={{ vaultId: this.state.vaultId, vaultIdUpdated: this.vaultIdUpdated}}>
+          <SearchBarFile
+            searchUrlChanged={(newUrl) => {
+              if (!newUrl.includes("/undefined/")) {
+                this.newSearch(newUrl);
+              }
+            }}
           />
-        ) : (
-          ""
-        )}
+          <span
+            style={{
+              float: "right",
+              marginRight: "2em",
+              display: this.state.searching ? "inline-block" : "none",
+            }}
+          >
+            Loaded {this.state.fileEntries?.length}...
+          </span>
+          <ResultsPanel
+            entries={this.state.fileEntries ?? []}
+            previewRequestedCb={this.previewRequested}
+            projectClicked={this.projectClicked}
+          />
+          {this.state.requestedPreview ? (
+            <PopupPreview
+              oid={this.state.requestedPreview}
+              dialogClose={this.previewClosed}
+            />
+          ) : (
+            ""
+          )}
+        </SearchComponentContext.Provider>
       </div>
     );
   }

@@ -10,7 +10,7 @@ import {
 } from "react-router-dom";
 import RootComponent from "./RootComponent.jsx";
 import Raven from "raven-js";
-import SearchComponent from "./SearchComponent.jsx";
+import SearchComponent from "./SearchComponent";
 import OAuthCallbackComponent from "./OAuthCallbackComponent.jsx";
 import ByProjectComponent from "./ByProjectComponent";
 import LoadingIndicator from "./LoadingIndicator.jsx";

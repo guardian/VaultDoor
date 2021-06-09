@@ -1,10 +1,13 @@
-import React from "react";
+import React, {ErrorInfo} from "react";
 import PropTypes from "prop-types";
 import EntrySummaryLi from "./EntrySummaryLi";
 import DetailsPanel from "./DetailsPanel.jsx";
 import { withStyles } from "@material-ui/core/styles";
+import SearchComponentContext from "./SearchComponentContext";
+import {createStyles} from "@material-ui/core";
+import {WithStyles} from "@material-ui/styles";
 
-const styles = {
+const styles = createStyles({
   container: {
     marginLeft: "auto",
     marginRight: "auto",
@@ -45,34 +48,44 @@ const styles = {
     gridRowStart: 2,
     gridRowEnd: 3,
   },
-};
+});
 
-class ResultsPanel extends React.Component {
+interface ResultsPanelProps extends WithStyles<typeof styles>{
+  entries: FileEntry[];
+  previewRequestedCb: (oid:string)=>void;
+  projectClicked?: (projectId:string)=>void;
+}
+
+interface ResultsPanelState {
+  selectedEntry?: FileEntry;
+  internalError?: string;
+  classes?: any;
+}
+class ResultsPanel extends React.Component<ResultsPanelProps, ResultsPanelState> {
   static propTypes = {
     entries: PropTypes.array.isRequired,
     previewRequestedCb: PropTypes.func.isRequired,
     projectClicked: PropTypes.func,
-    vaultId: PropTypes.string,
   };
 
-  constructor(props) {
+  constructor(props:ResultsPanelProps) {
     super(props);
 
     this.state = {
-      selectedEntry: null,
-      internalError: null,
+      selectedEntry: undefined,
+      internalError: undefined,
     };
 
     this.entryClicked = this.entryClicked.bind(this);
   }
 
-  static getDerivedStateFromError(err) {
+  static getDerivedStateFromError(err:Error) {
     return {
       internalError: err.toString(),
     };
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error:Error, errorInfo:ErrorInfo) {
     console.error("The following error occurred in ResultsPanel:");
     console.error(error, errorInfo);
   }
@@ -81,7 +94,7 @@ class ResultsPanel extends React.Component {
     return "Found " + this.props.entries.length + " files";
   }
 
-  entryClicked(selectedEntry) {
+  entryClicked(selectedEntry:FileEntry) {
     this.setState({ selectedEntry: selectedEntry });
   }
 
@@ -121,11 +134,13 @@ class ResultsPanel extends React.Component {
           entry={this.state.selectedEntry}
           previewRequestedCb={this.props.previewRequestedCb}
           projectClicked={this.props.projectClicked}
-          vaultId={this.props.vaultId}
+          vaultId={this.context.vaultId}
         />
       </div>
     );
   }
 }
+
+ResultsPanel.contextType = SearchComponentContext;
 
 export default withStyles(styles)(ResultsPanel);

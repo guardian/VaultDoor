@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, {useContext, useEffect, useState} from "react";
 import { Grid, Input, MenuItem, Select } from "@material-ui/core";
 import VaultSelector from "./NewVaultSelector";
 import SortSelector from "../common/SortSelector";
 import GnmTypeSelector from "../common/GnmTypeSelector";
+import SearchComponentContext from "./SearchComponentContext";
 
 interface SearchBarFileProps {
   searchUrlChanged: (newUrl: string) => void;
@@ -19,6 +20,8 @@ const SearchBarFile: React.FC<SearchBarFileProps> = (props) => {
   const [sortField, setSortField] = useState("MXFS_ARCHIVE_TIME");
   const [sortOrder, setSortOrder] = useState("Descending");
   const [currentGnmType, setCurrentGnmType] = useState("any");
+
+  const searchComponentContext = useContext(SearchComponentContext);
 
   /**
    * rebuild the target url whenever the paramers change
@@ -65,7 +68,10 @@ const SearchBarFile: React.FC<SearchBarFileProps> = (props) => {
       <Grid item>
         <VaultSelector
           currentvault={selectedVault ?? ""}
-          vaultWasChanged={(newVault) => setSelectedVault(newVault)}
+          vaultWasChanged={(newVault) => {
+            setSelectedVault(newVault);
+            searchComponentContext.vaultIdUpdated(newVault);
+          }}
         />
       </Grid>
       <Grid item>
