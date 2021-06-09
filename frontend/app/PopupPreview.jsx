@@ -1,8 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
-import ContentHolder from "./searchnbrowse/ContentHolder.jsx";
 import { authenticatedFetch } from "./auth";
-import DownloadButton from "./common/DownloadButton.jsx";
+import DownloadButton from "./common/DownloadButton";
 import { IconButton } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
 import SearchComponentContext from "./searchnbrowse/SearchComponentContext";

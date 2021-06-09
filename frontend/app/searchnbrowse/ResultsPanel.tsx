@@ -134,7 +134,6 @@ class ResultsPanel extends React.Component<ResultsPanelProps, ResultsPanelState>
           entry={this.state.selectedEntry}
           previewRequestedCb={this.props.previewRequestedCb}
           projectClicked={this.props.projectClicked}
-          vaultId={this.context.vaultId}
         />
       </div>
     );
