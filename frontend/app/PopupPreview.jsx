@@ -1,10 +1,10 @@
 import React from "react";
 import PropTypes from "prop-types";
-import ContentHolder from "./searchnbrowse/ContentHolder.jsx";
 import { authenticatedFetch } from "./auth";
-import DownloadButton from "./common/DownloadButton.jsx";
+import DownloadButton from "./common/DownloadButton";
 import { IconButton } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
+import SearchComponentContext from "./searchnbrowse/SearchComponentContext";
 
 class PopupPreview extends React.Component {
   static PREVIEW_IMAGE = 1;
@@ -13,7 +13,6 @@ class PopupPreview extends React.Component {
 
   static propTypes = {
     oid: PropTypes.string.isRequired,
-    vaultId: PropTypes.string.isRequired,
     dialogClose: PropTypes.func.isRequired,
   };
 
@@ -43,7 +42,7 @@ class PopupPreview extends React.Component {
   async loadup() {
     await this.setStatePromise({ loading: true });
 
-    const url = "/api/vault/" + this.props.vaultId + "/" + this.props.oid;
+    const url = "/api/vault/" + this.context.vaultId + "/" + this.props.oid;
     const response = await authenticatedFetch(url, { method: "HEAD" });
     if (response.ok) {
       const maybeContentType = response.headers.get("content-type");
@@ -84,7 +83,6 @@ class PopupPreview extends React.Component {
           </tbody>
         </table>
         <DownloadButton
-          vaultId={this.props.vaultId}
           oid={this.props.oid}
           fileName="changeme.dat"
         />
@@ -108,5 +106,7 @@ class PopupPreview extends React.Component {
     );
   }
 }
+
+PopupPreview.contextType = SearchComponentContext;
 
 export default PopupPreview;

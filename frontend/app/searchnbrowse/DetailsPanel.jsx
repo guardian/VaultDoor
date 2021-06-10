@@ -3,14 +3,14 @@ import PropTypes from "prop-types";
 import PathView, { TRUNC_END, TRUNC_MIDDLE, TRUNC_START } from "./PathView";
 import CommissionProjectView from "../metadata/CommissionProjectView.jsx";
 import MetadataTabView from "../metadata/MetadataTabView.jsx";
-import DownloadButton from "../common/DownloadButton.jsx";
+import DownloadButton from "../common/DownloadButton";
+import SearchComponentContext from "./SearchComponentContext";
 
 class DetailsPanel extends React.Component {
   static propTypes = {
     entry: PropTypes.object,
     previewRequestedCb: PropTypes.func.isRequired,
     projectClicked: PropTypes.func,
-    vaultId: PropTypes.string,
     className: PropTypes.string,
   };
 
@@ -54,14 +54,14 @@ class DetailsPanel extends React.Component {
       <div className={this.props.className}>
         <span className="centered filename semilarge">{fileName}</span>
         <span className="centered">
-          {this.props.entry.gnmMetadata
-            ? this.props.entry.gnmMetadata.type
+          {entry.gnmMetadata
+            ? entry.gnmMetadata.type
             : "(no filetype)"}
         </span>
-        {this.props.vaultId && this.props.entry ? (
+        {this.context.vaultId && entry ? (
           <span className="centered">
             <DownloadButton
-              vaultId={this.props.vaultId}
+              vaultId={this.context.vaultId}
               oid={this.props.entry.oid}
               fileName={fileName}
             />
@@ -97,5 +97,7 @@ class DetailsPanel extends React.Component {
     );
   }
 }
+
+DetailsPanel.contextType = SearchComponentContext;
 
 export default DetailsPanel;

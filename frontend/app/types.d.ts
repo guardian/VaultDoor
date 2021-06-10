@@ -1,3 +1,8 @@
+declare module "can-ndjson-stream" {
+    function ndjsonStream<I,O>(input:ReadableStream<I>|null):ReadableStream<O>;
+    export default ndjsonStream;
+}
+
 interface VaultDescription {
   vaultId: string;
   name: string;
