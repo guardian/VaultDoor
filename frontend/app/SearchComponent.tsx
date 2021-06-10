@@ -106,7 +106,6 @@ class SearchComponent extends React.Component<RouteComponentProps, SearchCompone
         }
       });
     }
-    //readNextChunk = readNextChunk.bind(this);
     readNextChunk(reader);
   }
 
