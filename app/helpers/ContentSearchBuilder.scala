@@ -6,6 +6,12 @@ object SearchCombiner extends Enumeration {
   val AND,OR = Value
 }
 
+/**
+ * DSL-style helper for building MatrixStore content-search strings
+ *
+ * @param queryTerms
+ * @param keywords
+ */
 case class ContentSearchBuilder(queryTerms:String, keywords:Seq[String]) {
   def build = {
     val base = queryTerms
@@ -16,15 +22,13 @@ case class ContentSearchBuilder(queryTerms:String, keywords:Seq[String]) {
     }
   }
 
-  private val containsSpaces = new Regex("\\s+")
-
   /**
     * put an AND term into the query. Note that the `value` parameter is automatically quoted if it contains any spaces
     * @param field field to search for
     * @param value value to search for
     */
   def withTerm(field:String, value:String, combiner:SearchCombiner.Value, invert:Boolean=false) = {
-    val quotedValue = if(containsSpaces.findFirstIn(value).isDefined) {
+    val quotedValue = if(ContentSearchBuilder.containsSpaces.findFirstIn(value).isDefined) {
       "\"" + value + "\""
     } else {
       value
@@ -52,5 +56,6 @@ case class ContentSearchBuilder(queryTerms:String, keywords:Seq[String]) {
 }
 
 object ContentSearchBuilder {
+  private val containsSpaces = new Regex("\\s+")
   def apply(queryString:String) = new ContentSearchBuilder(queryString, Seq())
 }
