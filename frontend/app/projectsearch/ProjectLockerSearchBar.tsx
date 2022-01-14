@@ -174,7 +174,7 @@ const ProjectLockerSearchBarImplementation: React.FC<ProjectLockerSearchBarProps
       } else {
         setLastError(bodyText);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Could not load initial working group: ", err);
       setLastError(err.toString);
     }
