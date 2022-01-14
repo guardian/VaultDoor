@@ -18,6 +18,7 @@ import { authenticatedFetch } from "./auth";
 import { ThemeProvider } from "@material-ui/core/styles";
 import { createMuiTheme } from "@material-ui/core";
 import LoginComponentNew from "./LoginComponentNew";
+import DuplicateComponent from "./DuplicateComponent";
 
 class App extends React.Component {
   constructor(props) {
@@ -224,6 +225,7 @@ class App extends React.Component {
             <Switch>
               <Route path="/byproject" component={ByProjectComponent} />
               <Route path="/search" component={SearchComponent} />
+              <Route path="/duplicates" component={DuplicateComponent} />
               <Route
                 exact
                 path="/oauth2/callback"

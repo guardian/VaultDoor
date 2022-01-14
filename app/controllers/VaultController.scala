@@ -1,10 +1,10 @@
 package controllers
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.stream.scaladsl.{GraphDSL, Source}
-import akka.stream.{Attributes, Materializer, SourceShape}
+import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source}
+import akka.stream.{Attributes, ClosedShape, Materializer, SourceShape}
 import auth.{BearerTokenAuth, Security}
-import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
+import com.om.mxs.client.japi.{MatrixStore, SearchTerm, UserInfo, Vault}
 import helpers.{RangeHeader, UserInfoCache, ZonedDateTimeEncoder}
 
 import javax.inject.{Inject, Named, Singleton}
@@ -15,9 +15,9 @@ import play.api.mvc.{AbstractController, AnyContent, ControllerComponents, Reque
 import responses.{GenericErrorResponse, KnownVaultResponse, SingleItemDownloadTokenResponse}
 import io.circe.generic.auto._
 import io.circe.syntax._
-import models.{AuditEvent, AuditFile, ObjectMatrixEntry, ServerTokenDAO, ServerTokenEntry}
+import models.{AuditEvent, AuditFile, CachedEntry, ExistingArchiveContentCache, ObjectMatrixEntry, ServerTokenDAO, ServerTokenEntry}
 import play.api.http.HttpEntity
-import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges, MultipartSource}
+import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges, MultipartSource, OMFastSearchSource}
 import akka.pattern.ask
 
 import scala.concurrent.Future
@@ -227,4 +227,85 @@ class VaultController @Inject() (cc:ControllerComponents,
       }
     }
   }
+
+  def loadExistingContent(vaultId: String) = {
+    val interestingFields = Array(
+      "MXFS_PATH",
+      "MXFS_FILENAME",
+      "GNM_ASSET_FOLDER",
+      "GNM_TYPE",
+      "GNM_PROJECT_ID"
+    )
+
+    val catchAllSearchTerm = SearchTerm.createNOTTerm(SearchTerm.createSimpleTerm("oid", ""))
+    val finalSink = Sink.seq[CachedEntry]
+    val content = userInfoCache.infoForVaultId(vaultId)
+    //implicit val vault:Vault = MatrixStore.openVault(content.head)
+    val graph = GraphDSL.create(finalSink) { implicit builder =>
+      sink =>
+        import akka.stream.scaladsl.GraphDSL.Implicits._
+
+        val src = builder.add(new OMFastSearchSource(content.head, Array(catchAllSearchTerm), interestingFields, atOnce = 100))
+        src.out.map(elem => {
+          //val mxsEntry = vault.getObject(elem.oid)
+          //val checkSum = MetadataHelper.getOMFileMd5(mxsEntry) match {
+          //  case Failure(err)=>
+          //    logger.warn(s"Could not get appliance MD5: ", err)
+          //    "None"
+          //  case Success(checksum)=>checksum
+          //}
+          val ent = CachedEntry(
+            elem.oid,
+            elem.attributes.flatMap(_.stringValues.get("MXFS_PATH")).getOrElse("(no path)"),
+            elem.attributes.flatMap(_.stringValues.get("MXFS_FILENAME")).getOrElse("(no filename)"),
+            elem.attributes.flatMap(_.stringValues.get("GNM_ASSET_FOLDER")),
+            elem.attributes.flatMap(_.stringValues.get("GNM_TYPE")),
+            elem.attributes.flatMap(_.stringValues.get("GNM_PROJECT_ID")),
+            ""
+          )
+
+          logger.debug(s"Got entry $ent")
+          ent
+        }) ~> sink
+        ClosedShape
+    }
+
+    RunnableGraph.fromGraph(graph).run()
+  }
+
+  case class FullDuplicateData(mxfsPath:String, duplicateNumber:Int, duplicatesData:Seq[CachedEntry])
+  case class AllDuplicateData(dupes_count:Int, item_count:Int, duplicates:Array[FullDuplicateData])
+
+  def getDuplicateData(vaultId: String)  = {
+    loadExistingContent(vaultId).map(results=>{
+      val contentCache = new ExistingArchiveContentCache(results)
+      var duplicatesArray: Array[FullDuplicateData] = Array()
+      val dupeCount = contentCache.dupesCount
+      if (dupeCount > 0) {
+        logger.warn(s"There are $dupeCount duplicated files in the archive")
+        contentCache.dupedPaths.foreach(dupe => {
+          logger.debug(s"${dupe._1}: ${dupe._2} copies")
+          val duplicatedItemData = contentCache.getAllForPath(dupe._1)
+          val duplicateDataThree = FullDuplicateData(dupe._1,dupe._2,duplicatedItemData)
+          duplicatesArray +:= duplicateDataThree
+        })
+      } else {
+        logger.info(s"No duplicates found.")
+      }
+      logger.info(s"Got existing ${results.length} items in the vault")
+      logger.info(s"${duplicatesArray}")
+      val fullDuplicateDataTwo = AllDuplicateData(dupes_count = contentCache.dupesCount, item_count = results.length, duplicates = duplicatesArray)
+      logger.info(s"${fullDuplicateDataTwo}")
+      fullDuplicateDataTwo
+    })
+  }
+
+  def findDuplicates(vaultId:String) = IsAuthenticatedAsync { uid=> request=>
+    getDuplicateData(vaultId).map(result=>{
+      Ok(result.asJson)}
+    ).recover({
+      case _:Throwable=> BadRequest(GenericErrorResponse("error", "An error occurred when attempting to load duplicate data.").asJson)
+    })
+  }
+
 }
