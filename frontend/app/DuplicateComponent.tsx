@@ -19,6 +19,10 @@ interface DuplicateEntry {
 interface DuplicateData {
   mxfsPath: string;
   oid: string;
+  mxfsFilename: string;
+  maybeAssetFolder?: string;
+  maybeProject?: string;
+  maybeType?: string;
 }
 
 class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateComponentState> {
@@ -89,7 +93,25 @@ class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateC
             this.state.duplicates.map((item,i) => (<div key={i}>Path: {item.mxfsPath}<br/> Duplicates: {item.duplicateNumber}{
               item.duplicatesData ? (
               item.duplicatesData.map((itemsub, i) => (
-                  <div key={i}>ObjectMatrix Id.: {itemsub.oid}</div>
+                  <div key={i}>
+                    <table>
+                      <tr><th>ObjectMatrix Id.</th><td>{itemsub.oid}</td></tr>
+                      <tr><th>Path</th><td>{itemsub.mxfsPath}</td></tr>
+                      <tr><th>Filename</th><td>{itemsub.mxfsFilename}</td></tr>
+                    {itemsub.maybeAssetFolder ? (
+                        <tr><th>Asset Folder</th><td>{itemsub.maybeAssetFolder}</td></tr>
+                      ) : (null)
+                    }
+                    {itemsub.maybeType ? (
+                        <tr><th>Type</th><td>{itemsub.maybeType}</td></tr>
+                      ) : (null)
+                    }
+                    {itemsub.maybeProject ? (
+                        <tr><th>Project Id.</th><td>{itemsub.maybeProject}</td></tr>
+                      ) : (null)
+                    }
+                    </table>
+                  </div>
                   )
               ) ): (null)
             }
