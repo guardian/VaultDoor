@@ -50,7 +50,7 @@ const LoginComponentNew: React.FC<LoginButtonNewProps> = (props) => {
       }
 
       setIsLoggedIn(true);
-    } catch (error) {
+    } catch (error: any) {
       // Login valid callback if provided
       if (props.onLoginValid) {
         props.onLoginValid(false);

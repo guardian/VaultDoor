@@ -47,6 +47,9 @@ class RootComponent extends React.Component {
             <li className="main-menu-list">
               <Link to="/byproject">Go to project browser</Link>
             </li>
+            <li className="main-menu-list">
+              <Link to="/duplicates">Go to find duplicates</Link>
+            </li>
           </ul>
 
           <button style={{ marginLeft: "1em" }} onClick={this.doLogout}>

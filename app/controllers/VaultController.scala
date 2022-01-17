@@ -1,10 +1,10 @@
 package controllers
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.stream.scaladsl.{GraphDSL, Source}
-import akka.stream.{Attributes, Materializer, SourceShape}
+import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source}
+import akka.stream.{Attributes, ClosedShape, Materializer, SourceShape}
 import auth.{BearerTokenAuth, Security}
-import com.om.mxs.client.japi.{MatrixStore, UserInfo, Vault}
+import com.om.mxs.client.japi.{MatrixStore, SearchTerm, UserInfo, Vault}
 import helpers.{RangeHeader, UserInfoCache, ZonedDateTimeEncoder}
 
 import javax.inject.{Inject, Named, Singleton}
@@ -15,11 +15,11 @@ import play.api.mvc.{AbstractController, AnyContent, ControllerComponents, Reque
 import responses.{GenericErrorResponse, KnownVaultResponse, SingleItemDownloadTokenResponse}
 import io.circe.generic.auto._
 import io.circe.syntax._
-import models.{AuditEvent, AuditFile, ObjectMatrixEntry, ServerTokenDAO, ServerTokenEntry}
+import models.{AuditEvent, AuditFile, CachedEntry, ExistingArchiveContentCache, ObjectMatrixEntry, ServerTokenDAO, ServerTokenEntry}
 import play.api.http.HttpEntity
-import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges, MultipartSource}
+import streamcomponents.{AuditLogFinish, MatrixStoreFileSourceWithRanges, MultipartSource, OMFastSearchSource}
 import akka.pattern.ask
-
+import services.DuplicateFinderService
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -31,6 +31,7 @@ class VaultController @Inject() (cc:ControllerComponents,
                                  @Named("audit-actor") auditActor:ActorRef,
                                  userInfoCache:UserInfoCache,
                                  serverTokenDAO: ServerTokenDAO,
+                                 dupFinder: DuplicateFinderService
                                 )(implicit mat:Materializer,system:ActorSystem, override implicit val cache:SyncCacheApi)
   extends AbstractController(cc) with Security with ObjectMatrixEntryMixin with Circe with ZonedDateTimeEncoder{
 
@@ -227,4 +228,13 @@ class VaultController @Inject() (cc:ControllerComponents,
       }
     }
   }
+
+  def findDuplicates(vaultId:String) = IsAuthenticatedAsync { uid=> request=>
+    dupFinder.getDuplicateData(vaultId).map(result=>{
+      Ok(result.asJson)}
+    ).recover({
+      case _:Throwable=> BadRequest(GenericErrorResponse("error", "An error occurred when attempting to load duplicate data.").asJson)
+    })
+  }
+
 }
