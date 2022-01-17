@@ -4,11 +4,6 @@ import { authenticatedFetch } from "./auth";
 import VaultSelector from "./searchnbrowse/NewVaultSelector";
 
 interface DuplicateComponentState {
-  searching?: boolean;
-  fileEntries?: FileEntry[];
-  requestedPreview?: any;
-  currentReader?: ReadableStreamReader<FileEntry>;
-  currentAbort?: any;
   vaultId?: string;
   duplicatesCount?: string;
   itemCount?: string;
@@ -27,17 +22,11 @@ interface DuplicateData {
 }
 
 class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateComponentState> {
-  static resultsLimit = 100;
 
   constructor(props:RouteComponentProps) {
     super(props);
 
     this.state = {
-      searching: false,
-      fileEntries: [],
-      requestedPreview: undefined,
-      currentReader: undefined,
-      currentAbort: undefined,
       vaultId: undefined,
       duplicatesCount: undefined,
       itemCount: undefined,
