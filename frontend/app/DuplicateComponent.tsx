@@ -48,9 +48,7 @@ class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateC
       return;
     } else {
       const content = await response.json();
-      this.setState({ duplicatesCount: content.dupes_count });
-      this.setState({ itemCount: content.item_count });
-      this.setState({duplicates: content.duplicates})
+      this.setState({ duplicatesCount: content.dupes_count, itemCount: content.item_count, duplicates: content.duplicates });
     }
 
   }
