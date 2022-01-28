@@ -79,10 +79,10 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
     * @param projectId project ID to search for
     * @return an ArchiveEntryDownloadSynopsis object for each file of the project, returned in a Future
     */
-  def getContent(userInfo:UserInfo, projectId:String) = {
+  def getContent(userInfo:UserInfo, projectId:String, onlyRushes:Boolean=true) = {
     val usefulFields = Array("MXFS_PATH","MXFS_FILENAME","DPSP_SIZE")
 
-    SearchTermHelper.projectIdQuery(projectId) match {
+    SearchTermHelper.projectIdQuery(projectId, onlyRushes) match {
       case Some(projectQuery) =>
         val sinkFact = Sink.seq[ArchiveEntryDownloadSynopsis]
         val graph = GraphDSL.create(sinkFact) { implicit builder =>
@@ -119,7 +119,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
     * @param tokenId the ID of a short-lived token
     * @return
     */
-  def getBulkDownload(tokenId:String) = Action.async {
+  def getBulkDownload(tokenId:String, notOnlyRushes:Option[Boolean]) = Action.async {
     serverTokenDAO.get(tokenId).flatMap({
       case None=>
         Future(NotFound(GenericErrorResponse("not_found","No such bulk download").asJson))
@@ -138,7 +138,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
 
             withVaultAsync(vaultId) { userInfo =>
               createRetrievalToken(token.createdForUser.getOrElse(""), combinedId).flatMap(retrievalToken=> {
-                getContent(userInfo, projectId).map({
+                getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
                   case Right(synopses)=>
                     val meta = LightboxBulkEntry(projectId, s"Vaultdoor download for project $projectId", token.createdForUser.getOrElse(""), ZonedDateTime.now(), 0, synopses.length, 0)
                     Ok(BulkDownloadInitiateResponse("ok", meta, retrievalToken.value, synopses).asJson)
