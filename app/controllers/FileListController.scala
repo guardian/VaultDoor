@@ -210,7 +210,7 @@ class FileListController @Inject() (cc:ControllerComponents,
   def projectsummary(vaultId:String, forProject:String) = IsAuthenticatedAsync { uid => request =>
     withVaultAsync(vaultId) { userInfo=>
       logger.info(s"projectsummary: looking up '$forProject' on $vaultId (${userInfo.getVault}")
-      projectIdQuery(forProject) match {
+      projectIdQuery(forProject, onlyRushes=false) match {
         case Some(query) =>
           summaryFor(userInfo, query).map(summary => {
             Ok(summary.asJson)
@@ -229,7 +229,7 @@ class FileListController @Inject() (cc:ControllerComponents,
     */
   def projectSearchStreaming(vaultId:String, forProject:String) = IsAuthenticated { uid=> request=>
     withVault(vaultId) { userInfo=>
-      projectIdQuery(forProject) match {
+      projectIdQuery(forProject, onlyRushes=false) match {
         case Some(q)=>
           val graph = searchGraph(userInfo, SearchTerm.createSimpleTerm(Constants.CONTENT, q.build))
           Result(
