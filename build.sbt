@@ -59,7 +59,6 @@ libraryDependencies += "io.sentry" % "sentry-logback" % "1.7.2"
 
 //authentication
 libraryDependencies ++= Seq(
-  "com.unboundid" % "unboundid-ldapsdk" % "5.0.0",
   "com.nimbusds" % "nimbus-jose-jwt" % "8.17",
 )
 

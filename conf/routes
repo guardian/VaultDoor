@@ -9,7 +9,6 @@ GET     /stream/:targetUriString                    @controllers.Application.str
 HEAD    /stream/:targetUriString                    @controllers.Application.headTargetContent(targetUriString)
 GET     /api/config                                 @controllers.Application.frontendConfig
 
-POST    /api/login                                  @controllers.Login.authenticate
 POST    /api/logout                                 @controllers.Login.logout
 GET     /api/isLoggedIn                             @controllers.Login.isLoggedIn
 GET     /api/isAdmin                                @controllers.Login.checkIsAdmin
