@@ -8,8 +8,6 @@ version := "1.0"
       
 lazy val `vaultdoor` = (project in file(".")).enablePlugins(PlayScala)
 
-resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
-      
 scalaVersion := "2.12.13"
 scalacOptions +="-target:jvm-1.8"
 javacOptions ++= Seq("-source", "1.8","-target","1.8")
@@ -59,7 +57,6 @@ libraryDependencies += "io.sentry" % "sentry-logback" % "1.7.2"
 
 //authentication
 libraryDependencies ++= Seq(
-  "com.unboundid" % "unboundid-ldapsdk" % "5.0.0",
   "com.nimbusds" % "nimbus-jose-jwt" % "8.17",
 )
 

@@ -76,19 +76,6 @@ trait Security extends BaseController {
   protected val logger: org.slf4j.Logger = LoggerFactory.getLogger(getClass)
   implicit val config:Configuration
   /**
-   * look up an ldap user in the session.
-   * @param request HTTP request object
-   * @return Option containing uid if present or None
-   */
-  private def ldapUsername(request: RequestHeader):Either[LoginResult,LoginResultOK[String]] = Conf.ldapProtocol match {
-    case "none"=>Right(LoginResultOK("noldap"))
-    case _=>request.session.get("uid") match {
-      case Some(uid)=>Right(LoginResultOK(uid))
-      case None=>Left(LoginResultNotPresent)
-    }
-  }
-
-  /**
    * look up an hmac user
    * @param header HTTP request object
    * @param auth Authorization token as passed from the client
@@ -141,8 +128,8 @@ trait Security extends BaseController {
         })
       }
     case None=>
-      logger.debug("no Auth header, doing session auth")
-      ldapUsername(request)
+      logger.debug("no Auth header")
+      Left(LoginResultNotPresent)
   }
 
   private def onUnauthorized(request: RequestHeader, loginResult: LoginResult) = loginResult match {
@@ -178,29 +165,6 @@ trait Security extends BaseController {
   def IsAuthenticated[A](b: BodyParser[A])(f: => String => Request[A] => Result) = Security.MyAuthenticated(username, onUnauthorized) {
     uid => Action(b)(request => f(uid)(request))
   }
-  /**
-   * check whether the provided uid has the requested roles
-   * @param uid username to check
-   * @param requiredRoles roles to check
-   * @return boolean
-   */
-  def checkRole(uid:String, requiredRoles: Seq[String]): Boolean = {
-    LDAP.getUserRoles(uid) match {
-      case Some(userRoles)=>
-        logger.info(s"Checking user roles $userRoles against $requiredRoles")
-        requiredRoles.intersect(userRoles).nonEmpty
-      case _=>
-        false
-    }
-  }
-
-  private def LdapHasRole(requiredRoles: List[String], uid:String) = {
-    LDAP.getUserRoles(uid) match {
-      case Some(userRoles) if requiredRoles.intersect(userRoles).nonEmpty => true
-      case _ =>
-        sys.env.contains("CI")  //allow admin functions when under test
-    }
-  }
 
   def checkAdmin[A](uid:String, request:Request[A]) = Seq("X-Hmac-Authorization","Authorization").map(request.headers.get) match {
     case Seq(Some(hmac),_)=>
@@ -227,9 +191,7 @@ trait Security extends BaseController {
           false
       }
     case _=>
-      logger.debug("checking ldap roles")
-      //if we are running in dev mode without authentication then we have to allow admin actionss
-      Conf.ldapProtocol=="none" || LdapHasRole(Conf.adminGroups.asScala.toList, uid)
+      false
   }
 
   /**
@@ -237,8 +199,6 @@ trait Security extends BaseController {
    * if the X-Hmac-Authorization header is present, then the request is server-server and the user is not an admin
    * if the Authoriztion header is present, then the request is a bearer token. The user is considered an admin
    * if a string claim with the name given by the config key auth.adminClaim is present and has a value of either "true" or "yes"
-   * if neither is present, then the request is a session-auth request and a check is made to the remote LDAP server for
-   * group membership
    * @param f the action function
    * @return the result of the action function or Forbidden
    */

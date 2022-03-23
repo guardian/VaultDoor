@@ -21,29 +21,5 @@ import com.typesafe.config.ConfigFactory
 
 object Conf {
   val conf = ConfigFactory.load()
-  val ldapProtocol = conf.getString("ldap.ldapProtocol")
-  val ldapUseKeystore = conf.getBoolean("ldap.ldapUseKeystore")
-  val ldapHost0 = conf.getString("ldap.ldapHost0")
-  val ldapHost1 = conf.getString("ldap.ldapHost1")
-  val ldapPort = conf.getInt("ldap.ldapPort")
-  val bindDN = conf.getString("ldap.bindDN")
-  val bindPass = conf.getString("ldap.bindPass")
-  val poolSize = conf.getInt("ldap.poolSize")
-  val roleBaseDN = conf.getString("ldap.roleBaseDN")
-  val userBaseDN = conf.getString("ldap.userBaseDN")
-  val uidAttribute = conf.getString("ldap.uidAttribute")
-  val memberAttribute = conf.getString("ldap.memberAttribute")
-  val roleMemberAttribute = conf.getString("ldap.roleMemberAttribute")
-  val roleAttribute = conf.getString("ldap.roleAttribute")
-  val trustStore = conf.getString("ldap.trustStore")
-  val trustStorePass = conf.getString("ldap.trustStorePass").toCharArray
-  val trustStoreType = conf.getString("ldap.trustStoreType")
-  val ldapCacheDuration = conf.getInt("ldap.ldapCacheDuration")
-  val acg1 = conf.getString("ldap.acg1")
-
-
   val sharedSecret = conf.getString("shared_secret")
-  val serverAddresses = Array(ldapHost0,ldapHost1)
-  val serverPorts = Array(ldapPort,ldapPort)
-  val adminGroups = conf.getStringList("ldap.admin-groups")
 }
