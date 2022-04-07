@@ -1,6 +1,5 @@
 import React from "react";
 import {RouteComponentProps, withRouter} from "react-router-dom";
-import { authenticatedFetch } from "./auth";
 import VaultSelector from "./searchnbrowse/NewVaultSelector";
 
 interface DuplicateComponentState {
@@ -21,9 +20,12 @@ interface DuplicateData {
   oid: string;
 }
 
-class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateComponentState> {
+interface DuplicateProps {
+  vault_data_path: string;
+}
 
-  constructor(props:RouteComponentProps) {
+class DuplicateComponent extends React.Component<RouteComponentProps & DuplicateProps, DuplicateComponentState> {
+  constructor(props:RouteComponentProps & DuplicateProps) {
     super(props);
 
     this.state = {
@@ -35,22 +37,20 @@ class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateC
   }
 
   async getDuplicateData() {
-    const abortController = new AbortController();
-
-    const response = await authenticatedFetch('/api/vault/'+ this.state.vaultId +'/findDuplicates', {
-      signal: abortController.signal,
-    });
-    if (response.status !== 200) {
-      console.error(`Could not load data: server error ${response.status}`);
-      const rawData = await response.text();
-      console.error(`Server said ${rawData}`);
-
-      return;
-    } else {
-      const content = await response.json();
-      this.setState({ duplicatesCount: content.dupes_count, itemCount: content.item_count, duplicates: content.duplicates });
+    try {
+        fetch(this.props.vault_data_path + '/' + this.state.vaultId + '.json')
+            .then(response => response.text())
+            .then((data) => {
+                const content = JSON.parse(data);
+                this.setState({
+                    duplicatesCount: content.dupes_count,
+                    itemCount: content.item_count,
+                    duplicates: content.duplicates
+                });
+            })
+    } catch (e) {
+      console.error(`Could not load vault data for: ` + this.state.vaultId + `. ` + e);
     }
-
   }
 
   componentDidUpdate(prevProps: Readonly<RouteComponentProps>, prevState: Readonly<DuplicateComponentState>, snapshot?: any) {
@@ -67,6 +67,7 @@ class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateC
             vaultWasChanged={(newVault) => {
               this.setState({ duplicatesCount: undefined });
               this.setState({ itemCount: undefined });
+              this.setState({ duplicates: undefined });
               this.setState({ vaultId: newVault });
             }}
         />

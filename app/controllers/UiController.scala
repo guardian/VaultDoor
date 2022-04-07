@@ -21,7 +21,8 @@ class UiController @Inject() (config:Configuration,cc:ControllerComponents) exte
         //logger.warn("Could not get build-sha property: ", e)
         None
     }
-    Ok(views.html.index("VaultDoor")(cbVersionString.getOrElse("no-cachebusting")))
+    lazy val vaultDataPath = config.getOptional[String]("vaults.vaultDataPath").getOrElse("/opt/vault_data")
+    Ok(views.html.index("VaultDoor")(cbVersionString.getOrElse("no-cachebusting"))(vaultDataPath))
   }
 
   def index(tail:String) = rootIndex

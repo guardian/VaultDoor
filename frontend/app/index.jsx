@@ -225,7 +225,7 @@ class App extends React.Component {
             <Switch>
               <Route path="/byproject" component={ByProjectComponent} />
               <Route path="/search" component={SearchComponent} />
-              <Route path="/duplicates" component={DuplicateComponent} />
+              <Route path="/duplicates" component={()=><DuplicateComponent vault_data_path={VAULT_DATA_PATH} />} />
               <Route
                 exact
                 path="/oauth2/callback"
