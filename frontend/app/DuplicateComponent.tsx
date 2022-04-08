@@ -1,5 +1,6 @@
 import React from "react";
 import {RouteComponentProps, withRouter} from "react-router-dom";
+import { authenticatedFetch } from "./auth";
 import VaultSelector from "./searchnbrowse/NewVaultSelector";
 
 interface DuplicateComponentState {
@@ -37,19 +38,20 @@ class DuplicateComponent extends React.Component<RouteComponentProps & Duplicate
   }
 
   async getDuplicateData() {
-    try {
-        fetch(this.props.vault_data_path + '/' + this.state.vaultId + '.json')
-            .then(response => response.text())
-            .then((data) => {
-                const content = JSON.parse(data);
-                this.setState({
-                    duplicatesCount: content.dupes_count,
-                    itemCount: content.item_count,
-                    duplicates: content.duplicates
-                });
-            })
-    } catch (e) {
-      console.error(`Could not load vault data for: ` + this.state.vaultId + `. ` + e);
+      const abortController = new AbortController();
+
+      const response = await authenticatedFetch('/api/vaultDataJSONFile/'+ this.state.vaultId, {
+          signal: abortController.signal,
+      });
+      if (response.status !== 200) {
+          console.error(`Could not load data: server error ${response.status}`);
+          const rawData = await response.text();
+          console.error(`Server said ${rawData}`);
+
+          return;
+      } else {
+          const content = await response.json();
+          this.setState({ duplicatesCount: content.dupes_count, itemCount: content.item_count, duplicates: content.duplicates });
     }
   }
 
