@@ -4,9 +4,10 @@ import org.slf4j.LoggerFactory
 import akka.stream.{ClosedShape, Materializer}
 import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink}
 import com.om.mxs.client.japi.SearchTerm
-import helpers.UserInfoCache
+import helpers.{MetadataHelper, UserInfoCache}
 import models.{CachedEntry, ExistingArchiveContentCache}
 import streamcomponents.OMFastSearchSource
+
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -22,7 +23,8 @@ class DuplicateFinderService @Inject()(userInfoCache:UserInfoCache)(implicit mat
       "MXFS_FILENAME",
       "GNM_ASSET_FOLDER",
       "GNM_TYPE",
-      "GNM_PROJECT_ID"
+      "GNM_PROJECT_ID",
+      "__mxs__length"
     )
 
     val catchAllSearchTerm = SearchTerm.createNOTTerm(SearchTerm.createSimpleTerm("oid", ""))
@@ -41,7 +43,8 @@ class DuplicateFinderService @Inject()(userInfoCache:UserInfoCache)(implicit mat
             elem.attributes.flatMap(_.stringValues.get("GNM_ASSET_FOLDER")),
             elem.attributes.flatMap(_.stringValues.get("GNM_TYPE")),
             elem.attributes.flatMap(_.stringValues.get("GNM_PROJECT_ID")),
-            ""
+            "",
+            elem.stringAttribute("__mxs__length").map(_.toLong).getOrElse(0L),
           )
 
           logger.debug(s"Got entry $ent")
