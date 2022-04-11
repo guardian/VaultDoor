@@ -22,7 +22,6 @@ interface DuplicateData {
 }
 
 class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateComponentState> {
-
   constructor(props:RouteComponentProps) {
     super(props);
 
@@ -35,22 +34,21 @@ class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateC
   }
 
   async getDuplicateData() {
-    const abortController = new AbortController();
+      const abortController = new AbortController();
 
-    const response = await authenticatedFetch('/api/vault/'+ this.state.vaultId +'/findDuplicates', {
-      signal: abortController.signal,
-    });
-    if (response.status !== 200) {
-      console.error(`Could not load data: server error ${response.status}`);
-      const rawData = await response.text();
-      console.error(`Server said ${rawData}`);
+      const response = await authenticatedFetch('/api/duplicatereport/' + this.state.vaultId + '/latest', {
+          signal: abortController.signal,
+      });
+      if (response.status !== 200) {
+          console.error(`Could not load data: server error ${response.status}`);
+          const rawData = await response.text();
+          console.error(`Server said ${rawData}`);
 
-      return;
-    } else {
-      const content = await response.json();
-      this.setState({ duplicatesCount: content.dupes_count, itemCount: content.item_count, duplicates: content.duplicates });
+          return;
+      } else {
+          const content = await response.json();
+          this.setState({ duplicatesCount: content.dupes_count, itemCount: content.item_count, duplicates: content.duplicates });
     }
-
   }
 
   componentDidUpdate(prevProps: Readonly<RouteComponentProps>, prevState: Readonly<DuplicateComponentState>, snapshot?: any) {
@@ -67,6 +65,7 @@ class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateC
             vaultWasChanged={(newVault) => {
               this.setState({ duplicatesCount: undefined });
               this.setState({ itemCount: undefined });
+              this.setState({ duplicates: undefined });
               this.setState({ vaultId: newVault });
             }}
         />
