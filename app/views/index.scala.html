@@ -1,4 +1,4 @@
-@(title:String)(cacheBuster:String)(vaultDataPath:String)
+@(title:String)(cacheBuster:String)
 <!DOCTYPE html>
 
 <html>
@@ -13,8 +13,5 @@
             background-size: cover;
             background-repeat: no-repeat; min-height: 100vh;'></div>
         <script src="@routes.Assets.at("javascripts/bundle.js")?cb=@(cacheBuster)" type="text/javascript"></script>
-        <script>
-                const VAULT_DATA_PATH="@(vaultDataPath)";
-        </script>
     </body>
 </html>

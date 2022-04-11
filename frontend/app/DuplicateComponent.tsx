@@ -21,12 +21,8 @@ interface DuplicateData {
   oid: string;
 }
 
-interface DuplicateProps {
-  vault_data_path: string;
-}
-
-class DuplicateComponent extends React.Component<RouteComponentProps & DuplicateProps, DuplicateComponentState> {
-  constructor(props:RouteComponentProps & DuplicateProps) {
+class DuplicateComponent extends React.Component<RouteComponentProps, DuplicateComponentState> {
+  constructor(props:RouteComponentProps) {
     super(props);
 
     this.state = {
@@ -40,7 +36,7 @@ class DuplicateComponent extends React.Component<RouteComponentProps & Duplicate
   async getDuplicateData() {
       const abortController = new AbortController();
 
-      const response = await authenticatedFetch('/api/vaultDataJSONFile/'+ this.state.vaultId, {
+      const response = await authenticatedFetch('/api/duplicatereport/' + this.state.vaultId + '/latest', {
           signal: abortController.signal,
       });
       if (response.status !== 200) {

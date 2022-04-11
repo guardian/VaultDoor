@@ -47,10 +47,8 @@ class Application @Inject() (cc:ControllerComponents,
 
   private implicit val timeout:akka.util.Timeout = 30.seconds
 
-  private lazy val vaultDataPath = config.getOptional[String]("vaults.vaultDataPath").getOrElse("/opt/vault_data")
-
   def index = Action {
-    Ok(views.html.index("VaultDoor")("no-cb")(vaultDataPath))
+    Ok(views.html.index("VaultDoor")("no-cb"))
   }
 
   def getMaybeResponseSize(entry:ObjectMatrixEntry, overriden:Option[Long]):Option[Long] = {

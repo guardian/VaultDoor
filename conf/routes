@@ -28,7 +28,7 @@ GET     /api/vault/:vaultId/projectSummary/:projectId @controllers.FileListContr
 HEAD    /api/vault/:vaultId/:oid                    @controllers.VaultController.headTargetContent(vaultId, oid)
 GET     /api/vault/:vaultId/:oid/token              @controllers.VaultController.createSingleDownloadToken(vaultId, oid)
 GET     /api/rawdownload/:token                     @controllers.VaultController.singleTokenDownload(token)
-GET     /api/vaultDataJSONFile/:vaultId             @controllers.JSONDataFile.getAFile(vaultId)
+GET     /api/duplicatereport/:vaultId/latest             @controllers.JSONDataFile.getAFile(vaultId)
 
 # these endpoints mirror ArchiveHunter so that the protocol used by DownloadManager works
 GET     /api/bulk/new/:vaultId/:projectId           @controllers.BulkDownloadController.initiate(vaultId, projectId)
