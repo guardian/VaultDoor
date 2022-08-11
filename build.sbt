@@ -30,7 +30,7 @@ libraryDependencies ++= Seq(
   "com.dripower" %% "play-circe" % "2711.0",
   "org.slf4j" % "slf4j-api" % slf4jVersion,
   "commons-codec" % "commons-codec" % "1.13",
-  "commons-io" % "commons-io" % "2.6",
+  "commons-io" % "commons-io" % "2.7",
   "ch.qos.logback" % "logback-classic" % "1.2.3",
   "com.github.scopt" %% "scopt" % "3.7.1",
   "io.circe" %% "circe-yaml" % "0.13.0",
@@ -53,11 +53,11 @@ libraryDependencies ++= Seq(
 )
 
 //Sentry
-libraryDependencies += "io.sentry" % "sentry-logback" % "1.7.2"
+libraryDependencies += "io.sentry" % "sentry-logback" % "3.0.0"
 
 //authentication
 libraryDependencies ++= Seq(
-  "com.nimbusds" % "nimbus-jose-jwt" % "8.17",
+  "com.nimbusds" % "nimbus-jose-jwt" % "8.21.1",
 )
 
 //snyk updates
