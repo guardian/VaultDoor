@@ -60,7 +60,7 @@ jobs:
         working-directory: frontend
 
       - name: Build frontend
-        run: yarn build
+        run: npm run build
         working-directory: frontend
 
       - name: Build and test everything
