@@ -53,7 +53,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
-      - run: yarn test:ci
+      - run: yarn test
         env:
           JEST_JUNIT_OUTPUT_DIR: ../junit-tests
           JEST_JUNIT_TITLE: Frontend tests
