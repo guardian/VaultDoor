@@ -9,6 +9,7 @@ export const OAuthConfigurationIF = t.iface([], {
   oAuthUri: "string",
   tokenUri: "string",
   adminClaimName: "string",
+  scope: "string",
 });
 
 const exportedTypeSuite: t.ITypeSuite = {

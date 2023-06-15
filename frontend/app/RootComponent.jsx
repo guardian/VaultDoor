@@ -12,6 +12,7 @@ class RootComponent extends React.Component {
     tokenUri: PropTypes.string.isRequired,
     clientId: PropTypes.string.isRequired,
     resource: PropTypes.string.isRequired,
+    scope: PropTypes.string.isRequired,
   };
 
   constructor(props) {
@@ -68,6 +69,7 @@ class RootComponent extends React.Component {
             redirectUri={this.redirectUri}
             resource={this.props.resource}
             state={this.props.redirectingTo}
+            scope={this.props.scope}
           />
         </div>
       );

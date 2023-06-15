@@ -36,6 +36,7 @@ class App extends React.Component {
       oAuthUri: "",
       tokenUri: "",
       startup: true,
+      scope: ""
     };
 
     this.returnToRoot = this.returnToRoot.bind(this);
@@ -167,9 +168,9 @@ class App extends React.Component {
 
           return this.setStatePromise({
             clientId: content.clientId,
-            resource: content.resource,
             oAuthUri: content.oAuthUri,
             tokenUri: content.tokenUri,
+            scope: content.scope,
             startup: false,
           });
         } catch (err) {
@@ -236,7 +237,7 @@ class App extends React.Component {
                     tokenUri={this.state.tokenUri}
                     clientId={this.state.clientId}
                     redirectUri={this.redirectUri}
-                    resource={this.state.resource}
+                    scope={this.state.scope}
                   />
                 )}
               />
@@ -252,7 +253,7 @@ class App extends React.Component {
                     oAuthUri={this.state.oAuthUri}
                     tokenUri={this.state.tokenUri}
                     clientId={this.state.clientId}
-                    resource={this.state.resource}
+                    scope={this.state.scope}
                   />
                 )}
               />

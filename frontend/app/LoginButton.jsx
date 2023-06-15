@@ -8,14 +8,22 @@ class LoginButton extends React.Component {
     tokenUri: PropTypes.string.isRequired,
     clientId: PropTypes.string.isRequired,
     redirectUri: PropTypes.string.isRequired,
-    resource: PropTypes.string.isRequired,
+    scope: PropTypes.string.isRequired,
   };
+
+  generateCodeChallenge() {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const str = array.reduce((acc, x) => acc + x.toString(16).padStart(2, '0'), "");
+    sessionStorage.setItem("cx", str);
+    return str;
+  }
 
   makeLoginURL() {
     const args = {
       response_type: "code",
       client_id: this.props.clientId,
-      resource: this.props.resource,
+      scope: this.props.scope,
       redirect_uri: this.props.redirectUri,
       state: "/",
     };
@@ -24,7 +32,7 @@ class LoginButton extends React.Component {
       ([k, v]) => `${k}=${encodeURIComponent(v)}`
     );
 
-    return this.props.oAuthUri + "?" + encoded.join("&");
+    return this.props.oAuthUri + "?" + encoded.join("&") + "&code_challenge=" + this.generateCodeChallenge();
   }
 
   constructor(props) {
@@ -44,8 +52,7 @@ class LoginButton extends React.Component {
       !this.props.oAuthUri ||
       !this.props.tokenUri ||
       !this.props.clientId ||
-      !this.props.redirectUri ||
-      !this.props.resource
+      !this.props.redirectUri
     ) {
       console.error("Missing some openauth parameters: ", this.props);
       return <LoadingIndicator blank={true} />;
