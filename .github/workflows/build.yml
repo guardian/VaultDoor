@@ -2,9 +2,9 @@ name: Build and upload VaultDoor
 
 on:
   push:
-    branches: [ * ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ * ]
+    branches: [ "*" ]
 
 jobs:
   build:
@@ -80,6 +80,15 @@ jobs:
           SBT_JUNIT_OUTPUT: ./junit-tests
         run: sbt -v "clean; compile; test; rpm:packageBin"
 
+      - name: Upload to S3
+        uses: shallwefootball/s3-upload-action@master
+        with:
+          aws_key_id: ${{ secrets.AWS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+          aws_bucket: ${{ secrets.AWS_BUCKET }}
+          source_dir: 'target/rpm/RPMS/noarch/vaultdoor-1.0-${{GITHUB_RUN_NUMBER}}.noarch.rpm'
+          destination_dir: 'vaultdoor/${{GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{GITHUB_RUN_NUMBER}}.noarch.rpm'
+
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()  #runs even if there is a test failure
@@ -89,7 +98,7 @@ jobs:
       - name: Output build-info.yaml
         uses: fredex42/pluto-build-info@v1.1
         with:
-          builtimage: AWS_ACCOUNT_ID.dkr.ecr.AWS_REGION.amazonaws.com/pluto-core:${{ env.GITHUB_RUN_NUMBER }}
+          builtimage: 's3://${{ secrets.AWS_BUCKET }}/vaultdoor/${{GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{GITHUB_RUN_NUMBER}}.noarch.rpm'
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check the output
