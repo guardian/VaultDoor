@@ -85,8 +85,8 @@ jobs:
           aws_key_id: ${{ secrets.AWS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
           aws_bucket: ${{ secrets.AWS_BUCKET }}
-          source_dir: "target/rpm/RPMS/noarch/vaultdoor-1.0-${{GITHUB_RUN_NUMBER}}.noarch.rpm"
-          destination_dir: "vaultdoor/${{GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{GITHUB_RUN_NUMBER}}.noarch.rpm"
+          source_dir: "target/rpm/RPMS/noarch/vaultdoor-1.0-${{env.GITHUB_RUN_NUMBER}}.noarch.rpm"
+          destination_dir: "vaultdoor/${{env.GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{env.GITHUB_RUN_NUMBER}}.noarch.rpm"
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
@@ -97,7 +97,7 @@ jobs:
       - name: Output build-info.yaml
         uses: fredex42/pluto-build-info@v1.1
         with:
-          builtimage: "s3://${{ secrets.AWS_BUCKET }}/vaultdoor/${{GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{GITHUB_RUN_NUMBER}}.noarch.rpm"
+          builtimage: "s3://${{ secrets.AWS_BUCKET }}/vaultdoor/${{env.GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{env.GITHUB_RUN_NUMBER}}.noarch.rpm"
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check the output
