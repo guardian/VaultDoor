@@ -48,12 +48,12 @@ jobs:
         run: "echo -e \"\n//npm.pkg.github.com/:_authToken=${{secrets.GITHUB_TOKEN}}\" >> .npmrc"
         working-directory: frontend
 
-      - run: yarn install
+      - run: npm install
         working-directory: frontend
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
-      - run: yarn test
+      - run: npm test
         env:
           JEST_JUNIT_OUTPUT_DIR: ../junit-tests
           JEST_JUNIT_TITLE: Frontend tests
