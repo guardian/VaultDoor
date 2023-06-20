@@ -72,14 +72,19 @@ jobs:
           SBT_JUNIT_OUTPUT: ./junit-tests
         run: sbt -v clean compile test rpm:packageBin
 
+      - name: Create temporary directory
+        run: mkdir temp_dir
+
+      - name: Move RPM file to temporary directory
+        run: mv target/rpm/RPMS/noarch/vaultdoor-1.0-${{ env.GITHUB_RUN_NUMBER }}.noarch.rpm temp_dir/vaultdoor-1.0-${{ env.GITHUB_RUN_NUMBER }}.noarch.rpm
+
       - name: Upload to S3
         uses: shallwefootball/s3-upload-action@master
         with:
           aws_key_id: ${{ secrets.AWS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
           aws_bucket: ${{ secrets.AWS_BUCKET }}
-          source_dir: "target/rpm/RPMS/noarch/vaultdoor-1.0-${{env.GITHUB_RUN_NUMBER}}.noarch.rpm"
-          destination_dir: "vaultdoor/${{env.GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{env.GITHUB_RUN_NUMBER}}.noarch.rpm"
+          source_dir: 'temp_dir'
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
