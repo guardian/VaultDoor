@@ -70,7 +70,7 @@ jobs:
         env:
           JAVA_OPTS: "-Dbuild.number=${{ env.GITHUB_RUN_NUMBER }}"
           SBT_JUNIT_OUTPUT: ./junit-tests
-        run: sbt -v clean; compile; test; rpm:packageBin
+        run: sbt -v clean compile test rpm:packageBin
 
       - name: Upload to S3
         uses: shallwefootball/s3-upload-action@master
