@@ -85,7 +85,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
       - name: Upload to S3
-        run: |q
+        run: |
           aws s3 cp target/rpm/RPMS/noarch/vaultdoor-1.0-${{ env.GITHUB_RUN_NUMBER }}.noarch.rpm s3://${{ secrets.AWS_BUCKET }}/vaultdoor/${{env.GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{env.GITHUB_RUN_NUMBER}}.noarch.rpm
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
