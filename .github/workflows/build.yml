@@ -72,12 +72,6 @@ jobs:
           SBT_JUNIT_OUTPUT: ./junit-tests
         run: sbt -v clean compile test rpm:packageBin
 
-      - name: Create temporary directory
-        run: mkdir temp_dir
-
-      - name: Move RPM file to temporary directory
-        run: mv target/rpm/RPMS/noarch/vaultdoor-1.0-${{ env.GITHUB_RUN_NUMBER }}.noarch.rpm temp_dir/vaultdoor-1.0-${{ env.GITHUB_RUN_NUMBER }}.noarch.rpm
-
       - name: Set up AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -85,8 +79,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
       - name: Upload to S3
-        run: |
-          aws s3 cp target/rpm/RPMS/noarch/vaultdoor-1.0-${{ env.GITHUB_RUN_NUMBER }}.noarch.rpm s3://${{ secrets.AWS_BUCKET }}/vaultdoor/${{env.GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{env.GITHUB_RUN_NUMBER}}.noarch.rpm
+        run: | # /home/runner/work/VaultDoor/VaultDoor/target/rpm/RPMS/noarch/vaultdoor-1.0-229.noarch.rpm
+          echo Run number: ${{ env.GITHUB_RUN_NUMBER }}
+          pwd
+          ls /home/runner/work/VaultDoor/VaultDoor/target/rpm/RPMS/noarch
+          aws s3 cp /home/runner/work/VaultDoor/VaultDoor/target/rpm/RPMS/noarch/vaultdoor-1.0-${{ env.GITHUB_RUN_NUMBER }}.noarch.rpm s3://${{ secrets.AWS_BUCKET }}/vaultdoor/${{env.GITHUB_RUN_NUMBER}}/vaultdoor-1.0-${{env.GITHUB_RUN_NUMBER}}.noarch.rpm
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()  #runs even if there is a test failure
