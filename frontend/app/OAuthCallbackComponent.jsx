@@ -3,6 +3,8 @@ import PropTypes from "prop-types";
 import { loadInSigningKey, validateAndDecode } from "./JwtHelpers.jsx";
 import { Redirect } from "react-router";
 import LoadingIndicator from "./LoadingIndicator.jsx";
+import {VError} from "ts-interface-checker";
+import OAuthConfiguration from "./OAuthConfiguration";
 
 function delayedRequest(url, timeoutDelay, token) {
   return new Promise((resolve, reject) => {
@@ -54,7 +56,7 @@ class OAuthCallbackComponent extends React.Component {
     tokenUri: PropTypes.string.isRequired,
     clientId: PropTypes.string.isRequired,
     redirectUri: PropTypes.string.isRequired,
-    resource: PropTypes.string.isRequired,
+    scope: PropTypes.string.isRequired,
   };
 
   constructor(props) {
@@ -75,6 +77,7 @@ class OAuthCallbackComponent extends React.Component {
       signingKey: "",
       errorInURL: false,
       showingLink: false,
+      keyURL: ""
     };
 
     this.validateAndDecode = this.validateAndDecode.bind(this);
@@ -88,6 +91,8 @@ class OAuthCallbackComponent extends React.Component {
       })
     );
   }
+
+
 
   /**
    * perform the validation of the token via jsonwebtoken library.
@@ -105,9 +110,28 @@ class OAuthCallbackComponent extends React.Component {
     }
 
     try {
+      const response = await fetch("/meta/oauth/config.json");
+      if (response.status === 200) {
+        const data = await response.json();
+        const config = new OAuthConfiguration(data); //validates the configuration and throws a VError if it fails
+        await this.setStatePromise({ keyURL: config.tokenSigningCertPath });
+      } else {
+        throw `Server returned ${response.status}`;
+      }
+    } catch (err) {
+      if (err instanceof VError) {
+        console.log("OAuth configuration was not valid: ", err);
+      } else {
+        console.log("Could not load oauth configuration: ", err);
+      }
+    }
+
+    try {
+      console.log("Token from state: " + this.state.token);
       const decoded = await validateAndDecode(
         this.state.token,
         this.state.signingKey,
+        this.state.keyURL,
         this.state.refreshToken
       );
       return this.setStatePromise({
@@ -153,6 +177,7 @@ class OAuthCallbackComponent extends React.Component {
       client_id: this.props.clientId,
       redirect_uri: this.props.redirectUri,
       code: this.state.authCode,
+      code_verifier: sessionStorage.getItem("cx")
     };
     console.log("passed client_id ", this.props.clientId);
 
@@ -175,7 +200,7 @@ class OAuthCallbackComponent extends React.Component {
         console.log("received JWT");
         return this.setStatePromise({
           stage: 2,
-          token: content.access_token,
+          token: content.id_token ?? content.access_token,
           refreshToken: content.hasOwnProperty("refresh_token")
             ? content.refresh_token
             : null,
@@ -230,12 +255,20 @@ class OAuthCallbackComponent extends React.Component {
     window.setTimeout(() => this.setState({ showingLink: true }), 8000);
   }
 
+  generateCodeChallenge() {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const str = array.reduce((acc, x) => acc + x.toString(16).padStart(2, '0'), "");
+    sessionStorage.setItem("cx", str);
+    return str;
+  }
+
   makeLoginURL() {
     const args = {
       response_type: "code",
       client_id: this.props.clientId,
-      resource: this.props.resource,
       redirect_uri: this.props.redirectUri,
+      scope: this.props.scope,
       state: "/",
     };
 
@@ -243,7 +276,7 @@ class OAuthCallbackComponent extends React.Component {
       ([k, v]) => `${k}=${encodeURIComponent(v)}`
     );
 
-    return this.props.oAuthUri + "?" + encoded.join("&");
+    return this.props.oAuthUri + "?" + encoded.join("&") + "&code_challenge=" + this.generateCodeChallenge();
   }
 
   render() {

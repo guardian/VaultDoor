@@ -40,7 +40,7 @@ const LoginComponentNew: React.FC<LoginButtonNewProps> = (props) => {
     try {
       const signingKey = await loadInSigningKey();
 
-      const decodedData = await validateAndDecode(token, signingKey);
+      const decodedData = await validateAndDecode(token, signingKey, config.tokenSigningCertPath);
       const loginData = JwtData(decodedData);
       setLoginData(loginData);
 

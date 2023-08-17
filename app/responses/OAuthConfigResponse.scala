@@ -9,5 +9,7 @@ case class OAuthConfigResponse(
                               oAuthUri: String,
                               tokenUri: String,
                               allowedAudiences: Seq[String],
-                              adminClaimName: String
+                              adminClaimName: String,
+                              scope: String,
+                              tokenSigningCertPath: String
                               )

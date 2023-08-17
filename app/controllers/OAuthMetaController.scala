@@ -8,7 +8,6 @@ import responses.{GenericErrorResponse, OAuthConfigResponse}
 import io.circe.syntax._
 import io.circe.generic.auto._
 import org.slf4j.LoggerFactory
-
 import scala.io.Source
 
 @Singleton
@@ -25,9 +24,14 @@ class OAuthMetaController @Inject() (config:Configuration, cc:ControllerComponen
         InternalServerError(GenericErrorResponse("config_error","No signing cert configured on server").asJson)
       case Some(certPath)=>
         try {
-          val src = Source.fromFile(certPath, "UTF-8")
-          val content = src.mkString
-          src.close()
+          var content = ""
+          if (certPath.startsWith("http")) {
+            content = "Not set up to read a local file."
+          } else {
+            val src = Source.fromFile(certPath, "UTF-8")
+            content = src.mkString
+            src.close()
+          }
 
           Ok(content).as("application/x-x509-ca-cert")
         } catch {
@@ -47,6 +51,8 @@ class OAuthMetaController @Inject() (config:Configuration, cc:ControllerComponen
         config.get[String]("auth.tokenUri"),
         config.get[Seq[String]]("auth.validAudiences"),
         config.get[String]("auth.adminClaimName"),
+        config.get[String]("auth.scope"),
+        config.get[String]("auth.tokenSigningCertPath"),
       )
 
       Ok(response.asJson)

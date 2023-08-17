@@ -1,26 +1,48 @@
-import jwt from "jsonwebtoken";
+import * as jose from 'jose';
+
+async function checkToken(token, keyURL) {
+  const JWKS = jose.createRemoteJWKSet(new URL(keyURL));
+
+  const { payload, protectedHeader } = await jose
+      .jwtVerify(token, JWKS)
+      .catch(async (error) => {
+        if (error?.code === 'ERR_JWKS_MULTIPLE_MATCHING_KEYS') {
+          for await (const publicKey of error) {
+            console.log("publicKey: " + publicKey);
+            try {
+              return await jose.jwtVerify(token, publicKey, options)
+            } catch (innerError) {
+              if (innerError?.code === 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED') {
+                continue
+              }
+              throw innerError
+            }
+          }
+          throw new jose.errors.JWSSignatureVerificationFailed()
+        }
+        throw error
+      })
+}
 
 /**
- * perform the validation of the token via jsonwebtoken library.
- * if validation fails then the returned promise is rejected
- * if validation succeeds, then the promise only completes once the decoded content has been set into the state.
+ * Perform the validation of the token via jose library.
+ * If validation fails then the returned promise is rejected.
+ * If validation succeeds, then the promise only completes once the decoded content has been set into the state.
  * @returns {Promise<object>} Decoded JWT content or rejects with an error
  */
-function validateAndDecode(token, signingKey, refreshToken) {
+function validateAndDecode(token, signingKey, keyURL, refreshToken) {
   return new Promise((resolve, reject) => {
-    jwt.verify(token, signingKey, (err, decoded) => {
-      if (err) {
-        console.log("token: ", token);
-        console.log("signingKey: ", signingKey);
-        console.error("could not verify JWT: ", err);
-        reject(err);
-      }
-
-      window.localStorage.setItem("vaultdoor:access-token", token); //it validates so save the token
+    try {
+      const {payload, protectedHeader} = checkToken(token, keyURL);
+      window.localStorage.setItem("vaultdoor:access-token", token); //It validates so, save the token
       if (refreshToken)
         window.localStorage.setItem("vaultdoor:refresh-token", refreshToken);
-      resolve(decoded);
-    });
+      resolve(payload);
+    } catch (err) {
+      console.log("Token: ", token);
+      console.error("Could not verify JWT: ", err);
+      reject(err)
+    }
   });
 }
 

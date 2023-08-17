@@ -7,6 +7,7 @@ interface OAuthConfigurationIF {
   oAuthUri: string;
   tokenUri: string;
   adminClaimName: string;
+  scope: string;
 }
 
 const { OAuthConfigurationIF } = createCheckers(OAuthConfigurationTI);
@@ -17,6 +18,8 @@ class OAuthConfiguration implements OAuthConfigurationIF {
   oAuthUri: string;
   tokenUri: string;
   adminClaimName: string;
+  scope: string;
+  tokenSigningCertPath: string;
 
   constructor(from: any, validate = true) {
     if (validate) {
@@ -28,6 +31,8 @@ class OAuthConfiguration implements OAuthConfigurationIF {
     this.oAuthUri = from.oAuthUri;
     this.tokenUri = from.tokenUri;
     this.adminClaimName = from.adminClaimName;
+    this.scope = from.scope;
+    this.tokenSigningCertPath = from.tokenSigningCertPath;
   }
 
   /**
