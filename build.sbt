@@ -57,7 +57,7 @@ libraryDependencies += "io.sentry" % "sentry-logback" % "6.3.1"
 
 //authentication
 libraryDependencies ++= Seq(
-  "com.nimbusds" % "nimbus-jose-jwt" % "8.21.1",
+  "com.nimbusds" % "nimbus-jose-jwt" % "9.37.2",
 )
 
 //snyk updates
