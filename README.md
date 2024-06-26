@@ -1,5 +1,7 @@
 #VaultDoor
 
+trigger
+
 ## What is Vaultdoor?
 
 Vaultdoor is the "restore" in our nearline-backup-and-restore process. It's designed to rely on as few external components
