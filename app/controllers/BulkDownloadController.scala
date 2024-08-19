@@ -142,7 +142,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
                 getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
                   case Right(synopses)=>
                     val meta = LightboxBulkEntry(projectId, s"Vaultdoor download for project $projectId", token.createdForUser.getOrElse(""), ZonedDateTime.now(), 0, synopses.length, 0)
-                    Ok(BulkDownloadInitiateResponse("ok", meta, retrievalToken.value, Some(synopses)).asJson)
+                    Ok(BulkDownloadInitiateResponse("ok", meta, retrievalToken.value, synopses).asJson)
                   case Left(problem)=>
                     logger.warn(s"Could not complete bulk download for token $tokenId: $problem")
                     BadRequest(GenericErrorResponse("invalid", problem).asJson)
@@ -300,7 +300,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
                   getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
                     case Right(synopses)=>
                       val meta = LightboxBulkEntry(projectId, s"Vaultdoor download for project $projectId", token.createdForUser.getOrElse(""), ZonedDateTime.now(), 0, synopses.length, 0)
-                      Ok(BulkDownloadInitiateResponse("ok", meta, retrievalToken.value, None).asJson)
+                      Ok(BulkDownloadInitiateResponse("ok", meta, retrievalToken.value, synopses).asJson)
                     case Left(problem)=>
                       logger.warn(s"Could not complete bulk download for token $tokenId: $problem")
                       BadRequest(GenericErrorResponse("invalid", problem).asJson)
