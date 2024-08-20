@@ -320,30 +320,35 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
     * Get the bulk download summary for v2, as JSON.
     * @param tokenValue long-term token to retrieve content
     * @return
-    * @return
     */
-  def bulkDownloadSummary(tokenValue:ServerTokenEntry, notOnlyRushes:Option[Boolean]) = Action.async {
-    tokenValue.associatedId match {
+  def bulkDownloadSummary(tokenValue:String, notOnlyRushes:Option[Boolean]) = Action.async {
+    val tokenFut = serverTokenDAO.get(tokenValue)
+    tokenFut.flatMap({
       case None =>
-        logger.error(s"Token $tokenValue is invalid, it does not contain a project ID")
-        Future(NotFound(GenericErrorResponse("not_found", "Invalid token").asJson))
-      case Some(combinedId) =>
-        val ids = combinedId.split("\\|")
-        val projectId = ids.head
-        val vaultId = ids(1)
-        logger.debug(s"Combined ID is $combinedId, project ID is $projectId, vault ID is $vaultId")
-        withVaultAsync(vaultId) { userInfo =>
-          getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
-            case Right(synopses) =>
-              Result(
-                header = ResponseHeader(200, Map.empty),
-                body = HttpEntity.Strict(ByteString.fromString(synopses.asJson.toString()), Some("application/json"))
-              )
-            case Left(problem) =>
-              logger.warn(s"Could not complete bulk download for token $tokenValue: $problem")
-              BadRequest(GenericErrorResponse("invalid", problem).asJson)
-          })
+        Future(Forbidden(GenericErrorResponse("forbidden", "invalid or expired token").asJson))
+      case Some(token) =>
+        token.associatedId match {
+          case None =>
+            logger.error(s"Token $tokenValue is invalid, it does not contain a project ID")
+            Future(NotFound(GenericErrorResponse("not_found", "Invalid token").asJson))
+          case Some(combinedId) =>
+            val ids = combinedId.split("\\|")
+            val projectId = ids.head
+            val vaultId = ids(1)
+            logger.debug(s"Combined ID is $combinedId, project ID is $projectId, vault ID is $vaultId")
+            withVaultAsync(vaultId) { userInfo =>
+              getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
+                case Right(synopses) =>
+                  Result(
+                    header = ResponseHeader(200, Map.empty),
+                    body = HttpEntity.Strict(ByteString.fromString(synopses.asJson.toString()), Some("application/json"))
+                  )
+                case Left(problem) =>
+                  logger.warn(s"Could not complete bulk download for token $tokenValue: $problem")
+                  BadRequest(GenericErrorResponse("invalid", problem).asJson)
+              })
+            }
         }
-    }
+    })
   }
 }
