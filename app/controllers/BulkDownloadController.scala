@@ -347,9 +347,10 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
               getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
                 case Right(synopses) =>
                   logger.debug(s"synopses: $synopses")
+                  logger.debug(s"processed synopses: ${outPutSynopses(synopses)}")
                   Result(
                     header = ResponseHeader(200, Map.empty),
-                    body = HttpEntity.Strict(ByteString.fromString(outPutSynopses(synopses)), Some("application/json"))
+                    body = HttpEntity.Strict(ByteString.fromString(outPutSynopses(synopses)), Some("application/ndjson"))
                   )
                 case Left(problem) =>
                   logger.warn(s"Could not complete bulk download for token $tokenValue: $problem")
