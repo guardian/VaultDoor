@@ -316,6 +316,13 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
     })
   }
 
+  def outPutSynopses (synopses:Seq[ArchiveEntryDownloadSynopsis]) = {
+    synopses
+      .map(_.asJson)
+      .map(_.noSpaces + "\n")
+      .toString()
+  }
+
   /**
     * Get the bulk download summary for v2, as JSON.
     * @param tokenValue long-term token to retrieve content
@@ -342,7 +349,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
                   logger.debug(s"synopses: $synopses")
                   Result(
                     header = ResponseHeader(200, Map.empty),
-                    body = HttpEntity.Strict(ByteString.fromString(synopses.asJson.toString()), Some("application/json"))
+                    body = HttpEntity.Strict(ByteString.fromString(outPutSynopses(synopses)), Some("application/json"))
                   )
                 case Left(problem) =>
                   logger.warn(s"Could not complete bulk download for token $tokenValue: $problem")
