@@ -320,7 +320,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
     synopses
       .map(_.asJson)
       .map(_.noSpaces + "\n")
-      .toString()
+      .toString().substring(7).dropRight(1).replace("\n,","\n")
   }
 
   /**
@@ -350,7 +350,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
                   logger.debug(s"processed synopses: ${outPutSynopses(synopses)}")
                   Result(
                     header = ResponseHeader(200, Map.empty),
-                    body = HttpEntity.Strict(ByteString.fromString("{\"entryId\":\"3b72aa8c-ae02-11eb-b45a-c9c8d2306351-0\",\"path\":\"/srv/Multimedia2/NextGenDev/Media Production/Assets/Multimedia_News_features/New_Postrun_tests/yusuf_parkar_new_Postrun_Audition_test/20210505_new_postrun_audition_test.sesx\",\"fileSize\":107225}\n {\"entryId\":\"54abed58-3d89-11ec-985d-91e8c1d064e1-91\",\"path\":\"20210505_new_postrun_audition_test.sesx\",\"fileSize\":107225}\n {\"entryId\":\"7610f086-1c10-11ee-a895-8e29f591bdb6-1856\",\"path\":\"20240109_cubasestudiotest-01.cpr\",\"fileSize\":930542}\n)"), Some("application/ndjson"))
+                    body = HttpEntity.Strict(ByteString.fromString(outPutSynopses(synopses)), Some("application/ndjson"))
                   )
                 case Left(problem) =>
                   logger.warn(s"Could not complete bulk download for token $tokenValue: $problem")
