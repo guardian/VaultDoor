@@ -339,6 +339,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
             withVaultAsync(vaultId) { userInfo =>
               getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
                 case Right(synopses) =>
+                  logger.debug(s"synopses: $synopses")
                   Result(
                     header = ResponseHeader(200, Map.empty),
                     body = HttpEntity.Strict(ByteString.fromString(synopses.asJson.toString()), Some("application/json"))
