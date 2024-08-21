@@ -54,7 +54,7 @@ class MakeDownloadSynopsis (maybeStripPrefixes:Option[Seq[String]]) extends Grap
       override def onPush(): Unit = {
         val elem = grab(in)
 
-        val maybeFilePath = elem.attributes.flatMap(_.stringValues.get("MXFS_FILENAME").map(strippedPrefix))
+        val maybeFilePath = elem.attributes.flatMap(_.stringValues.get("MXFS_PATH").map(strippedPrefix))
         val maybeFileSize = determineSize(elem)
         val result = ArchiveEntryDownloadSynopsis(elem.oid, maybeFilePath.getOrElse(""), maybeFileSize)
         push(out, result)
