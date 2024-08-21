@@ -32,6 +32,8 @@ GET     /api/rawdownload/:token                     @controllers.VaultController
 # these endpoints mirror ArchiveHunter so that the protocol used by DownloadManager works
 GET     /api/bulk/new/:vaultId/:projectId           @controllers.BulkDownloadController.initiate(vaultId, projectId)
 GET     /api/bulk/:codeValue                        @controllers.BulkDownloadController.getBulkDownload(codeValue, notOnlyRushes:Option[Boolean])
+GET     /api/bulkv2/:codeValue                      @controllers.BulkDownloadController.getToken(codeValue, notOnlyRushes:Option[Boolean])
+GET     /api/bulkv2/:tokenValue/summarystream       @controllers.BulkDownloadController.bulkDownloadSummary(tokenValue, notOnlyRushes:Option[Boolean])
 GET     /api/bulk/:tokenValue/get/:fileId           @controllers.BulkDownloadController.bulkDownloadItem(tokenValue, fileId)
 GET     /api/bulk/:tokenValue/get/:fileId/data      @controllers.BulkDownloadController.bulkDownloadItemData(tokenValue, fileId)
 

@@ -7,7 +7,7 @@ import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source}
 import auth.{BearerTokenAuth, Security}
 import com.om.mxs.client.japi.{MatrixStore, SearchTerm, UserInfo, Vault}
 import helpers.{MetadataHelper, SearchTermHelper, UserInfoCache}
-
+import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
 import models.{ArchiveEntryDownloadSynopsis, LightboxBulkEntry, ObjectMatrixEntry, ServerTokenDAO, ServerTokenEntry}
 import play.api.Configuration
@@ -269,5 +269,92 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
           })
       }
     }
+  }
+
+  /**
+    * Handle the return of a short-lived token. Validate it and if it passes delete it, then send back a long-lived
+    * token.
+    * @param tokenId The id. of a short-lived token
+    * @return
+    */
+  def getToken(tokenId:String, notOnlyRushes:Option[Boolean]) = Action.async {
+    serverTokenDAO.get(tokenId).flatMap({
+      case None=>
+        Future(NotFound(GenericErrorResponse("not_found","No such bulk download").asJson))
+      case Some(token)=>
+        serverTokenDAO.remove(tokenId).flatMap(_=> {
+          token.associatedId match {
+            case None=>
+              logger.error(s"Token $tokenId is invalid, it does not contain a project ID")
+              Future(NotFound(GenericErrorResponse("not_found","Invalid token").asJson))
+            case Some(combinedId)=>
+              val ids = combinedId.split("\\|")
+              val projectId = ids.head
+              val vaultId = ids(1)
+
+              logger.debug(s"Combined ID is $combinedId, project ID is $projectId, vault ID is $vaultId")
+
+              withVaultAsync(vaultId) { userInfo =>
+                createRetrievalToken(token.createdForUser.getOrElse(""), combinedId).flatMap(retrievalToken=> {
+                  getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
+                    case Right(synopses)=>
+                      val meta = LightboxBulkEntry(projectId, s"Vaultdoor download for project $projectId", token.createdForUser.getOrElse(""), ZonedDateTime.now(), 0, synopses.length, 0)
+                      Ok(BulkDownloadInitiateResponse("ok", meta, retrievalToken.value, synopses).asJson)
+                    case Left(problem)=>
+                      logger.warn(s"Could not complete bulk download for token $tokenId: $problem")
+                      BadRequest(GenericErrorResponse("invalid", problem).asJson)
+                  })
+                })
+              }
+          }
+        }).recover({
+          case err:Throwable=>
+            logger.error(s"Could not get bulk download for token $tokenId: ", err)
+            InternalServerError(GenericErrorResponse("error","Server failure, please check the logs").asJson)
+        })
+    })
+  }
+
+  def outPutSynopses (synopses:Seq[ArchiveEntryDownloadSynopsis]) = {
+    synopses
+      .map(_.asJson)
+      .map(_.noSpaces + "\n")
+      .toString().substring(7).dropRight(1).replace("\n,","\n")
+  }
+
+  /**
+    * Get the bulk download summary for v2, as JSON.
+    * @param tokenValue Long-term token to retrieve content
+    * @return
+    */
+  def bulkDownloadSummary(tokenValue:String, notOnlyRushes:Option[Boolean]) = Action.async {
+    val tokenFut = serverTokenDAO.get(tokenValue)
+    tokenFut.flatMap({
+      case None =>
+        Future(Forbidden(GenericErrorResponse("forbidden", "invalid or expired token").asJson))
+      case Some(token) =>
+        token.associatedId match {
+          case None =>
+            logger.error(s"Token $tokenValue is invalid, it does not contain a project ID")
+            Future(NotFound(GenericErrorResponse("not_found", "Invalid token").asJson))
+          case Some(combinedId) =>
+            val ids = combinedId.split("\\|")
+            val projectId = ids.head
+            val vaultId = ids(1)
+            logger.debug(s"Combined ID is $combinedId, project ID is $projectId, vault ID is $vaultId")
+            withVaultAsync(vaultId) { userInfo =>
+              getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
+                case Right(synopses) =>
+                  Result(
+                    header = ResponseHeader(200, Map.empty),
+                    body = HttpEntity.Strict(ByteString.fromString(outPutSynopses(synopses)), Some("application/ndjson"))
+                  )
+                case Left(problem) =>
+                  logger.warn(s"Could not complete bulk download for token $tokenValue: $problem")
+                  BadRequest(GenericErrorResponse("invalid", problem).asJson)
+              })
+            }
+        }
+    })
   }
 }
