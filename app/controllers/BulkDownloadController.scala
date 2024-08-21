@@ -20,7 +20,6 @@ import play.api.cache.SyncCacheApi
 import play.api.http.HttpEntity
 import streamcomponents.{MakeDownloadSynopsis, MatrixStoreFileSourceWithRanges, OMFastContentSearchSource, OMFastSearchSource}
 
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -275,7 +274,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
   /**
     * Handle the return of a short-lived token. Validate it and if it passes delete it, then send back a long-lived
     * token.
-    * @param tokenId the ID of a short-lived token
+    * @param tokenId The id. of a short-lived token
     * @return
     */
   def getToken(tokenId:String, notOnlyRushes:Option[Boolean]) = Action.async {
@@ -325,7 +324,7 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
 
   /**
     * Get the bulk download summary for v2, as JSON.
-    * @param tokenValue long-term token to retrieve content
+    * @param tokenValue Long-term token to retrieve content
     * @return
     */
   def bulkDownloadSummary(tokenValue:String, notOnlyRushes:Option[Boolean]) = Action.async {
@@ -346,8 +345,6 @@ class BulkDownloadController @Inject() (cc:ControllerComponents,
             withVaultAsync(vaultId) { userInfo =>
               getContent(userInfo, projectId, !notOnlyRushes.getOrElse(false)).map({
                 case Right(synopses) =>
-                  logger.debug(s"synopses: $synopses")
-                  logger.debug(s"processed synopses: ${outPutSynopses(synopses)}")
                   Result(
                     header = ResponseHeader(200, Map.empty),
                     body = HttpEntity.Strict(ByteString.fromString(outPutSynopses(synopses)), Some("application/ndjson"))
