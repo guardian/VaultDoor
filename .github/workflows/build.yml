@@ -32,6 +32,9 @@ jobs:
         with:
           node-version: "17.6.0"
 
+      - name: Update Apt-Get
+        run: sudo apt-get update
+
       - name: Install xmllint
         run: sudo apt -y install libxml2-utils
 
