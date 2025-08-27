@@ -53,7 +53,7 @@ libraryDependencies ++= Seq(
 )
 
 //Sentry
-libraryDependencies += "io.sentry" % "sentry-logback" % "6.3.1"
+libraryDependencies += "io.sentry" % "sentry-logback" % "6.25.2"
 
 //authentication
 libraryDependencies ++= Seq(
