@@ -32,6 +32,9 @@ jobs:
         with:
           node-version: "17.6.0"
 
+      - name: Update Apt-Get
+        run: sudo apt-get update
+
       - name: Install xmllint
         run: sudo apt -y install libxml2-utils
 
@@ -97,7 +100,7 @@ jobs:
         run: cat build-info.yaml
 
       - name: Upload build info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-info
           path: build-info.yaml
