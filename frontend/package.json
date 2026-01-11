@@ -67,10 +67,10 @@
     "y18n": "4.0.1"
   },
   "dependencies": {
-    "@material-ui/core": "^4.10.2",
+    "@material-ui/core": "^4.12.4",
     "@material-ui/icons": "^4.9.1",
-    "@material-ui/pickers": "^3.2.10",
-    "@material-ui/styles": "^4.11.2",
+    "@material-ui/pickers": "^3.3.11",
+    "@material-ui/styles": "^4.11.5",
     "can-ndjson-stream": "^1.0.2",
     "chart.js": "^2.9.4",
     "css-loader": "^5.2.4",
