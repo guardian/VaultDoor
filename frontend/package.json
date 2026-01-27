@@ -73,7 +73,7 @@
     "@material-ui/styles": "^4.11.2",
     "can-ndjson-stream": "^1.0.2",
     "chart.js": "^2.9.4",
-    "css-loader": "^5.2.4",
+    "css-loader": "^6.9.0",
     "identity-obj-proxy": "^3.0.0",
     "jose": "^4.14.4",
     "js-cookie": "^2.2.0",
