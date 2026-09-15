@@ -80,7 +80,7 @@
     "jsonwebtoken": "^9.0.0",
     "lodash": "4.17.21",
     "lodash.omit": "^4.5.0",
-    "moment": "^2.29.4",
+    "moment": "^2.31.0",
     "moment-duration-format": "2.2.2",
     "raven-js": "^3.24.1",
     "react": "^16.14.0",
