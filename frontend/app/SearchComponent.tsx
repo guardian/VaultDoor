@@ -75,7 +75,7 @@ class SearchComponent extends React.Component<RouteComponentProps, SearchCompone
 
     const parentComponent = this;
 
-    const readNextChunk = (reader:ReadableStreamReader<FileEntry>) => {
+    const readNextChunk = (reader: ReadableStreamDefaultReader<FileEntry>) => {
       reader.read().then(({ done, value }) => {
 
         if (value) {
